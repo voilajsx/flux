@@ -1,0 +1,71 @@
+{
+  "name": "@voilajsx/flux",
+  "version": "1.0.0",
+  "description": "Flux Framework - Contract-driven TypeScript backend framework built on AppKit",
+  "type": "module",
+  "main": "dist/flux.js",
+  "types": "dist/flux.d.ts",
+  "scripts": {
+    "flux": "node scripts/flux.js",
+    "flux:dev": "node scripts/flux.js dev",
+    "flux:build": "node scripts/flux.js build",
+    "flux:create": "node scripts/flux.js create",
+    "flux:contracts": "node scripts/flux.js contracts",
+    "flux:check": "node scripts/flux.js check",
+    "flux:format": "node scripts/flux.js format",
+    "flux:help": "node scripts/flux.js help",
+    "dev": "npm run flux:dev",
+    "build": "npm run flux:build",
+    "start": "node dist/flux.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "flux",
+    "framework",
+    "backend",
+    "api",
+    "contract-driven",
+    "typescript",
+    "fastify",
+    "voilajsx",
+    "enterprise"
+  ],
+  "author": "VoilaJSX Team",
+  "license": "MIT",
+  "dependencies": {
+    "@voilajsx/appkit": "github:voilajsx/appkit",
+    "dotenv": "^16.5.0",
+    "fastify": "^5.4.0",
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voilajsx/flux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/voilajsx/flux/issues"
+  },
+  "homepage": "https://github.com/voilajsx/flux#readme",
+  "exports": {
+    ".": {
+      "import": "./dist/flux.js",
+      "types": "./dist/flux.d.ts"
+    },
+    "./contracts": {
+      "import": "./dist/contracts.js",
+      "types": "./dist/contracts.d.ts"
+    }
+  }
+}
