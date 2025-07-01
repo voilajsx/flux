@@ -1,12 +1,9 @@
 {
   "compilerOptions": {
-    /* Language and Environment */
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-
-    /* Module Resolution */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
@@ -15,12 +12,8 @@
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
-
-    /* JavaScript Support */
     "allowJs": true,
     "checkJs": false,
-
-    /* Emit */
     "outDir": "./dist",
     "rootDir": ".",
     "declaration": true,
@@ -29,15 +22,11 @@
     "removeComments": false,
     "importHelpers": false,
     "downlevelIteration": true,
-
-    /* Interop Constraints */
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-
-    /* Type Checking - Enterprise Grade Strictness */
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitAny": true,
@@ -48,8 +37,6 @@
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
-
-    /* Additional Checks */
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
@@ -57,8 +44,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
-
-    /* Completeness */
     "skipLibCheck": true
   },
   "include": [

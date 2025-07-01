@@ -55,7 +55,7 @@ export async function runBuild(args) {
     };
 
     // Add type checking options
-    const tscArgs = ['--build'];
+    const tscArgs = [];
 
     if (args.includes('--watch')) {
       tscArgs.push('--watch');
@@ -67,12 +67,12 @@ export async function runBuild(args) {
       log('Incremental compilation enabled', 'cyan');
     }
 
-    if (!args.includes('--no-emit-on-error')) {
+    if (!args.includes('--emit-on-error')) {
       tscArgs.push('--noEmitOnError');
     }
 
-    // Execute TypeScript compiler
-    const buildCommand = `npx tsc ${tscArgs.join(' ')} ${buildArgs.join(' ')}`;
+    // Execute TypeScript compiler - use local tsc
+    const buildCommand = `./node_modules/.bin/tsc ${tscArgs.join(' ')} ${buildArgs.join(' ')}`;
 
     execSync(buildCommand, {
       stdio: 'inherit',
