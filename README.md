@@ -56,17 +56,27 @@ npm run flux:dev
 
 ## 🎯 Core Concepts
 
-### Features Are Everything
+### Contract-Driven Features
 
-In Flux, you build **features**, not controllers or services. Each feature is a complete, isolated module.
+In Flux, every feature is an isolated module governed by a strict contract with four categories, ensuring zero coupling and architectural integrity.
 
 ```typescript
-// Every feature declares what it provides and needs
+// Every feature declares a precise contract
 contract: createBackendContract()
-  .providesRoute("GET /users") // I offer REST endpoints
-  .providesService("userService") // I offer user service
-  .needsDatabase() // I need database access
-  .needsAuth() // I need authentication
+  // 🌍 PUBLIC API - What this feature offers to others
+  .provides('routes', ['GET /users'])
+  .provides('services', ['userService']) // Services only, NO MODELS
+
+  // 🔒 PRIVATE IMPLEMENTATION - Internal to this feature only
+  .internal('services', ['passwordHasher'])
+  .internal('models', ['UserModel']) // All models are ALWAYS internal
+
+  // 📦 PLATFORM IMPORTS - AppKit or external libraries
+  .import('appkit', ['auth', 'database', 'logging'])
+
+  // 🤝 FEATURE DEPENDENCIES - Services from other features
+  .needs('services', ['emailService'])
+
   .build();
 ```
 
@@ -106,22 +116,25 @@ fastify.get(
 
 ## 📁 Project Structure
 
+A Flux project is a collection of independent features with a clear, enforceable structure.
+
 ```
 my-backend/
-├── flux.ts                    # Main entry point
-├── contracts.ts              # Contract definitions
-├── tsconfig.json             # TypeScript config
-├── src/features/             # All your features
-│   ├── user-management/      # Feature: User CRUD
-│   │   ├── index.ts         # Contract & config
-│   │   ├── routes/          # API endpoints
-│   │   ├── services/        # Business logic
-│   │   ├── models/          # Database models
-│   │   └── types/           # TypeScript types
-│   └── email-service/        # Feature: Background service
-│       ├── index.ts         # Contract & config
-│       ├── services/        # Worker services
-│       └── types/           # TypeScript types
+├── flux.ts                    # Main entry point & server bootstrap
+├── contracts.ts              # Core contract builder definitions
+├── tsconfig.json             # TypeScript configuration
+├── src/                      # Source code directory
+│   └── features/             # All your independent features
+│       └── user-management/  # Example feature
+│           ├── index.ts         # Core feature config, name, and contract
+│           ├── routes/
+│           │   └── userRoutes.ts # Routes (must include "Route")
+│           ├── services/
+│           │   └── userService.ts # Services (must include "Service")
+│           ├── models/
+│           │   └── userModel.ts   # Models (must include "Model")
+│           └── types/
+│               └── index.ts       # TypeScript interfaces
 └── scripts/                  # Flux CLI tools
 ```
 
@@ -157,58 +170,41 @@ npm run flux:format           # Check/fix code formatting
 
 ```bash
 npm run flux:create user-management
-# ✅ Generates full CRUD with authentication
+# ✅ Generates a full CRUD feature with a precise contract
 ```
 
-### 2. Generated Files
+### 2. Define the Contract
+
+The generated `index.ts` includes a detailed contract that defines the feature's public API, private implementation, and dependencies.
 
 ```typescript
 // src/features/user-management/index.ts
 const userManagementFeature: FeatureConfig = {
-  name: "user-management",
+  name: 'user-management',
 
   contract: createBackendContract()
-    .providesRoute("GET /users")
-    .providesRoute("POST /users")
-    .providesService("userService")
-    .needsDatabase()
-    .needsAuth()
+    // 🌍 PUBLIC API
+    .provides('routes', [
+      'GET /users', 'POST /users', 'GET /users/:id', 
+      'PUT /users/:id', 'DELETE /users/:id'
+    ])
+    .provides('services', ['userService'])
+
+    // 🔒 PRIVATE IMPLEMENTATION
+    .internal('models', ['UserModel'])
+    .internal('services', ['userValidator'])
+
+    // 📦 PLATFORM IMPORTS
+    .import('appkit', ['auth', 'database', 'logging'])
     .build(),
 
-  routes: [{ file: "routes/index.ts", prefix: "/api/users" }],
+  routes: [{ file: 'routes/userRoutes.ts', prefix: '/api/users' }],
 };
 ```
 
-```typescript
-// src/features/user-management/routes/index.ts
-fastify.get(
-  "/",
-  {
-    preHandler: auth.requireLogin(),
-  },
-  async (request, reply) => {
-    const result = await userService.getAll();
-    return reply.send(result);
-  },
-);
-
-fastify.post(
-  "/",
-  {
-    schema: {
-      /* validation */
-    },
-    preHandler: auth.requireLogin(),
-  },
-  async (request, reply) => {
-    const user = auth.user(request);
-    const result = await userService.create(request.body, user.userId);
-    return reply.send(result);
-  },
-);
-```
-
 ### 3. Ready Endpoints
+
+Your feature is now running with secure, contract-validated endpoints.
 
 ```bash
 GET    /api/users              # List all users (auth required)
@@ -220,187 +216,116 @@ DELETE /api/users/:id          # Delete user (auth required)
 
 ## 🔒 Authentication & Security
 
-### JWT Authentication (AppKit)
+Flux leverages AppKit for robust, out-of-the-box JWT authentication and role-based access control.
+
+### Declaring Auth Needs
+
+First, declare authentication as a dependency in your feature's contract.
 
 ```typescript
-// Automatic authentication setup
-import { authenticator } from "@voilajsx/appkit/auth";
-const auth = authenticator.get();
+// contract in src/features/my-feature/index.ts
+.import('appkit', ['auth', 'database', 'logging'])
+```
 
-// Login endpoint
-const token = auth.signToken({
-  userId: user.id,
-  email: user.email,
-  roles: ["user", "admin"],
+### Protecting Routes
+
+Use the `auth` helper from AppKit within your route definitions to protect endpoints.
+
+```typescript
+// src/features/my-feature/routes/myRoutes.ts
+import { router } from '@/flux';
+import { authenticator } from '@voilajsx/appkit/auth';
+
+export default router('my-feature', (routes) => {
+  const auth = authenticator.get();
+
+  // Require a valid JWT token
+  routes.get('/protected', auth.requireLogin(), async (req) => {
+    const user = auth.user(req); // Access authenticated user data
+    return { success: true, message: `Welcome ${user.email}` };
+  });
+
+  // Require a specific role
+  routes.delete(
+    '/admin-only',
+    [auth.requireLogin(), auth.requireRole('admin')],
+    async (req) => {
+      // ... logic for admins only
+    }
+  );
 });
-
-// Protected routes
-fastify.get(
-  "/profile",
-  {
-    preHandler: auth.requireLogin(),
-  },
-  handler,
-);
 ```
 
-### Role-Based Access Control
+## 🎨 Service & Model Patterns
+
+Flux enforces a strict separation between public services (the feature's API) and internal implementation details (private services and models).
+
+### Public Services (`.provides`)
+
+Services exposed to other features. They contain the core business logic.
 
 ```typescript
-// Built-in role hierarchy: user → moderator → admin → superadmin
-fastify.delete(
-  "/admin-only",
-  {
-    preHandler: [
-      auth.requireLogin(),
-      auth.requireRole("admin"), // Also allows superadmin
-    ],
-  },
-  handler,
-);
+// src/features/user-management/services/userService.ts
+import { UserModel } from '../models/userModel.js'; // Internal model
 
-// Multiple roles (OR logic)
-fastify.get(
-  "/manage",
-  {
-    preHandler: [auth.requireLogin(), auth.requireRole("admin", "moderator")],
-  },
-  handler,
-);
+class UserServiceImpl {
+  async getAll() {
+    const users = await UserModel.findAll();
+    return { success: true, data: users };
+  }
+}
+
+// Exported as a public service
+export const userService = new UserServiceImpl();
 ```
 
-### Custom Roles
+### Internal Models (`.internal`)
 
-```bash
-# .env - Define your own role hierarchy
-VOILA_AUTH_ROLES=customer:1,vendor:2,staff:3,manager:4,admin:5
-```
-
-## 🎨 Service Patterns
-
-### Standard Response Format
+All models are feature-private and are never exposed to other features.
 
 ```typescript
-interface FluxResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
+// src/features/user-management/models/userModel.ts
+import { database } from '@voilajsx/appkit/database';
 
-// Every service method returns this format
-async getAll(): Promise<UserResponse> {
-  try {
-    const users = await db.getUsers();
-    return {
-      success: true,
-      data: users,
-      message: 'Users retrieved successfully'
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+class UserModelClass {
+  async findAll() {
+    const db = await database.get();
+    return db.user.findMany();
   }
 }
-```
 
-### Background Services
-
-```typescript
-// SERVICE_ONLY template for workers
-export class EmailWorker {
-  private readonly log = logger.get("email-worker");
-
-  start(intervalMs: number = 30000): void {
-    setInterval(async () => {
-      await this.processEmailQueue();
-    }, intervalMs);
-  }
-
-  private async processEmailQueue(): Promise<void> {
-    // Process queued emails
-  }
-}
+// Exported as an internal model
+export const UserModel = new UserModelClass();
 ```
 
 ## 📊 Contract Validation
 
-Flux automatically validates that all feature dependencies are satisfied:
+Flux includes a powerful CLI command to validate all feature contracts against their implementation, ensuring architectural integrity.
 
 ```bash
 npm run flux:contracts
 
-# ✅ All contracts valid
-# ❌ Service 'paymentService' needed but not provided
-# ⚠️  Circular dependency: user-management → order-processing → user-management
+# ✅ Routes: 5 declared, 5 implemented
+# ✅ Services: 2 declared (1 public + 1 internal), 2 exported
+# ✅ Models: 1 declared, 1 exported (all internal)
+# ✅ AppKit: 3 declared, 3 imported
+# ❌ Error: Service 'emailService' needed but no feature provides it.
 ```
-
-## 🌍 Environment Variables
-
-```bash
-# Required for authentication
-VOILA_AUTH_SECRET=your-jwt-secret-key-minimum-32-characters
-JWT_SECRET=your-jwt-secret-key-minimum-32-characters
-
-# Optional database
-DATABASE_URL=postgresql://user:pass@localhost:5432/mydb
-REDIS_URL=redis://localhost:6379
-
-# Optional configuration
-NODE_ENV=development
-PORT=3000
-```
-
-## 📈 Performance
-
-- **Development**: Hot reload with tsx (~100ms restart)
-- **Production**: Compiled TypeScript (~50MB typical bundle)
-- **Memory**: <100MB for typical API server
-- **Startup**: <2s with 10+ features
 
 ## 🤖 LLM Guidelines
 
-Flux is designed for AI-assisted development. For LLMs:
+Flux is designed for AI-assisted development. Follow these core principles for best results:
 
-### Essential Patterns
-
-```typescript
-// ✅ ALWAYS use these patterns
-import { createBackendContract } from "../../../contracts.js";
-import { authenticator } from "@voilajsx/appkit/auth";
-
-// ✅ Standard contract
-contract: createBackendContract()
-  .providesRoute("GET /resource")
-  .providesService("resourceService")
-  .needsAuth()
-  .build();
-
-// ✅ Standard response
-return { success: true, data: result, message: "Success" };
-```
-
-### Anti-Patterns to Avoid
-
-```typescript
-// ❌ DON'T import between features
-import { otherService } from '../other-feature/services';
-
-// ❌ DON'T use custom auth
-const customAuth = (req, res, next) => { ... };
-
-// ❌ DON'T skip contracts
-// contract: undefined  // Missing!
-```
+1.  **Contract First**: Always design the four contract categories (`provides`, `internal`, `import`, `needs`) before writing implementation code.
+2.  **Services Over Models**: Never expose models in a feature's public API. Use services for all inter-feature communication.
+3.  **Strict Naming Conventions**: Adhere to file naming conventions (`*Routes.ts`, `*Service.ts`, `*Model.ts`) for validation to work correctly.
+4.  **Use AppKit**: Leverage AppKit for core functionalities like `auth`, `database`, and `logging` by declaring them in your contract.
 
 ## 📚 Documentation
 
-- **[LLM Guide](./FLUX_LLM_GUIDE.md)** - Complete AI development patterns
-- **[Contract System](./docs/contracts.md)** - Feature contracts explained
-- **[Authentication](./docs/auth.md)** - AppKit integration guide
-- **[CLI Reference](./docs/cli.md)** - All commands and options
+- **[LLM Guide](./docs/FLUX-LLM-GUIDE.md)** - The complete guide to AI-driven development with Flux.
+- **[Contract System](./docs/flux-contracts-architecture.md)** - In-depth explanation of the contract system.
+- **[AppKit Docs](https://github.com/voilajsx/appkit)** - Documentation for all AppKit platform services.
 
 ## 🛠️ Advanced Usage
 
