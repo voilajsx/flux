@@ -4,94 +4,94 @@
  * @file scripts/lib/utils.js
  */
 
-import readline from 'readline';
+import readline from "readline";
 
 // 🎨 Beautiful CLI Colors & Symbols
 export const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m',
-  gray: '\x1b[90m',
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
+  gray: "\x1b[90m",
 };
 
 export const symbols = {
-  flux: '⚡',
-  check: '✅',
-  error: '❌',
-  warning: '⚠️',
-  info: 'ℹ️',
-  security: '🔒',
-  code: '💻',
-  contracts: '📋',
-  performance: '⚡',
-  magic: '✨',
-  rocket: '🚀',
-  fire: '🔥',
-  lightning: '⚡',
-  target: '🎯',
-  sparkles: '✨',
+  flux: "⚡",
+  check: "✅",
+  error: "❌",
+  warning: "⚠️",
+  info: "ℹ️",
+  security: "🔒",
+  code: "💻",
+  contracts: "📋",
+  performance: "⚡",
+  magic: "✨",
+  rocket: "🚀",
+  fire: "🔥",
+  lightning: "⚡",
+  target: "🎯",
+  sparkles: "✨",
 };
 
 /**
  * 🎨 Beautiful console output helpers
  */
-export function log(message, color = 'white') {
+export function log(message, color = "white") {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 export function logSuccess(message) {
-  log(`${symbols.check} ${colors.green}${message}${colors.reset}`, 'white');
+  log(`${symbols.check} ${colors.green}${message}${colors.reset}`, "white");
 }
 
 export function logError(message) {
-  log(`${symbols.error} ${colors.red}${message}${colors.reset}`, 'white');
+  log(`${symbols.error} ${colors.red}${message}${colors.reset}`, "white");
 }
 
 export function logWarning(message) {
-  log(`${symbols.warning} ${colors.yellow}${message}${colors.reset}`, 'white');
+  log(`${symbols.warning} ${colors.yellow}${message}${colors.reset}`, "white");
 }
 
 export function logInfo(message) {
-  log(`${symbols.info} ${colors.blue}${message}${colors.reset}`, 'white');
+  log(`${symbols.info} ${colors.blue}${message}${colors.reset}`, "white");
 }
 
-export function logBox(title, content, color = 'cyan') {
+export function logBox(title, content, color = "cyan") {
   const width = 60;
-  const border = '═'.repeat(width - 2);
+  const border = "═".repeat(width - 2);
 
   console.log(`${colors[color]}╔${border}╗${colors.reset}`);
-  console.log(`${colors[color]}║${' '.repeat(width - 2)}║${colors.reset}`);
+  console.log(`${colors[color]}║${" ".repeat(width - 2)}║${colors.reset}`);
   console.log(
     `${colors[color]}║${colors.bright}${title
       .padStart((width + title.length) / 2)
-      .padEnd(width - 2)}${colors.reset}${colors[color]}║${colors.reset}`
+      .padEnd(width - 2)}${colors.reset}${colors[color]}║${colors.reset}`,
   );
-  console.log(`${colors[color]}║${' '.repeat(width - 2)}║${colors.reset}`);
+  console.log(`${colors[color]}║${" ".repeat(width - 2)}║${colors.reset}`);
 
   if (Array.isArray(content)) {
     content.forEach((line) => {
       console.log(
         `${colors[color]}║  ${colors.reset}${line.padEnd(width - 4)}${
           colors[color]
-        }║${colors.reset}`
+        }║${colors.reset}`,
       );
     });
   } else {
     console.log(
       `${colors[color]}║  ${colors.reset}${content.padEnd(width - 4)}${
         colors[color]
-      }║${colors.reset}`
+      }║${colors.reset}`,
     );
   }
 
-  console.log(`${colors[color]}║${' '.repeat(width - 2)}║${colors.reset}`);
+  console.log(`${colors[color]}║${" ".repeat(width - 2)}║${colors.reset}`);
   console.log(`${colors[color]}╚${border}╝${colors.reset}`);
   console.log();
 }
@@ -114,23 +114,23 @@ export function askQuestion(question, rl) {
 
 export async function askYesNo(question, defaultValue = true) {
   const rl = createReadlineInterface();
-  const defaultText = defaultValue ? 'Y/n' : 'y/N';
+  const defaultText = defaultValue ? "Y/n" : "y/N";
 
   const answer = await askQuestion(
     `${question} ${colors.gray}(${defaultText})${colors.reset}`,
-    rl
+    rl,
   );
   rl.close();
 
   if (!answer.trim()) return defaultValue;
-  return answer.toLowerCase().startsWith('y');
+  return answer.toLowerCase().startsWith("y");
 }
 
 export function showOptions(options, current = 0) {
   console.log();
   options.forEach((option, index) => {
     const isSelected = index === current;
-    const prefix = isSelected ? `${colors.green}→${colors.reset}` : ' ';
+    const prefix = isSelected ? `${colors.green}→${colors.reset}` : " ";
     const text = isSelected
       ? `${colors.bright}${option.text}${colors.reset}`
       : `${colors.gray}${option.text}${colors.reset}`;
@@ -146,34 +146,34 @@ export function selectFromOptions(options) {
 
     process.stdin.setRawMode(true);
     process.stdin.resume();
-    process.stdin.setEncoding('utf8');
+    process.stdin.setEncoding("utf8");
 
     const onKeypress = (key) => {
-      if (key === '\u0003') {
+      if (key === "\u0003") {
         // Ctrl+C
         process.exit();
-      } else if (key === '\u001b[A') {
+      } else if (key === "\u001b[A") {
         // Up arrow
         current = Math.max(0, current - 1);
         process.stdout.moveCursor(0, -(options.length + 1));
         process.stdout.clearScreenDown();
         showOptions(options, current);
-      } else if (key === '\u001b[B') {
+      } else if (key === "\u001b[B") {
         // Down arrow
         current = Math.min(options.length - 1, current + 1);
         process.stdout.moveCursor(0, -(options.length + 1));
         process.stdout.clearScreenDown();
         showOptions(options, current);
-      } else if (key === '\r') {
+      } else if (key === "\r") {
         // Enter
-        process.stdin.removeListener('data', onKeypress);
+        process.stdin.removeListener("data", onKeypress);
         process.stdin.setRawMode(false);
         process.stdin.pause();
         resolve(options[current]);
       }
     };
 
-    process.stdin.on('data', onKeypress);
+    process.stdin.on("data", onKeypress);
   });
 }
 
@@ -191,18 +191,18 @@ export function toPascalCase(str) {
 
 export function toKebabCase(str) {
   return str
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/[^a-z0-9]/gi, '-')
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[^a-z0-9]/gi, "-")
     .toLowerCase()
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /**
  * File system utilities
  */
 export function ensureDir(dirPath) {
-  import('fs').then((fs) => {
+  import("fs").then((fs) => {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
@@ -211,7 +211,7 @@ export function ensureDir(dirPath) {
 
 export function fileExists(filePath) {
   try {
-    import('fs').then((fs) => fs.accessSync(filePath));
+    import("fs").then((fs) => fs.accessSync(filePath));
     return true;
   } catch {
     return false;
@@ -222,10 +222,10 @@ export function fileExists(filePath) {
  * Loading spinner
  */
 export class Spinner {
-  constructor(message = 'Loading...') {
+  constructor(message = "Loading...") {
     this.message = message;
     this.spinning = false;
-    this.frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    this.frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
     this.current = 0;
   }
 
@@ -273,7 +273,7 @@ export class Timer {
 
   endWithMessage(message) {
     const time = this.end();
-    log(`${message} (${time}ms)`, 'gray');
+    log(`${message} (${time}ms)`, "gray");
     return time;
   }
 }

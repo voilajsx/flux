@@ -6,18 +6,24 @@
   "main": "dist/flux.js",
   "types": "dist/flux.d.ts",
   "scripts": {
-    "flux": "node scripts/flux.js",
-    "flux:dev": "node scripts/flux.js dev",
-    "flux:build": "node scripts/flux.js build",
-    "flux:create": "node scripts/flux.js create",
-    "flux:contracts": "node scripts/flux.js contracts",
-    "flux:check": "node scripts/flux.js check",
-    "flux:format": "node scripts/flux.js format",
-    "flux:help": "node scripts/flux.js help",
-    "dev": "npm run flux:dev",
-    "build": "npm run flux:build",
+    "flux": "node scripts/index.js",
+    "flux:create": "node scripts/index.js create",
+    "flux:contracts": "node scripts/index.js contracts",
+    "flux:check": "node scripts/index.js check",
+    "flux:help": "node scripts/index.js help",
+    "dev": "tsx watch flux.ts",
+    "build": "npm run flux:check && tsc",
     "start": "node dist/flux.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [
     "flux",
@@ -33,19 +39,29 @@
   "author": "VoilaJSX Team",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.11.0",
     "@voilajsx/appkit": "github:voilajsx/appkit",
     "dotenv": "^16.5.0",
     "fastify": "^5.4.0",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "postgresql": "^0.0.1",
+    "prisma": "^6.11.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
+    "@types/node": "^20.19.4",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
+    "@vitest/ui": "^3.2.4",
+    "c8": "^10.1.3",
     "eslint": "^8.56.0",
+    "happy-dom": "^18.0.1",
     "prettier": "^3.2.5",
+    "supertest": "^7.1.1",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=18.0.0"

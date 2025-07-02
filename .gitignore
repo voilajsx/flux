@@ -84,3 +84,4 @@ docker-compose.yml
 
 # Flux specific
 features/_*/
+/generated/prisma

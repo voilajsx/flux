@@ -3,8 +3,8 @@
  * @file scripts/lib/create.js
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 import {
   logSuccess,
   logError,
@@ -18,28 +18,28 @@ import {
   toCamelCase,
   toKebabCase,
   Timer,
-} from './utils.js';
-import { showCreateHelp } from './help.js';
+} from "./utils.js";
+import { showCreateHelp } from "./help.js";
 
 // 🎯 Feature Templates for Backend Development
 const FEATURE_TEMPLATES = {
-  'api-feature': {
-    name: 'API Feature',
-    description: 'CRUD routes + service + database + auth',
-    icon: '🔌',
+  "api-feature": {
+    name: "API Feature",
+    description: "CRUD routes + service + database + auth",
+    icon: "🔌",
     needsDatabase: true,
     needsAuth: true,
     hasRoutes: true,
-    complexity: 'Full-stack',
+    complexity: "Full-stack",
   },
-  'service-only': {
-    name: 'Service Only',
-    description: 'Background services and utilities',
-    icon: '⚙️',
+  "service-only": {
+    name: "Service Only",
+    description: "Background services and utilities",
+    icon: "⚙️",
     needsDatabase: false,
     needsAuth: false,
     hasRoutes: false,
-    complexity: 'Backend-only',
+    complexity: "Backend-only",
   },
 };
 
@@ -50,7 +50,7 @@ export async function runCreate(args) {
   const timer = new Timer();
 
   // Show help if requested
-  if (args.includes('--help') || args.includes('-h')) {
+  if (args.includes("--help") || args.includes("-h")) {
     showCreateHelp();
     return;
   }
@@ -58,8 +58,8 @@ export async function runCreate(args) {
   const featureName = args[0];
 
   if (!featureName) {
-    logError('Please provide a feature name:');
-    log(`${colors.cyan}npm run flux:create my-feature${colors.reset}`, 'white');
+    logError("Please provide a feature name:");
+    log(`${colors.cyan}npm run flux:create my-feature${colors.reset}`, "white");
     return;
   }
 
@@ -84,18 +84,18 @@ export async function runCreate(args) {
       console.clear();
       logBox(`${symbols.security} Authentication Setup`, [
         `${template.name} features typically need authentication`,
-        'Uses AppKit for enterprise-grade security',
+        "Uses AppKit for enterprise-grade security",
       ]);
-      enableAuth = await askYesNo('Enable AppKit authentication?', true);
+      enableAuth = await askYesNo("Enable AppKit authentication?", true);
     }
 
     if (template.needsDatabase) {
       console.clear();
       logBox(`${symbols.target} Database Integration`, [
         `${template.name} features typically need database access`,
-        'Configured through platform services',
+        "Configured through platform services",
       ]);
-      enableDatabase = await askYesNo('Enable database access?', true);
+      enableDatabase = await askYesNo("Enable database access?", true);
     }
 
     // Step 3: Validate feature name
@@ -105,15 +105,15 @@ export async function runCreate(args) {
     if (kebabName !== featureName.toLowerCase()) {
       log(
         `Feature name converted to: ${colors.cyan}${kebabName}${colors.reset}`,
-        'white'
+        "white",
       );
     }
 
     // Generate the feature
     console.clear();
     logBox(`${symbols.lightning} Generating Feature`, [
-      'Creating files with Flux patterns...',
-      'This will take just a moment',
+      "Creating files with Flux patterns...",
+      "This will take just a moment",
     ]);
 
     const options = {
@@ -126,7 +126,7 @@ export async function runCreate(args) {
       kebabName,
       pascalName,
       templateKey,
-      options
+      options,
     );
 
     // Success output
@@ -139,44 +139,44 @@ export async function runCreate(args) {
         `${symbols.sparkles} ${result.files.length} files generated`,
         `${symbols.fire} Zero configuration needed`,
         `${symbols.lightning} Contract-driven architecture`,
-        `${symbols.security} ${enableAuth ? 'AppKit auth enabled' : 'No auth required'}`,
+        `${symbols.security} ${enableAuth ? "AppKit auth enabled" : "No auth required"}`,
       ],
-      'green'
+      "green",
     );
 
     logSuccess(
-      `Feature created: ${colors.cyan}src/features/${kebabName}/${colors.reset}`
+      `Feature created: ${colors.cyan}src/features/${kebabName}/${colors.reset}`,
     );
     console.log();
 
-    log(`${colors.bright}Generated files:${colors.reset}`, 'white');
+    log(`${colors.bright}Generated files:${colors.reset}`, "white");
     result.files.forEach((file) => {
-      log(`  ${symbols.check} ${colors.gray}${file}${colors.reset}`, 'white');
+      log(`  ${symbols.check} ${colors.gray}${file}${colors.reset}`, "white");
     });
     console.log();
 
     logBox(
-      'Next Steps',
+      "Next Steps",
       [
-        '1. Run npm run flux:dev to start development',
-        '2. Customize the generated business logic',
-        '3. Add your database models and validation',
-        '4. Test with npm run flux:check',
-        '5. Deploy with npm run flux:build',
+        "1. Run npm run flux:dev to start development",
+        "2. Customize the generated business logic",
+        "3. Add your database models and validation",
+        "4. Test with npm run flux:check",
+        "5. Deploy with npm run flux:build",
       ],
-      'blue'
+      "blue",
     );
 
     log(
       `${symbols.flux} ${colors.bright}Happy coding with Flux!${colors.reset}`,
-      'white'
+      "white",
     );
   } catch (error) {
     console.clear();
     logError(`Feature creation failed: ${error.message}`);
 
     if (process.env.DEBUG) {
-      console.error('Full error:', error);
+      console.error("Full error:", error);
     }
 
     process.exit(1);
@@ -188,8 +188,8 @@ export async function runCreate(args) {
  */
 async function selectFeatureTemplate() {
   logBox(`${symbols.target} Choose Feature Template`, [
-    'Select the template that best matches your needs',
-    'Each template includes optimized patterns and contracts',
+    "Select the template that best matches your needs",
+    "Each template includes optimized patterns and contracts",
   ]);
 
   const options = Object.entries(FEATURE_TEMPLATES).map(([key, template]) => ({
@@ -210,10 +210,10 @@ async function generateFeatureFiles(
   kebabName,
   pascalName,
   templateKey,
-  options
+  options,
 ) {
   const template = FEATURE_TEMPLATES[templateKey];
-  const featureDir = path.join(process.cwd(), 'src', 'features', kebabName);
+  const featureDir = path.join(process.cwd(), "src", "features", kebabName);
 
   if (fs.existsSync(featureDir)) {
     throw new Error(`Feature ${kebabName} already exists`);
@@ -223,55 +223,55 @@ async function generateFeatureFiles(
   fs.mkdirSync(featureDir, { recursive: true });
 
   // Always create these directories
-  fs.mkdirSync(path.join(featureDir, 'services'), { recursive: true });
-  fs.mkdirSync(path.join(featureDir, 'types'), { recursive: true });
+  fs.mkdirSync(path.join(featureDir, "services"), { recursive: true });
+  fs.mkdirSync(path.join(featureDir, "types"), { recursive: true });
 
   // Create routes directory if needed
   if (options.hasRoutes) {
-    fs.mkdirSync(path.join(featureDir, 'routes'), { recursive: true });
+    fs.mkdirSync(path.join(featureDir, "routes"), { recursive: true });
   }
 
   // Create models directory if database is enabled
   if (options.enableDatabase) {
-    fs.mkdirSync(path.join(featureDir, 'models'), { recursive: true });
+    fs.mkdirSync(path.join(featureDir, "models"), { recursive: true });
   }
 
   // Generate files based on template
   const files = {};
 
   // Always generate these files
-  files['index.ts'] = generateIndexFile(
+  files["index.ts"] = generateIndexFile(
     kebabName,
     pascalName,
     template,
-    options
+    options,
   );
-  files['types/index.ts'] = generateTypesFile(kebabName, pascalName, options);
-  files['services/index.ts'] = generateServiceFile(
+  files["types/index.ts"] = generateTypesFile(kebabName, pascalName, options);
+  files["services/index.ts"] = generateServiceFile(
     kebabName,
     pascalName,
-    options
+    options,
   );
 
   // Template-specific files
-  if (templateKey === 'api-feature') {
-    files['routes/index.ts'] = generateAPIRoutes(
+  if (templateKey === "api-feature") {
+    files["routes/index.ts"] = generateAPIRoutes(
       kebabName,
       pascalName,
-      options
+      options,
     );
     if (options.enableDatabase) {
-      files['models/index.ts'] = generateModelFile(
+      files["models/index.ts"] = generateModelFile(
         kebabName,
         pascalName,
-        options
+        options,
       );
     }
-  } else if (templateKey === 'service-only') {
-    files['services/worker.ts'] = generateWorkerService(
+  } else if (templateKey === "service-only") {
+    files["services/worker.ts"] = generateWorkerService(
       kebabName,
       pascalName,
-      options
+      options,
     );
   }
 
@@ -285,7 +285,7 @@ async function generateFeatureFiles(
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    fs.writeFileSync(filePath, content, 'utf8');
+    fs.writeFileSync(filePath, content, "utf8");
     fileList.push(`src/features/${kebabName}/${filename}`);
   });
 
@@ -297,17 +297,17 @@ async function generateFeatureFiles(
  */
 function generateIndexFile(kebabName, pascalName, template, options) {
   const contractBuilder = [
-    options.hasRoutes ? `.providesRoute('GET /${kebabName}')` : '',
-    options.hasRoutes ? `.providesRoute('POST /${kebabName}')` : '',
-    options.hasRoutes ? `.providesRoute('PUT /${kebabName}/:id')` : '',
-    options.hasRoutes ? `.providesRoute('DELETE /${kebabName}/:id')` : '',
+    options.hasRoutes ? `.providesRoute('GET /${kebabName}')` : "",
+    options.hasRoutes ? `.providesRoute('POST /${kebabName}')` : "",
+    options.hasRoutes ? `.providesRoute('PUT /${kebabName}/:id')` : "",
+    options.hasRoutes ? `.providesRoute('DELETE /${kebabName}/:id')` : "",
     `.providesService('${kebabName}Service')`,
-    options.enableDatabase ? '.needsDatabase()' : '',
-    options.enableAuth ? '.needsAuth()' : '',
-    '.needsLogging()',
+    options.enableDatabase ? ".needsDatabase()" : "",
+    options.enableAuth ? ".needsAuth()" : "",
+    ".needsLogging()",
   ]
     .filter(Boolean)
-    .join('\n    ');
+    .join("\n    ");
 
   const routesConfig = options.hasRoutes
     ? `
@@ -317,7 +317,7 @@ function generateIndexFile(kebabName, pascalName, template, options) {
       prefix: '/api/${kebabName}'
     }
   ],`
-    : '';
+    : "";
 
   return `/**
  * ${pascalName} Feature Configuration
@@ -363,13 +363,13 @@ export interface ${pascalName}Item {
   name: string;
   createdAt: Date;
   updatedAt: Date;
-  ${options.enableAuth ? 'createdBy: string;' : ''}
+  ${options.enableAuth ? "createdBy: string;" : ""}
 }
 
 // Request/Response types
 export interface Create${pascalName}Request {
   name: string;
-  ${options.enableAuth ? '// Authentication handled automatically' : ''}
+  ${options.enableAuth ? "// Authentication handled automatically" : ""}
 }
 
 export interface Update${pascalName}Request {
@@ -387,7 +387,7 @@ export interface ${pascalName}Response {
 export interface ${pascalName}Service {
   getAll(): Promise<${pascalName}Response>;
   getById(id: string): Promise<${pascalName}Response>;
-  create(data: Create${pascalName}Request${options.enableAuth ? ', userId: string' : ''}): Promise<${pascalName}Response>;
+  create(data: Create${pascalName}Request${options.enableAuth ? ", userId: string" : ""}): Promise<${pascalName}Response>;
   update(id: string, data: Update${pascalName}Request): Promise<${pascalName}Response>;
   delete(id: string): Promise<${pascalName}Response>;
 }`;
@@ -402,7 +402,7 @@ function generateServiceFile(kebabName, pascalName, options) {
     "import { logger } from '@voilajsx/appkit/logging';",
   ]
     .filter(Boolean)
-    .join('\n');
+    .join("\n");
 
   return `/**
  * ${pascalName} Feature - Service Implementation
@@ -463,9 +463,9 @@ class ${pascalName}ServiceImpl implements ${pascalName}Service {
     }
   }
 
-  async create(data: Create${pascalName}Request${options.enableAuth ? ', userId: string' : ''}): Promise<${pascalName}Response> {
+  async create(data: Create${pascalName}Request${options.enableAuth ? ", userId: string" : ""}): Promise<${pascalName}Response> {
     try {
-      this.log.info('Creating new ${kebabName} item', { data${options.enableAuth ? ', userId' : ''} });
+      this.log.info('Creating new ${kebabName} item', { data${options.enableAuth ? ", userId" : ""} });
       
       // TODO: Implement database insert
       const newItem: ${pascalName}Item = {
@@ -473,7 +473,7 @@ class ${pascalName}ServiceImpl implements ${pascalName}Service {
         name: data.name,
         createdAt: new Date(),
         updatedAt: new Date(),
-        ${options.enableAuth ? 'createdBy: userId,' : ''}
+        ${options.enableAuth ? "createdBy: userId," : ""}
       };
       
       return {
@@ -556,13 +556,13 @@ export const ${toCamelCase(kebabName)}Service = new ${pascalName}ServiceImpl();`
 function generateAPIRoutes(kebabName, pascalName, options) {
   const authImport = options.enableAuth
     ? "\nimport { authenticator } from '@voilajsx/appkit/auth';"
-    : '';
+    : "";
   const authSetup = options.enableAuth
-    ? '\n  const auth = authenticator.get();'
-    : '';
+    ? "\n  const auth = authenticator.get();"
+    : "";
   const userExtraction = options.enableAuth
     ? "\n    const user = auth.user(request);\n    if (!user) {\n      return reply.code(401).send({ success: false, error: 'Authentication required' });\n    }\n"
-    : '';
+    : "";
 
   return `/**
  * ${pascalName} Feature - API Routes
@@ -591,7 +591,7 @@ const ${toCamelCase(kebabName)}Routes: FastifyPluginCallback = async (fastify: F
    * Get all ${kebabName} items
    * GET /api/${kebabName}
    */
-  fastify.get('/', {${options.enableAuth ? '\n    preHandler: auth.requireLogin()' : ''}
+  fastify.get('/', {${options.enableAuth ? "\n    preHandler: auth.requireLogin()" : ""}
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     log.info('GET /${kebabName} - Fetching all items');${userExtraction}
     
@@ -603,7 +603,7 @@ const ${toCamelCase(kebabName)}Routes: FastifyPluginCallback = async (fastify: F
    * Get ${kebabName} item by ID
    * GET /api/${kebabName}/:id
    */
-  fastify.get<{ Params: Get${pascalName}Params }>('/:id', {${options.enableAuth ? '\n    preHandler: auth.requireLogin()' : ''}
+  fastify.get<{ Params: Get${pascalName}Params }>('/:id', {${options.enableAuth ? "\n    preHandler: auth.requireLogin()" : ""}
   }, async (request, reply) => {
     const { id } = request.params;
     log.info('GET /${kebabName}/:id - Fetching item', { id });${userExtraction}
@@ -625,12 +625,12 @@ const ${toCamelCase(kebabName)}Routes: FastifyPluginCallback = async (fastify: F
           name: { type: 'string', minLength: 1, maxLength: 100 }
         }
       }
-    }${options.enableAuth ? ',\n    preHandler: auth.requireLogin()' : ''}
+    }${options.enableAuth ? ",\n    preHandler: auth.requireLogin()" : ""}
   }, async (request, reply) => {
     const data = request.body;
     log.info('POST /${kebabName} - Creating item', { data });${userExtraction}
     
-    const result = await ${toCamelCase(kebabName)}Service.create(data${options.enableAuth ? ', user.userId' : ''});
+    const result = await ${toCamelCase(kebabName)}Service.create(data${options.enableAuth ? ", user.userId" : ""});
     return reply.code(result.success ? 201 : 400).send(result);
   });
 
@@ -646,7 +646,7 @@ const ${toCamelCase(kebabName)}Routes: FastifyPluginCallback = async (fastify: F
           name: { type: 'string', minLength: 1, maxLength: 100 }
         }
       }
-    }${options.enableAuth ? ',\n    preHandler: auth.requireLogin()' : ''}
+    }${options.enableAuth ? ",\n    preHandler: auth.requireLogin()" : ""}
   }, async (request, reply) => {
     const { id } = request.params;
     const data = request.body;
@@ -660,7 +660,7 @@ const ${toCamelCase(kebabName)}Routes: FastifyPluginCallback = async (fastify: F
    * Delete ${kebabName} item
    * DELETE /api/${kebabName}/:id
    */
-  fastify.delete<{ Params: Get${pascalName}Params }>('/:id', {${options.enableAuth ? '\n    preHandler: auth.requireLogin()' : ''}
+  fastify.delete<{ Params: Get${pascalName}Params }>('/:id', {${options.enableAuth ? "\n    preHandler: auth.requireLogin()" : ""}
   }, async (request, reply) => {
     const { id } = request.params;
     log.info('DELETE /${kebabName}/:id - Deleting item', { id });${userExtraction}

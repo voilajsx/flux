@@ -1,0 +1,87 @@
+###
+# Hello Feature - REST Client Tests
+# @description Test multi-language greeting endpoints
+# @file tests/hello.http
+###
+
+@baseUrl = http://localhost:3000
+@apiBase = {{baseUrl}}/api
+
+### Test 1: Basic Hello (English default)
+GET {{apiBase}}/hello
+Content-Type: application/json
+
+### Test 2: Hello in Spanish
+GET {{apiBase}}/hello?lang=es
+Content-Type: application/json
+
+### Test 3: Hello in French
+GET {{apiBase}}/hello?lang=fr
+Content-Type: application/json
+
+### Test 4: Hello in Japanese
+GET {{apiBase}}/hello?lang=ja
+Content-Type: application/json
+
+### Test 5: Hello with unsupported language (should fallback to English)
+GET {{apiBase}}/hello?lang=xyz
+Content-Type: application/json
+
+### Test 6: Basic Hi (English default)
+GET {{apiBase}}/hi
+Content-Type: application/json
+
+### Test 7: Hi in German
+GET {{apiBase}}/hi?lang=de
+Content-Type: application/json
+
+### Test 8: Hi in Italian
+GET {{apiBase}}/hi?lang=it
+Content-Type: application/json
+
+### Test 9: Personalized Hello - John (English)
+GET {{apiBase}}/hello/John
+Content-Type: application/json
+
+### Test 10: Personalized Hello - Maria (Spanish)
+GET {{apiBase}}/hello/Maria?lang=es
+Content-Type: application/json
+
+### Test 11: Personalized Hello - Pierre (French)
+GET {{apiBase}}/hello/Pierre?lang=fr
+Content-Type: application/json
+
+### Test 12: Personalized Hello - Hiroshi (Japanese)
+GET {{apiBase}}/hello/Hiroshi?lang=ja
+Content-Type: application/json
+
+### Test 13: Personalized Hello - Special characters in name
+GET {{apiBase}}/hello/José?lang=pt
+Content-Type: application/json
+
+### Test 14: Personalized Hello - Long name
+GET {{apiBase}}/hello/VeryLongNameForTesting?lang=en
+Content-Type: application/json
+
+### Test 15: All supported languages test
+GET {{apiBase}}/hello?lang=en
+###
+GET {{apiBase}}/hello?lang=es
+###
+GET {{apiBase}}/hello?lang=fr
+###
+GET {{apiBase}}/hello?lang=de
+###
+GET {{apiBase}}/hello?lang=it
+###
+GET {{apiBase}}/hello?lang=pt
+###
+GET {{apiBase}}/hello?lang=ru
+###
+GET {{apiBase}}/hello?lang=ja
+###
+GET {{apiBase}}/hello?lang=zh
+###
+GET {{apiBase}}/hello?lang=ar
+###
+GET {{apiBase}}/hello?lang=hi

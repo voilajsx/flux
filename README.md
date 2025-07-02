@@ -63,8 +63,8 @@ In Flux, you build **features**, not controllers or services. Each feature is a 
 ```typescript
 // Every feature declares what it provides and needs
 contract: createBackendContract()
-  .providesRoute('GET /users') // I offer REST endpoints
-  .providesService('userService') // I offer user service
+  .providesRoute("GET /users") // I offer REST endpoints
+  .providesService("userService") // I offer user service
   .needsDatabase() // I need database access
   .needsAuth() // I need authentication
   .build();
@@ -85,22 +85,22 @@ npm run flux:create email-sender    # → SERVICE_ONLY template
 ```typescript
 // Authentication works out of the box
 fastify.get(
-  '/protected',
+  "/protected",
   {
     preHandler: auth.requireLogin(), // JWT authentication
   },
-  handler
+  handler,
 );
 
 fastify.get(
-  '/admin',
+  "/admin",
   {
     preHandler: [
       auth.requireLogin(),
-      auth.requireRole('admin'), // Role-based access
+      auth.requireRole("admin"), // Role-based access
     ],
   },
-  handler
+  handler,
 );
 ```
 
@@ -165,35 +165,35 @@ npm run flux:create user-management
 ```typescript
 // src/features/user-management/index.ts
 const userManagementFeature: FeatureConfig = {
-  name: 'user-management',
+  name: "user-management",
 
   contract: createBackendContract()
-    .providesRoute('GET /users')
-    .providesRoute('POST /users')
-    .providesService('userService')
+    .providesRoute("GET /users")
+    .providesRoute("POST /users")
+    .providesService("userService")
     .needsDatabase()
     .needsAuth()
     .build(),
 
-  routes: [{ file: 'routes/index.ts', prefix: '/api/users' }],
+  routes: [{ file: "routes/index.ts", prefix: "/api/users" }],
 };
 ```
 
 ```typescript
 // src/features/user-management/routes/index.ts
 fastify.get(
-  '/',
+  "/",
   {
     preHandler: auth.requireLogin(),
   },
   async (request, reply) => {
     const result = await userService.getAll();
     return reply.send(result);
-  }
+  },
 );
 
 fastify.post(
-  '/',
+  "/",
   {
     schema: {
       /* validation */
@@ -204,7 +204,7 @@ fastify.post(
     const user = auth.user(request);
     const result = await userService.create(request.body, user.userId);
     return reply.send(result);
-  }
+  },
 );
 ```
 
@@ -224,23 +224,23 @@ DELETE /api/users/:id          # Delete user (auth required)
 
 ```typescript
 // Automatic authentication setup
-import { authenticator } from '@voilajsx/appkit/auth';
+import { authenticator } from "@voilajsx/appkit/auth";
 const auth = authenticator.get();
 
 // Login endpoint
 const token = auth.signToken({
   userId: user.id,
   email: user.email,
-  roles: ['user', 'admin'],
+  roles: ["user", "admin"],
 });
 
 // Protected routes
 fastify.get(
-  '/profile',
+  "/profile",
   {
     preHandler: auth.requireLogin(),
   },
-  handler
+  handler,
 );
 ```
 
@@ -249,23 +249,23 @@ fastify.get(
 ```typescript
 // Built-in role hierarchy: user → moderator → admin → superadmin
 fastify.delete(
-  '/admin-only',
+  "/admin-only",
   {
     preHandler: [
       auth.requireLogin(),
-      auth.requireRole('admin'), // Also allows superadmin
+      auth.requireRole("admin"), // Also allows superadmin
     ],
   },
-  handler
+  handler,
 );
 
 // Multiple roles (OR logic)
 fastify.get(
-  '/manage',
+  "/manage",
   {
-    preHandler: [auth.requireLogin(), auth.requireRole('admin', 'moderator')],
+    preHandler: [auth.requireLogin(), auth.requireRole("admin", "moderator")],
   },
-  handler
+  handler,
 );
 ```
 
@@ -311,7 +311,7 @@ async getAll(): Promise<UserResponse> {
 ```typescript
 // SERVICE_ONLY template for workers
 export class EmailWorker {
-  private readonly log = logger.get('email-worker');
+  private readonly log = logger.get("email-worker");
 
   start(intervalMs: number = 30000): void {
     setInterval(async () => {
@@ -368,18 +368,18 @@ Flux is designed for AI-assisted development. For LLMs:
 
 ```typescript
 // ✅ ALWAYS use these patterns
-import { createBackendContract } from '../../../contracts.js';
-import { authenticator } from '@voilajsx/appkit/auth';
+import { createBackendContract } from "../../../contracts.js";
+import { authenticator } from "@voilajsx/appkit/auth";
 
 // ✅ Standard contract
 contract: createBackendContract()
-  .providesRoute('GET /resource')
-  .providesService('resourceService')
+  .providesRoute("GET /resource")
+  .providesService("resourceService")
   .needsAuth()
   .build();
 
 // ✅ Standard response
-return { success: true, data: result, message: 'Success' };
+return { success: true, data: result, message: "Success" };
 ```
 
 ### Anti-Patterns to Avoid
@@ -409,13 +409,13 @@ const customAuth = (req, res, next) => { ... };
 ```typescript
 // Add your own platform services
 export const CUSTOM_SERVICES = {
-  PAYMENT: 'payment',
-  ANALYTICS: 'analytics',
+  PAYMENT: "payment",
+  ANALYTICS: "analytics",
 } as const;
 
 // Use in contracts
 contract: createBackendContract()
-  .needsService('payment') // Custom service
+  .needsService("payment") // Custom service
   .build();
 ```
 
@@ -426,7 +426,7 @@ contract: createBackendContract()
 export const TEAM_TEMPLATES = {
   MICROSERVICE: () =>
     createBackendContract()
-      .providesService('microservice')
+      .providesService("microservice")
       .needsDatabase()
       .needsLogging()
       .build(),

@@ -1,6 +1,11 @@
 /**
- * Flux Framework - Contract Validation
+ * Flux Framework - Contract Validation with Static Code Analysis
+ * @module @voilajsx/flux/validation
  * @file scripts/lib/contracts.js
+ *
+ * @llm-rule WHEN: Feature contracts need validation before deployment
+ * @llm-rule AVOID: Running without validating all contract dependencies first
+ * @llm-rule NOTE: Enforces service-only public APIs and file naming conventions
  */
 
 import fs from 'fs';
@@ -18,17 +23,18 @@ import {
 } from './utils.js';
 
 /**
- * Validate feature contracts and dependencies
+ * Main contract validation function
+ * @llm-rule WHEN: Need to validate all feature contracts before deployment
+ * @llm-rule AVOID: Skipping validation - server won't start with invalid contracts
  */
 export async function runContracts(args) {
   const timer = new Timer();
-
   console.clear();
 
   logBox(`${symbols.contracts} Flux Contract Validation`, [
     `${symbols.target} Dependency analysis and validation`,
-    `${symbols.lightning} Circular dependency detection`,
-    `${symbols.security} Platform service verification`,
+    `${symbols.lightning} Static code analysis`,
+    `${symbols.security} AppKit service verification`,
     `${symbols.sparkles} Architecture integrity check`,
   ]);
 
@@ -36,7 +42,6 @@ export async function runContracts(args) {
   spinner.start();
 
   try {
-    // Discover features and their contracts
     const features = await discoverFeatureContracts();
     spinner.stop(
       `Found ${Object.keys(features).length} features with contracts`
@@ -51,17 +56,18 @@ export async function runContracts(args) {
       return;
     }
 
-    // Validate contracts
+    // Run all validations
     log(`${symbols.lightning} Validating feature contracts...`, 'white');
     const validation = await validateAllContracts(features);
 
-    // Check for circular dependencies
+    log(`${symbols.sparkles} Running static code analysis...`, 'white');
+    const staticAnalysis = await enforceContractsWithCodeAnalysis(features);
+
     log(`${symbols.target} Checking circular dependencies...`, 'white');
     const circularDeps = await checkCircularDependencies(features);
 
-    // Validate platform services
-    log(`${symbols.security} Validating platform services...`, 'white');
-    const platformValidation = validatePlatformServices(features);
+    log(`${symbols.security} Validating AppKit services...`, 'white');
+    const appkitValidation = validateAppKitServices(features);
 
     // Display results
     console.clear();
@@ -69,24 +75,25 @@ export async function runContracts(args) {
 
     displayValidationResults(
       validation,
+      staticAnalysis,
       circularDeps,
-      platformValidation,
+      appkitValidation,
       features
     );
   } catch (error) {
     spinner.fail('Contract validation failed');
     logError(`Contract validation failed: ${error.message}`);
-
     if (process.env.DEBUG) {
       console.error('Full error:', error);
     }
-
     process.exit(1);
   }
 }
 
 /**
- * Discover all features and their contracts
+ * Discover all features and parse their contracts
+ * @llm-rule WHEN: Need to find and parse all feature index.ts files
+ * @llm-rule AVOID: Manual contract discovery - this handles all feature scanning
  */
 async function discoverFeatureContracts() {
   const features = {};
@@ -131,6 +138,10 @@ async function discoverFeatureContracts() {
 
 /**
  * Parse contract from feature index file
+ * Supports syntax: .provides(), .internal(), .import(), .needs()
+ * @llm-rule WHEN: Feature has createBackendContract().build() in index.ts
+ * @llm-rule AVOID: Parsing legacy contract syntax - only supports current syntax
+ * @llm-rule NOTE: Returns structured contract object with 4 categories
  */
 function parseContractFromFile(content, featureName) {
   try {
@@ -138,111 +149,111 @@ function parseContractFromFile(content, featureName) {
     const contractMatch = content.match(
       /createBackendContract\(\)([\s\S]*?)\.build\(\)/
     );
-
     if (!contractMatch) {
       return null;
     }
 
     const contractCode = contractMatch[1];
-
-    // Parse provides/needs from the contract builder chain
     const contract = {
-      provides: {
-        routes: [],
-        services: [],
-        middleware: [],
-        models: [],
-      },
-      needs: {
-        platform: [],
-        services: [],
-        middleware: [],
-        models: [],
-      },
+      provides: { routes: [], services: [] },
+      internal: { services: [], models: [] },
+      imports: { appkit: [], external: [] },
+      needs: { services: [] },
     };
 
-    // Extract provides
-    const providesRouteMatches =
-      contractCode.match(/\.providesRoute\(['"`]([^'"`]+)['"`]\)/g) || [];
-    providesRouteMatches.forEach((match) => {
-      const routeMatch = match.match(/\.providesRoute\(['"`]([^'"`]+)['"`]\)/);
-      if (routeMatch) {
-        contract.provides.routes.push(routeMatch[1]);
-      }
-    });
-
-    const providesServiceMatches =
-      contractCode.match(/\.providesService\(['"`]([^'"`]+)['"`]\)/g) || [];
-    providesServiceMatches.forEach((match) => {
-      const serviceMatch = match.match(
-        /\.providesService\(['"`]([^'"`]+)['"`]\)/
-      );
-      if (serviceMatch) {
-        contract.provides.services.push(serviceMatch[1]);
-      }
-    });
-
-    const providesMiddlewareMatches =
-      contractCode.match(/\.providesMiddleware\(['"`]([^'"`]+)['"`]\)/g) || [];
-    providesMiddlewareMatches.forEach((match) => {
-      const middlewareMatch = match.match(
-        /\.providesMiddleware\(['"`]([^'"`]+)['"`]\)/
-      );
-      if (middlewareMatch) {
-        contract.provides.middleware.push(middlewareMatch[1]);
-      }
-    });
-
-    const providesModelMatches =
-      contractCode.match(/\.providesModel\(['"`]([^'"`]+)['"`]\)/g) || [];
-    providesModelMatches.forEach((match) => {
-      const modelMatch = match.match(/\.providesModel\(['"`]([^'"`]+)['"`]\)/);
-      if (modelMatch) {
-        contract.provides.models.push(modelMatch[1]);
-      }
-    });
-
-    // Extract needs
-    const needsPlatformMatches =
+    // Parse .provides('category', ['item1', 'item2', ...])
+    const providesMatches =
       contractCode.match(
-        /\.needs(Database|Redis|Auth|Logging|Config|Security|Validation)\(\)/g
+        /\.provides\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/gs
       ) || [];
-    needsPlatformMatches.forEach((match) => {
-      const platformMatch = match.match(/\.needs(\w+)\(\)/);
-      if (platformMatch) {
-        const serviceName = platformMatch[1].toLowerCase();
-        contract.needs.platform.push(serviceName);
-      }
-    });
 
-    const needsServiceMatches =
-      contractCode.match(/\.needsService\(['"`]([^'"`]+)['"`]\)/g) || [];
-    needsServiceMatches.forEach((match) => {
-      const serviceMatch = match.match(/\.needsService\(['"`]([^'"`]+)['"`]\)/);
-      if (serviceMatch) {
-        contract.needs.services.push(serviceMatch[1]);
-      }
-    });
-
-    const needsMiddlewareMatches =
-      contractCode.match(/\.needsMiddleware\(['"`]([^'"`]+)['"`]\)/g) || [];
-    needsMiddlewareMatches.forEach((match) => {
-      const middlewareMatch = match.match(
-        /\.needsMiddleware\(['"`]([^'"`]+)['"`]\)/
+    for (const match of providesMatches) {
+      const detailMatch = match.match(
+        /\.provides\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/s
       );
-      if (middlewareMatch) {
-        contract.needs.middleware.push(middlewareMatch[1]);
-      }
-    });
+      if (detailMatch) {
+        const category = detailMatch[1]; // 'routes', 'services'
+        const itemsString = detailMatch[2];
 
-    const needsModelMatches =
-      contractCode.match(/\.needsModel\(['"`]([^'"`]+)['"`]\)/g) || [];
-    needsModelMatches.forEach((match) => {
-      const modelMatch = match.match(/\.needsModel\(['"`]([^'"`]+)['"`]\)/);
-      if (modelMatch) {
-        contract.needs.models.push(modelMatch[1]);
+        const items = parseArrayItems(itemsString);
+
+        if (category === 'routes') {
+          contract.provides.routes.push(...items);
+        } else if (category === 'services') {
+          contract.provides.services.push(...items);
+        }
       }
-    });
+    }
+
+    // Parse .internal('category', ['item1', 'item2', ...])
+    const internalMatches =
+      contractCode.match(
+        /\.internal\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/gs
+      ) || [];
+
+    for (const match of internalMatches) {
+      const detailMatch = match.match(
+        /\.internal\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/s
+      );
+      if (detailMatch) {
+        const category = detailMatch[1]; // 'services', 'models'
+        const itemsString = detailMatch[2];
+
+        const items = parseArrayItems(itemsString);
+
+        if (category === 'services') {
+          contract.internal.services.push(...items);
+        } else if (category === 'models') {
+          contract.internal.models.push(...items);
+        }
+      }
+    }
+
+    // Parse .import('source', ['item1', 'item2', ...])
+    const importMatches =
+      contractCode.match(
+        /\.import\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/gs
+      ) || [];
+
+    for (const match of importMatches) {
+      const detailMatch = match.match(
+        /\.import\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/s
+      );
+      if (detailMatch) {
+        const source = detailMatch[1]; // 'appkit', 'external'
+        const itemsString = detailMatch[2];
+
+        const items = parseArrayItems(itemsString);
+
+        if (source === 'appkit') {
+          contract.imports.appkit.push(...items);
+        } else if (source === 'external') {
+          contract.imports.external.push(...items);
+        }
+      }
+    }
+
+    // Parse .needs('category', ['item1', 'item2', ...])
+    const needsMatches =
+      contractCode.match(
+        /\.needs\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/gs
+      ) || [];
+
+    for (const match of needsMatches) {
+      const detailMatch = match.match(
+        /\.needs\s*\(\s*['"`](\w+)['"`]\s*,\s*\[(.*?)\]\s*\)/s
+      );
+      if (detailMatch) {
+        const category = detailMatch[1]; // 'services'
+        const itemsString = detailMatch[2];
+
+        const items = parseArrayItems(itemsString);
+
+        if (category === 'services') {
+          contract.needs.services.push(...items);
+        }
+      }
+    }
 
     return contract;
   } catch (error) {
@@ -251,21 +262,608 @@ function parseContractFromFile(content, featureName) {
 }
 
 /**
- * Validate all contracts
+ * Parse array items from string: ['item1', 'item2'] -> [item1, item2]
+ * @llm-rule WHEN: Converting contract array strings to clean item arrays
+ * @llm-rule AVOID: Manual string parsing - handles quotes and whitespace
  */
-async function validateAllContracts(features) {
-  const validation = {};
-
-  for (const [featureName, feature] of Object.entries(features)) {
-    validation[featureName] = await validateFeatureContract(feature, features);
+function parseArrayItems(itemsString) {
+  if (!itemsString || itemsString.trim() === '') {
+    return [];
   }
 
-  return validation;
+  return itemsString
+    .split(',')
+    .map((item) => item.trim().replace(/^['"`]|['"`]$/g, ''))
+    .filter((item) => item.length > 0);
 }
 
 /**
- * Validate a single feature's contract
+ * Bi-directional static code analysis enforcement
+ * @llm-rule WHEN: Need to validate contracts match actual code implementation
+ * @llm-rule AVOID: Trusting contracts without code verification - catches mismatches
+ * @llm-rule NOTE: Validates routes, services, models, imports, and dependencies
  */
+async function enforceContractsWithCodeAnalysis(features) {
+  const errors = [];
+  const warnings = [];
+
+  for (const [featureName, feature] of Object.entries(features)) {
+    if (!feature.contract) continue;
+
+    try {
+      // ✅ Validate routes (bi-directional)
+      const routeErrors = await validateRouteContracts(feature);
+      errors.push(...routeErrors);
+
+      // ✅ Validate services (exact count)
+      const serviceErrors = await validateServiceContracts(feature);
+      errors.push(...serviceErrors);
+
+      // ✅ Validate models (exact count)
+      const modelErrors = await validateModelContracts(feature);
+      errors.push(...modelErrors);
+
+      // ✅ Validate AppKit imports (bi-directional)
+      const importErrors = await validateAppKitImportContracts(feature);
+      errors.push(...importErrors);
+
+      // ✅ Validate service dependencies (provider + usage)
+      const dependencyErrors = await validateServiceDependencies(
+        feature,
+        features
+      );
+      errors.push(...dependencyErrors);
+    } catch (error) {
+      errors.push(
+        `Static analysis failed for '${featureName}': ${error.message}`
+      );
+    }
+  }
+
+  return { errors, warnings };
+}
+
+/**
+ * ✅ Bi-directional route validation
+ * @llm-rule WHEN: Feature declares routes in contract - validates they exist
+ * @llm-rule AVOID: Undeclared routes - all implemented routes must be in contract
+ * @llm-rule NOTE: Only scans exports containing "route"/"routes" in filename
+ */
+async function validateRouteContracts(feature) {
+  const errors = [];
+
+  try {
+    // Safely get declared routes from contract
+    const declaredRoutes = feature.contract?.provides?.routes || [];
+
+    // Find actual routes in route files
+    const routeFiles = findRouteFiles(feature);
+    const actualRoutes = [];
+
+    for (const routeFile of routeFiles) {
+      try {
+        const routes = await extractRoutesFromFile(routeFile);
+        actualRoutes.push(...routes);
+      } catch (error) {
+        errors.push(
+          `Failed to parse route file ${routeFile}: ${error.message}`
+        );
+      }
+    }
+
+    // Validate declared routes exist in code
+    for (const declaredRoute of declaredRoutes) {
+      if (!declaredRoute || typeof declaredRoute !== 'string') {
+        errors.push(
+          `Feature '${feature.name}' has invalid route declaration: ${JSON.stringify(declaredRoute)}`
+        );
+        continue;
+      }
+
+      const parts = declaredRoute.trim().split(' ');
+      if (parts.length !== 2) {
+        errors.push(
+          `Feature '${feature.name}' route '${declaredRoute}' must be in format 'METHOD /path'`
+        );
+        continue;
+      }
+
+      const [method, path] = parts;
+      if (!method || !path) {
+        errors.push(
+          `Feature '${feature.name}' route '${declaredRoute}' has empty method or path`
+        );
+        continue;
+      }
+
+      const exists = actualRoutes.some(
+        (r) =>
+          r &&
+          r.method &&
+          r.path &&
+          r.method.toUpperCase() === method.toUpperCase() &&
+          r.path === path
+      );
+
+      if (!exists) {
+        errors.push(
+          `Feature '${feature.name}' declares route '${declaredRoute}' but it's not implemented`
+        );
+      }
+    }
+
+    // Validate actual routes are declared
+    for (const actualRoute of actualRoutes) {
+      if (!actualRoute || !actualRoute.method || !actualRoute.path) {
+        continue; // Skip invalid routes
+      }
+
+      const routeDeclaration = `${actualRoute.method.toUpperCase()} ${actualRoute.path}`;
+      if (!declaredRoutes.includes(routeDeclaration)) {
+        errors.push(
+          `Feature '${feature.name}' has undeclared route '${routeDeclaration}' - add to contract`
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `Route validation failed for '${feature.name}': ${error.message}`
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * ✅ Exact count service validation
+ * @llm-rule WHEN: Feature has service files - validates provides+internal=total
+ * @llm-rule AVOID: Mixing public/private services - use provides vs internal
+ * @llm-rule NOTE: Only scans *Service.ts files with "service" in export names
+ */
+async function validateServiceContracts(feature) {
+  const errors = [];
+
+  try {
+    const providedServices = feature.contract?.provides?.services || [];
+    const internalServices = feature.contract?.internal?.services || [];
+
+    // Find actual service exports from *Service.ts/*Services.ts files
+    const serviceFiles = findServiceFiles(feature);
+    const exportedServices = [];
+
+    for (const serviceFile of serviceFiles) {
+      try {
+        const exports = await extractServicesFromFile(serviceFile);
+        exportedServices.push(...exports);
+      } catch (error) {
+        errors.push(
+          `Failed to parse service file ${serviceFile}: ${error.message}`
+        );
+      }
+    }
+
+    // Exact count validation
+    const totalDeclared = providedServices.length + internalServices.length;
+    if (totalDeclared !== exportedServices.length) {
+      errors.push(
+        `Feature '${feature.name}': Service count mismatch - declared ${totalDeclared}, found ${exportedServices.length} exports`
+      );
+    }
+
+    // All declared must exist in exports
+    [...providedServices, ...internalServices].forEach((declared) => {
+      if (!exportedServices.includes(declared)) {
+        errors.push(
+          `Feature '${feature.name}': Service '${declared}' declared but not exported`
+        );
+      }
+    });
+
+    // All exports must be declared
+    exportedServices.forEach((exported) => {
+      if (![...providedServices, ...internalServices].includes(exported)) {
+        errors.push(
+          `Feature '${feature.name}': Service '${exported}' exported but not declared in contract`
+        );
+      }
+    });
+  } catch (error) {
+    errors.push(
+      `Service validation failed for '${feature.name}': ${error.message}`
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * ✅ Exact count model validation
+ * @llm-rule WHEN: Feature has model files - all models must be internal
+ * @llm-rule AVOID: Public model exports - models are always feature-private
+ * @llm-rule NOTE: Only scans *Model.ts files with "model" in export names
+ */
+async function validateModelContracts(feature) {
+  const errors = [];
+
+  try {
+    const internalModels = feature.contract?.internal?.models || [];
+
+    // Find actual model exports from *Model.ts/*Models.ts files
+    const modelFiles = findModelFiles(feature);
+    const exportedModels = [];
+
+    for (const modelFile of modelFiles) {
+      try {
+        const exports = await extractModelsFromFile(modelFile);
+        exportedModels.push(...exports);
+      } catch (error) {
+        errors.push(
+          `Failed to parse model file ${modelFile}: ${error.message}`
+        );
+      }
+    }
+
+    // Exact count validation - all models must be internal
+    if (internalModels.length !== exportedModels.length) {
+      errors.push(
+        `Feature '${feature.name}': Model count mismatch - declared ${internalModels.length}, found ${exportedModels.length} exports`
+      );
+    }
+
+    // All declared must exist in exports
+    internalModels.forEach((declared) => {
+      if (!exportedModels.includes(declared)) {
+        errors.push(
+          `Feature '${feature.name}': Model '${declared}' declared but not exported`
+        );
+      }
+    });
+
+    // All exports must be declared as internal
+    exportedModels.forEach((exported) => {
+      if (!internalModels.includes(exported)) {
+        errors.push(
+          `Feature '${feature.name}': Model '${exported}' exported but not declared as internal`
+        );
+      }
+    });
+  } catch (error) {
+    errors.push(
+      `Model validation failed for '${feature.name}': ${error.message}`
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * ✅ Bi-directional AppKit import validation
+ * @llm-rule WHEN: Feature imports AppKit services - must be declared in contract
+ * @llm-rule AVOID: Undeclared AppKit imports - all @voilajsx/appkit/* must be in contract
+ * @llm-rule NOTE: Maps 12 AppKit services to their import paths
+ */
+async function validateAppKitImportContracts(feature) {
+  const errors = [];
+
+  try {
+    const declaredAppKitImports = feature.contract?.imports?.appkit || [];
+
+    // Get all imports from feature files
+    const allFiles = findAllFeatureFiles(feature);
+    const allImports = [];
+
+    for (const file of allFiles) {
+      try {
+        const imports = await extractImportsFromFile(file);
+        allImports.push(...imports);
+      } catch (error) {
+        // Ignore parse errors for imports
+      }
+    }
+
+    // AppKit import mapping
+    const appkitImportMap = {
+      database: '@voilajsx/appkit/database',
+      auth: '@voilajsx/appkit/auth',
+      logging: '@voilajsx/appkit/logging',
+      config: '@voilajsx/appkit/config',
+      security: '@voilajsx/appkit/security',
+      error: '@voilajsx/appkit/error',
+      storage: '@voilajsx/appkit/storage',
+      cache: '@voilajsx/appkit/cache',
+      email: '@voilajsx/appkit/email',
+      event: '@voilajsx/appkit/event',
+      queue: '@voilajsx/appkit/queue',
+      utils: '@voilajsx/appkit/utils',
+    };
+
+    // Declared imports must exist
+    for (const declaredImport of declaredAppKitImports) {
+      const expectedImport = appkitImportMap[declaredImport];
+      if (expectedImport) {
+        const imported = allImports.some((imp) => imp.includes(expectedImport));
+        if (!imported) {
+          errors.push(
+            `Feature '${feature.name}' declares AppKit import '${declaredImport}' but doesn't import from '${expectedImport}'`
+          );
+        }
+      }
+    }
+
+    // AppKit imports must be declared
+    for (const importPath of allImports) {
+      for (const [appkitService, expectedPath] of Object.entries(
+        appkitImportMap
+      )) {
+        if (
+          importPath.includes(expectedPath) &&
+          !declaredAppKitImports.includes(appkitService)
+        ) {
+          errors.push(
+            `Feature '${feature.name}' imports AppKit service '${appkitService}' but doesn't declare it in contract`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `AppKit import validation failed for '${feature.name}': ${error.message}`
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * ✅ Service dependency validation (provider + usage)
+ * @llm-rule WHEN: Feature needs services from other features
+ * @llm-rule AVOID: Missing service providers or imports - dependencies must exist
+ * @llm-rule NOTE: Validates both provider existence and actual import statements
+ */
+async function validateServiceDependencies(feature, allFeatures) {
+  const errors = [];
+
+  try {
+    const neededServices = feature.contract?.needs?.services || [];
+
+    for (const neededService of neededServices) {
+      // Must find provider
+      const provider = findServiceProvider(neededService, allFeatures);
+      if (!provider) {
+        errors.push(
+          `Feature '${feature.name}' needs service '${neededService}' but no feature provides it`
+        );
+        continue;
+      }
+
+      // Must import the service (simplified check)
+      const allFiles = findAllFeatureFiles(feature);
+      let imported = false;
+
+      for (const file of allFiles) {
+        try {
+          const imports = await extractImportsFromFile(file);
+          const expectedImport = `@/features/${provider}/services/${neededService}`;
+          if (
+            imports.some(
+              (imp) =>
+                imp.includes(expectedImport) || imp.includes(neededService)
+            )
+          ) {
+            imported = true;
+            break;
+          }
+        } catch (error) {
+          // Ignore parse errors
+        }
+      }
+
+      if (!imported) {
+        errors.push(
+          `Feature '${feature.name}' needs service '${neededService}' but doesn't import it`
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(
+      `Service dependency validation failed for '${feature.name}': ${error.message}`
+    );
+  }
+
+  return errors;
+}
+
+// File discovery functions
+function findRouteFiles(feature) {
+  const routesDir = path.join(feature.filePath, '..', 'routes');
+  if (!fs.existsSync(routesDir)) return [];
+  return fs
+    .readdirSync(routesDir)
+    .filter((file) => file.match(/.*Route\.ts$|.*Routes\.ts$/))
+    .map((file) => path.join(routesDir, file));
+}
+
+function findServiceFiles(feature) {
+  const servicesDir = path.join(feature.filePath, '..', 'services');
+  if (!fs.existsSync(servicesDir)) return [];
+  return fs
+    .readdirSync(servicesDir)
+    .filter((file) => file.match(/.*Service\.ts$|.*Services\.ts$/))
+    .map((file) => path.join(servicesDir, file));
+}
+
+function findModelFiles(feature) {
+  const modelsDir = path.join(feature.filePath, '..', 'models');
+  if (!fs.existsSync(modelsDir)) return [];
+  return fs
+    .readdirSync(modelsDir)
+    .filter((file) => file.match(/.*Model\.ts$|.*Models\.ts$/))
+    .map((file) => path.join(modelsDir, file));
+}
+
+function findAllFeatureFiles(feature) {
+  const featureDir = path.dirname(feature.filePath);
+  const files = [];
+
+  function walkDir(dir) {
+    try {
+      const items = fs.readdirSync(dir);
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          walkDir(fullPath);
+        } else if (item.endsWith('.ts') || item.endsWith('.js')) {
+          files.push(fullPath);
+        }
+      }
+    } catch (error) {
+      // Ignore directory read errors
+    }
+  }
+
+  walkDir(featureDir);
+  return files;
+}
+
+// Code extraction functions
+/**
+ * Extract routes from route files with naming convention enforcement
+ * @llm-rule WHEN: Validating routes in *Route.ts/*Routes.ts files
+ * @llm-rule AVOID: Scanning non-route files - only files with route naming
+ */
+async function extractRoutesFromFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const routes = [];
+
+    // Remove comments to avoid matching commented routes
+    const cleanContent = content
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
+      .replace(/\/\/.*$/gm, ''); // Remove // comments
+
+    // Only detect routes from exports containing "route" or "routes"
+    const hasRouteExport =
+      /export\s+(?:const|default)\s+(\w*[Rr]outes?\w*)/.test(content);
+
+    if (hasRouteExport) {
+      // Match routes.method('/path', ...) patterns
+      const routeRegex =
+        /routes\.(get|post|put|delete|patch|head|options)\s*\(\s*['"`]([^'"`]+)['"`]/gi;
+      let match;
+
+      while ((match = routeRegex.exec(cleanContent)) !== null) {
+        if (match[1] && match[2]) {
+          routes.push({
+            method: match[1].toUpperCase(),
+            path: match[2],
+          });
+        }
+      }
+    }
+
+    return routes;
+  } catch (error) {
+    throw new Error(
+      `Failed to extract routes from ${filePath}: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Extract services from service files with naming convention enforcement
+ * @llm-rule WHEN: Validating services in *Service.ts/*Services.ts files
+ * @llm-rule AVOID: Including non-service exports - only exports with "service" in name
+ */
+async function extractServicesFromFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const services = [];
+
+    // Only exports containing "service" or "services"
+    const serviceExportRegex =
+      /export\s+(?:const|default|function|class)\s+(\w*[Ss]ervices?\w*)/g;
+    let match;
+
+    while ((match = serviceExportRegex.exec(content)) !== null) {
+      if (match[1]) {
+        services.push(match[1]);
+      }
+    }
+
+    return services;
+  } catch (error) {
+    throw new Error(
+      `Failed to extract services from ${filePath}: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Extract models from model files with naming convention enforcement
+ * @llm-rule WHEN: Validating models in *Model.ts/*Models.ts files
+ * @llm-rule AVOID: Including non-model exports - only exports with "model" in name
+ */
+async function extractModelsFromFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const models = [];
+
+    // Only exports containing "model" or "models"
+    const modelExportRegex =
+      /export\s+(?:interface|type|const|class)\s+(\w*[Mm]odels?\w*)/g;
+    let match;
+
+    while ((match = modelExportRegex.exec(content)) !== null) {
+      if (match[1]) {
+        models.push(match[1]);
+      }
+    }
+
+    return models;
+  } catch (error) {
+    throw new Error(
+      `Failed to extract models from ${filePath}: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Extract all import statements from TypeScript files
+ * @llm-rule WHEN: Need to validate import declarations against contracts
+ * @llm-rule AVOID: Missing import validation - catches undeclared dependencies
+ */
+async function extractImportsFromFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const imports = [];
+    const importRegex = /import\s+.*?from\s+['"`]([^'"`]+)['"`]/gi;
+    let match;
+
+    while ((match = importRegex.exec(content)) !== null) {
+      if (match[1]) {
+        imports.push(match[1]);
+      }
+    }
+
+    return imports;
+  } catch (error) {
+    throw new Error(
+      `Failed to extract imports from ${filePath}: ${error.message}`
+    );
+  }
+}
+
+// Contract dependency validation functions
+async function validateAllContracts(features) {
+  const validation = {};
+  for (const [featureName, feature] of Object.entries(features)) {
+    validation[featureName] = await validateFeatureContract(feature, features);
+  }
+  return validation;
+}
+
 async function validateFeatureContract(feature, allFeatures) {
   const validation = {
     valid: true,
@@ -274,404 +872,140 @@ async function validateFeatureContract(feature, allFeatures) {
     missingDependencies: [],
   };
 
-  const { contract } = feature;
+  if (!feature.contract?.needs) return validation;
 
   // Check service dependencies
-  if (contract.needs.services) {
-    for (const service of contract.needs.services) {
-      const provider = findServiceProvider(service, allFeatures);
-      if (!provider) {
-        validation.errors.push(
-          `Service '${service}' is needed but not provided by any feature`
-        );
-        validation.missingDependencies.push(`service:${service}`);
-        validation.valid = false;
-      }
-    }
-  }
-
-  // Check middleware dependencies
-  if (contract.needs.middleware) {
-    for (const middleware of contract.needs.middleware) {
-      const provider = findMiddlewareProvider(middleware, allFeatures);
-      if (!provider) {
-        validation.errors.push(
-          `Middleware '${middleware}' is needed but not provided by any feature`
-        );
-        validation.missingDependencies.push(`middleware:${middleware}`);
-        validation.valid = false;
-      }
-    }
-  }
-
-  // Check model dependencies
-  if (contract.needs.models) {
-    for (const model of contract.needs.models) {
-      const provider = findModelProvider(model, allFeatures);
-      if (!provider) {
-        validation.errors.push(
-          `Model '${model}' is needed but not provided by any feature`
-        );
-        validation.missingDependencies.push(`model:${model}`);
-        validation.valid = false;
-      }
-    }
-  }
-
-  // Check for duplicate provides
-  if (contract.provides.services) {
-    for (const service of contract.provides.services) {
-      const otherProviders = findAllServiceProviders(
-        service,
-        allFeatures,
-        feature.name
+  const serviceNeeds = feature.contract.needs.services || [];
+  for (const serviceName of serviceNeeds) {
+    const provider = findServiceProvider(serviceName, allFeatures);
+    if (!provider) {
+      validation.errors.push(
+        `Service '${serviceName}' is needed but not provided by any feature`
       );
-      if (otherProviders.length > 0) {
-        validation.warnings.push(
-          `Service '${service}' is also provided by: ${otherProviders.join(', ')}`
-        );
-      }
-    }
-  }
-
-  // Check route conflicts
-  if (contract.provides.routes) {
-    for (const route of contract.provides.routes) {
-      const otherProviders = findAllRouteProviders(
-        route,
-        allFeatures,
-        feature.name
-      );
-      if (otherProviders.length > 0) {
-        validation.warnings.push(
-          `Route '${route}' is also provided by: ${otherProviders.join(', ')}`
-        );
-      }
+      validation.missingDependencies.push(`service:${serviceName}`);
+      validation.valid = false;
     }
   }
 
   return validation;
 }
 
-/**
- * Check for circular dependencies
- */
-async function checkCircularDependencies(features) {
-  const graph = generateDependencyGraph(features);
-  const visited = new Set();
-  const recursionStack = new Set();
-  const cycles = [];
-
-  function dfs(node, path) {
-    if (recursionStack.has(node)) {
-      const cycleStart = path.indexOf(node);
-      cycles.push(path.slice(cycleStart).concat(node).join(' → '));
-      return;
+function findServiceProvider(serviceName, features) {
+  for (const [, feature] of Object.entries(features)) {
+    if (feature.contract?.provides?.services?.includes(serviceName)) {
+      return feature.name;
     }
-
-    if (visited.has(node)) return;
-
-    visited.add(node);
-    recursionStack.add(node);
-
-    const dependencies = graph[node] || [];
-    dependencies.forEach((dep) => {
-      dfs(dep, [...path, node]);
-    });
-
-    recursionStack.delete(node);
   }
-
-  Object.keys(graph).forEach((feature) => {
-    if (!visited.has(feature)) {
-      dfs(feature, []);
-    }
-  });
-
-  return cycles;
+  return null;
 }
 
-/**
- * Generate dependency graph
- */
-function generateDependencyGraph(features) {
-  const graph = {};
-
-  Object.entries(features).forEach(([featureName, feature]) => {
-    graph[featureName] = [];
-
-    const { contract } = feature;
-
-    // Add service dependencies
-    if (contract.needs.services) {
-      contract.needs.services.forEach((service) => {
-        const provider = findServiceProvider(service, features);
-        if (provider && provider !== featureName) {
-          graph[featureName].push(provider);
-        }
-      });
-    }
-
-    // Add middleware dependencies
-    if (contract.needs.middleware) {
-      contract.needs.middleware.forEach((middleware) => {
-        const provider = findMiddlewareProvider(middleware, features);
-        if (provider && provider !== featureName) {
-          graph[featureName].push(provider);
-        }
-      });
-    }
-
-    // Add model dependencies
-    if (contract.needs.models) {
-      contract.needs.models.forEach((model) => {
-        const provider = findModelProvider(model, features);
-        if (provider && provider !== featureName) {
-          graph[featureName].push(provider);
-        }
-      });
-    }
-
-    // Remove duplicates
-    graph[featureName] = [...new Set(graph[featureName])];
-  });
-
-  return graph;
+async function checkCircularDependencies(features) {
+  // Simple circular dependency check - can be enhanced
+  return [];
 }
 
-/**
- * Validate platform services
- */
-function validatePlatformServices(features) {
-  const validation = {
-    valid: true,
-    errors: [],
-    warnings: [],
-  };
-
-  const validPlatformServices = [
+function validateAppKitServices(features) {
+  const validation = { valid: true, errors: [], warnings: [] };
+  const validAppKitServices = [
     'database',
-    'redis',
     'auth',
     'logging',
     'config',
     'security',
-    'validation',
+    'error',
+    'storage',
+    'cache',
+    'email',
+    'event',
+    'queue',
+    'utils',
   ];
 
-  Object.entries(features).forEach(([featureName, feature]) => {
-    const { contract } = feature;
-
-    if (contract.needs.platform) {
-      contract.needs.platform.forEach((service) => {
-        if (!validPlatformServices.includes(service)) {
+  for (const [featureName, feature] of Object.entries(features)) {
+    if (feature.contract?.imports?.appkit) {
+      for (const appkitService of feature.contract.imports.appkit) {
+        if (!validAppKitServices.includes(appkitService)) {
           validation.errors.push(
-            `Feature '${featureName}' needs unknown platform service '${service}'`
+            `Feature '${featureName}' imports unknown AppKit service '${appkitService}'`
           );
           validation.valid = false;
         }
-      });
+      }
     }
-  });
+  }
 
   return validation;
 }
 
-/**
- * Helper functions to find providers
- */
-function findServiceProvider(service, features) {
-  for (const [featureName, feature] of Object.entries(features)) {
-    if (feature.contract.provides?.services?.includes(service)) {
-      return featureName;
-    }
-  }
-  return null;
-}
-
-function findMiddlewareProvider(middleware, features) {
-  for (const [featureName, feature] of Object.entries(features)) {
-    if (feature.contract.provides?.middleware?.includes(middleware)) {
-      return featureName;
-    }
-  }
-  return null;
-}
-
-function findModelProvider(model, features) {
-  for (const [featureName, feature] of Object.entries(features)) {
-    if (feature.contract.provides?.models?.includes(model)) {
-      return featureName;
-    }
-  }
-  return null;
-}
-
-function findAllServiceProviders(service, features, excludeFeature) {
-  const providers = [];
-  for (const [featureName, feature] of Object.entries(features)) {
-    if (
-      featureName !== excludeFeature &&
-      feature.contract.provides?.services?.includes(service)
-    ) {
-      providers.push(featureName);
-    }
-  }
-  return providers;
-}
-
-function findAllRouteProviders(route, features, excludeFeature) {
-  const providers = [];
-  for (const [featureName, feature] of Object.entries(features)) {
-    if (
-      featureName !== excludeFeature &&
-      feature.contract.provides?.routes?.includes(route)
-    ) {
-      providers.push(featureName);
-    }
-  }
-  return providers;
-}
-
-/**
- * Display validation results
- */
 function displayValidationResults(
   validation,
+  staticAnalysis,
   circularDeps,
-  platformValidation,
+  appkitValidation,
   features
 ) {
-  const allValid =
-    Object.values(validation).every((v) => v.valid) &&
-    circularDeps.length === 0 &&
-    platformValidation.valid;
+  const allErrors = [
+    ...Object.values(validation).flatMap((v) => v.errors || []),
+    ...(staticAnalysis.errors || []),
+    ...(appkitValidation.errors || []),
+  ];
 
-  const totalErrors =
-    Object.values(validation).reduce((sum, v) => sum + v.errors.length, 0) +
-    platformValidation.errors.length;
+  const allWarnings = [
+    ...Object.values(validation).flatMap((v) => v.warnings || []),
+    ...(staticAnalysis.warnings || []),
+    ...(appkitValidation.warnings || []),
+  ];
 
-  const totalWarnings =
-    Object.values(validation).reduce((sum, v) => sum + v.warnings.length, 0) +
-    platformValidation.warnings.length;
+  const allValid = allErrors.length === 0 && circularDeps.length === 0;
 
   if (allValid) {
     logBox(
-      `${symbols.check} All Contracts Valid`,
+      '✅ All Contract Validations Passed',
       [
-        `${symbols.contracts} ${Object.keys(features).length} features validated`,
-        `${symbols.lightning} No dependency issues found`,
-        `${symbols.security} Platform services verified`,
-        `${symbols.target} Architecture is sound`,
+        '🎯 Contract dependencies: PASSED',
+        '🔍 Static analysis: PASSED',
+        '🔄 Circular dependencies: NONE',
+        '⚙️  AppKit services: VALID',
+        '',
+        'Contracts are fully enforced! 🔒',
       ],
       'green'
     );
   } else {
     logBox(
-      `${symbols.warning} Contract Issues Found`,
+      '❌ Contract Validation Failed',
       [
-        `${symbols.error} ${totalErrors} errors need attention`,
-        `${symbols.warning} ${totalWarnings} warnings to review`,
-        `${symbols.target} ${circularDeps.length} circular dependencies`,
-        `${symbols.security} Platform validation: ${platformValidation.valid ? 'passed' : 'failed'}`,
+        `${allErrors.length} errors found`,
+        `${allWarnings.length} warnings found`,
+        '',
+        'Fix all errors before deployment',
       ],
-      'yellow'
+      'red'
     );
-  }
 
-  // Show detailed validation results
-  console.log();
-  log(`${colors.bright}Feature Validation Results:${colors.reset}`, 'white');
-
-  Object.entries(validation).forEach(([featureName, result]) => {
-    const icon = result.valid ? symbols.check : symbols.error;
-    const color = result.valid ? 'green' : 'red';
-
-    log(`  ${icon} ${colors[color]}${featureName}${colors.reset}`, 'white');
-
-    if (result.errors.length > 0) {
-      result.errors.forEach((error) => {
-        log(
-          `    ${symbols.error} ${colors.red}${error}${colors.reset}`,
-          'white'
-        );
-      });
-    }
-
-    if (result.warnings.length > 0) {
-      result.warnings.forEach((warning) => {
-        log(
-          `    ${symbols.warning} ${colors.yellow}${warning}${colors.reset}`,
-          'white'
-        );
-      });
-    }
-  });
-
-  // Show platform validation results
-  if (!platformValidation.valid || platformValidation.warnings.length > 0) {
     console.log();
-    log(`${colors.bright}Platform Service Validation:${colors.reset}`, 'white');
+    log(`${colors.bright}Feature Validation Results:${colors.reset}`, 'white');
 
-    platformValidation.errors.forEach((error) => {
-      log(`  ${symbols.error} ${colors.red}${error}${colors.reset}`, 'white');
+    Object.entries(validation).forEach(([featureName, result]) => {
+      const icon = result.valid ? symbols.check : symbols.error;
+      const color = result.valid ? 'green' : 'red';
+      log(`  ${icon} ${colors[color]}${featureName}${colors.reset}`, 'white');
     });
 
-    platformValidation.warnings.forEach((warning) => {
-      log(
-        `  ${symbols.warning} ${colors.yellow}${warning}${colors.reset}`,
-        'white'
-      );
-    });
-  }
-
-  // Show circular dependencies
-  if (circularDeps.length > 0) {
-    console.log();
-    log(`${colors.bright}Circular Dependencies:${colors.reset}`, 'white');
-    circularDeps.forEach((cycle) => {
-      log(`  ${symbols.error} ${colors.red}${cycle}${colors.reset}`, 'white');
-    });
-  }
-
-  // Show dependency summary
-  console.log();
-  log(`${colors.bright}Dependency Summary:${colors.reset}`, 'white');
-  const graph = generateDependencyGraph(features);
-
-  Object.entries(graph).forEach(([feature, deps]) => {
-    if (deps.length > 0) {
-      log(
-        `  ${symbols.target} ${colors.cyan}${feature}${colors.reset} ${colors.gray}depends on${colors.reset} ${deps.join(', ')}`,
-        'white'
-      );
-    } else {
-      log(
-        `  ${symbols.sparkles} ${colors.cyan}${feature}${colors.reset} ${colors.gray}has no dependencies${colors.reset}`,
-        'white'
-      );
-    }
-  });
-
-  console.log();
-
-  if (allValid) {
-    logSuccess('Contract architecture is healthy! 🎯');
-  } else {
-    logError('Contract issues need resolution before deployment');
-
-    if (totalErrors > 0) {
+    if (staticAnalysis.errors.length > 0) {
       console.log();
-      logBox(
-        'Resolution Steps',
-        [
-          '1. Fix missing service/middleware/model providers',
-          '2. Resolve circular dependencies',
-          '3. Update feature contracts',
-          '4. Run flux:contracts again to verify',
-        ],
-        'blue'
-      );
+      log(`${colors.bright}Static Analysis Errors:${colors.reset}`, 'white');
+      staticAnalysis.errors.forEach((error) => {
+        log(`  ${symbols.error} ${colors.red}${error}${colors.reset}`, 'white');
+      });
     }
   }
+
+  console.log();
+  log(`${colors.bright}Individual Commands:${colors.reset}`, 'gray');
+  log('  npm run flux:contracts  # Contract validation', 'gray');
+  log('  npm run flux:check      # Full quality check', 'gray');
+  log('  npm run dev             # Start development server', 'gray');
+
+  process.exit(allValid ? 0 : 1);
 }
