@@ -1,0 +1,423 @@
+/**
+ * Flux Framework - Mock Authentication Generator
+ * @file scripts/lib/mock-auth.js
+ *
+ * @llm-rule WHEN: Need to generate mock users and JWT tokens for development/testing
+ * @llm-rule AVOID: Using in production - this is for development only
+ * @llm-rule NOTE: Integrates with AppKit auth and generates real JWT tokens
+ */
+
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { execSync } from 'child_process';
+import {
+  logSuccess,
+  logError,
+  logBox,
+  log,
+  colors,
+  symbols,
+  Timer,
+} from './utils.js';
+
+// AppKit default role hierarchy
+const APPKIT_ROLES = {
+  'user.basic': {
+    level: 1,
+    permissions: ['manage:own'],
+    email: 'user.basic@dev.local',
+    name: 'Basic User',
+  },
+  'user.pro': {
+    level: 2,
+    permissions: ['manage:own'],
+    email: 'user.pro@dev.local',
+    name: 'Pro User',
+  },
+  'user.max': {
+    level: 3,
+    permissions: ['manage:own'],
+    email: 'user.max@dev.local',
+    name: 'Max User',
+  },
+  'moderator.review': {
+    level: 4,
+    permissions: ['view:tenant'],
+    email: 'moderator.review@dev.local',
+    name: 'Review Moderator',
+  },
+  'moderator.approve': {
+    level: 5,
+    permissions: ['view:tenant', 'create:tenant', 'edit:tenant'],
+    email: 'moderator.approve@dev.local',
+    name: 'Approve Moderator',
+  },
+  'moderator.manage': {
+    level: 6,
+    permissions: ['view:tenant', 'create:tenant', 'edit:tenant'],
+    email: 'moderator.manage@dev.local',
+    name: 'Manage Moderator',
+  },
+  'admin.tenant': {
+    level: 7,
+    permissions: ['manage:tenant'],
+    email: 'admin.tenant@dev.local',
+    name: 'Tenant Admin',
+  },
+  'admin.org': {
+    level: 8,
+    permissions: ['manage:tenant', 'manage:org'],
+    email: 'admin.org@dev.local',
+    name: 'Organization Admin',
+  },
+  'admin.system': {
+    level: 9,
+    permissions: ['manage:tenant', 'manage:org', 'manage:system'],
+    email: 'admin.system@dev.local',
+    name: 'System Admin',
+  },
+};
+
+/**
+ * Main mock auth command handler
+ * @llm-rule WHEN: Called from flux CLI with mock-auth command
+ * @llm-rule AVOID: Running without JWT_SECRET in environment
+ */
+export async function runMockAuth(args) {
+  const timer = new Timer();
+
+  // Handle subcommands
+  if (args.length > 0) {
+    if (args[0] === 'copy') {
+      await handleCopyCommand(args.slice(1));
+      return;
+    }
+  }
+
+  // Generate all tokens
+  console.clear();
+
+  logBox(`${symbols.security} Flux Mock Authentication Generator`, [
+    `${symbols.lightning} Generate JWT tokens for all AppKit roles`,
+    `${symbols.target} Append to .env file for immediate use`,
+    `${symbols.sparkles} Copy specific tokens with: flux:mock-auth copy`,
+  ]);
+
+  try {
+    // Ensure VOILA_AUTH_SECRET exists
+    await ensureVOILAAuthSecret();
+
+    // Generate all mock tokens
+    const tokens = await generateAllTokens();
+
+    // Write to .env file
+    await writeToEnvFile(tokens);
+
+    // Success message
+    console.clear();
+    timer.endWithMessage(`${symbols.check} Mock authentication generated!`);
+
+    logBox(
+      `${symbols.security} Mock Auth Ready!`,
+      [
+        `${symbols.sparkles} ${Object.keys(tokens).length} tokens generated in .env`,
+        `${symbols.lightning} Copy tokens: npm run flux:mock-auth copy`,
+        `${symbols.target} Use in REST Client: {{USER_BASIC_TOKEN}}`,
+        `${symbols.fire} Start server: npm run flux:dev`,
+      ],
+      'green'
+    );
+
+    // Show quick examples
+    showUsageExamples();
+  } catch (error) {
+    console.clear();
+    logError(`Mock auth generation failed: ${error.message}`);
+
+    if (process.env.DEBUG) {
+      console.error('Full error:', error);
+    }
+
+    process.exit(1);
+  }
+}
+
+/**
+ * Handle copy command to clipboard
+ * @llm-rule WHEN: User wants to copy specific token to clipboard
+ * @llm-rule AVOID: Copying if token doesn't exist in .env file
+ */
+async function handleCopyCommand(args) {
+  try {
+    const roleLevel = args[0] || 'user.basic'; // Default to basic user
+    const envVarName = convertRoleToEnvVar(roleLevel);
+
+    // Read .env file
+    const envPath = path.join(process.cwd(), '.env');
+    if (!fs.existsSync(envPath)) {
+      logError('No .env file found. Run: npm run flux:mock-auth');
+      return;
+    }
+
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const tokenMatch = envContent.match(new RegExp(`${envVarName}=(.+)`));
+
+    if (!tokenMatch) {
+      logError(`Token for ${roleLevel} not found. Run: npm run flux:mock-auth`);
+      return;
+    }
+
+    const token = tokenMatch[1].trim();
+
+    // Copy to clipboard using system command
+    await copyToClipboard(token);
+
+    logSuccess(`${roleLevel} token copied to clipboard!`);
+    log(
+      `Use: ${colors.gray}Authorization: Bearer <paste-token>${colors.reset}`,
+      'white'
+    );
+  } catch (error) {
+    logError(`Copy failed: ${error.message}`);
+  }
+}
+
+/**
+ * Ensure JWT_SECRET exists in environment
+ */
+async function ensureVOILAAuthSecret() {
+  const envPath = path.join(process.cwd(), '.env');
+
+  // Check if VOILA_AUTH_SECRET already exists
+  if (process.env.VOILA_AUTH_SECRET) {
+    return;
+  }
+
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    if (envContent.includes('VOILA_AUTH_SECRET=')) {
+      return;
+    }
+  }
+
+  // Generate new secret
+  const secret = crypto.randomBytes(64).toString('hex');
+
+  let envContent = '';
+  if (fs.existsSync(envPath)) {
+    envContent = fs.readFileSync(envPath, 'utf8');
+  }
+
+  // Add VOILA_AUTH_SECRET at top
+  envContent = `VOILA_AUTH_SECRET=${secret}\n${envContent}`;
+  fs.writeFileSync(envPath, envContent);
+
+  logSuccess('Generated VOILA_AUTH_SECRET in .env file');
+}
+
+/**
+ * Generate JWT tokens for all AppKit roles
+ */
+async function generateAllTokens() {
+  const authSecret = getVOILAAuthSecret();
+  const tokens = {};
+
+  for (const [roleLevel, userData] of Object.entries(APPKIT_ROLES)) {
+    const [role, level] = roleLevel.split('.');
+
+    // Create JWT payload
+    const payload = {
+      userId: `${role}_${level}_001`,
+      email: userData.email,
+      role: role,
+      level: level,
+      permissions: userData.permissions,
+      active: true,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
+    };
+
+    // Generate token using simplified JWT implementation
+    const token = generateJWTToken(payload, authSecret);
+
+    tokens[roleLevel] = {
+      token,
+      user: {
+        id: payload.userId,
+        name: userData.name,
+        email: userData.email,
+        role: roleLevel,
+        permissions: userData.permissions,
+      },
+    };
+  }
+
+  return tokens;
+}
+
+/**
+ * Simplified JWT token generation for development
+ */
+function generateJWTToken(payload, secret) {
+  const header = {
+    typ: 'JWT',
+    alg: 'HS256',
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest('base64url');
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+function base64UrlEncode(str) {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+/**
+ * Write tokens to .env file
+ */
+async function writeToEnvFile(tokens) {
+  const envPath = path.join(process.cwd(), '.env');
+
+  let envContent = '';
+  if (fs.existsSync(envPath)) {
+    envContent = fs.readFileSync(envPath, 'utf8');
+  }
+
+  // Remove existing mock auth section if present
+  envContent = envContent.replace(
+    /# =+\n# Flux Mock Authentication Tokens[\s\S]*?# =+\n/,
+    ''
+  );
+
+  // Create new mock auth section
+  let mockSection = `\n# ${'='.repeat(77)}\n`;
+  mockSection += `# Flux Mock Authentication Tokens (Auto-generated)\n`;
+  mockSection += `# Generated: ${new Date().toISOString()}\n`;
+  mockSection += `# Copy tokens: npm run flux:mock-auth copy [role.level]\n`;
+  mockSection += `# ${'='.repeat(77)}\n\n`;
+
+  // Add tokens with user info comments
+  for (const [roleLevel, data] of Object.entries(tokens)) {
+    const envVarName = convertRoleToEnvVar(roleLevel);
+
+    mockSection += `# ${data.user.name}\n`;
+    mockSection += `# ID: ${data.user.id} | Email: ${data.user.email} | Role: ${roleLevel}\n`;
+    mockSection += `# Permissions: ${data.user.permissions.join(', ')}\n`;
+    mockSection += `${envVarName}=${data.token}\n\n`;
+  }
+
+  mockSection += `# Usage Examples:\n`;
+  mockSection += `# REST Client: Authorization: Bearer {{USER_BASIC_TOKEN}}\n`;
+  mockSection += `# cURL: curl -H "Authorization: Bearer $USER_BASIC_TOKEN" http://localhost:3000/api\n`;
+  mockSection += `# Copy: npm run flux:mock-auth copy admin.system\n`;
+  mockSection += `# ${'='.repeat(77)}\n`;
+
+  // Append to env file
+  envContent += mockSection;
+  fs.writeFileSync(envPath, envContent);
+}
+
+/**
+ * Convert role.level to environment variable name
+ */
+function convertRoleToEnvVar(roleLevel) {
+  return roleLevel.toUpperCase().replace('.', '_') + '_TOKEN';
+}
+
+
+
+/**
+ * Copy text to clipboard using system commands
+ */
+async function copyToClipboard(text) {
+  try {
+    // Try different clipboard commands based on platform
+    if (process.platform === 'darwin') {
+      // macOS
+      execSync('pbcopy', { input: text });
+    } else if (process.platform === 'linux') {
+      // Linux
+      try {
+        execSync('xclip -selection clipboard', { input: text });
+      } catch {
+        execSync('xsel --clipboard --input', { input: text });
+      }
+    } else if (process.platform === 'win32') {
+      // Windows
+      execSync('clip', { input: text });
+    } else {
+      throw new Error('Clipboard not supported on this platform');
+    }
+  } catch (error) {
+    // Fallback: just show the token
+    console.log(`\n${colors.cyan}Token:${colors.reset}`);
+    console.log(text);
+    throw new Error('Could not copy to clipboard, but token is shown above');
+  }
+}
+
+/**
+ * Get JWT secret from environment or .env file
+ */
+function getVOILAAuthSecret() {
+  if (process.env.VOILA_AUTH_SECRET) {
+    return process.env.VOILA_AUTH_SECRET;
+  }
+
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const match = envContent.match(/VOILA_AUTH_SECRET=(.+)/);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+
+  throw new Error('VOILA_AUTH_SECRET not found. Please set in .env file.');
+}
+
+/**
+ * Show usage examples after generation
+ */
+function showUsageExamples() {
+  console.log();
+  log(`${colors.bright}Quick Commands:${colors.reset}`, 'white');
+  console.log(
+    `  ${colors.cyan}npm run flux:mock-auth copy${colors.reset}                ${colors.gray}# Copy basic user token${colors.reset}`
+  );
+  console.log(
+    `  ${colors.cyan}npm run flux:mock-auth copy admin.system${colors.reset}   ${colors.gray}# Copy admin token${colors.reset}`
+  );
+  console.log(
+    `  ${colors.cyan}npm run flux:mock-auth copy moderator.approve${colors.reset} ${colors.gray}# Copy moderator token${colors.reset}`
+  );
+
+  console.log();
+  log(`${colors.bright}REST Client Usage:${colors.reset}`, 'white');
+  console.log(
+    `  ${colors.green}Authorization: Bearer {{USER_BASIC_TOKEN}}${colors.reset}`
+  );
+  console.log(
+    `  ${colors.green}Authorization: Bearer {{ADMIN_SYSTEM_TOKEN}}${colors.reset}`
+  );
+
+  console.log();
+  log(`${colors.bright}Available Roles:${colors.reset}`, 'white');
+  Object.keys(APPKIT_ROLES).forEach((role) => {
+    console.log(`  ${colors.gray}${role}${colors.reset}`);
+  });
+
+  console.log();
+}

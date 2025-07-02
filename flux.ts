@@ -104,23 +104,15 @@ export interface ContractValidationSummary {
 // 🌐 FLUX ROUTER - Simple Route Registration
 // ============================================================================
 
-/**
- * Simple types for route handlers
- * @llm-rule WHEN: Creating route handlers with simplified request/response
- * @llm-rule AVOID: Direct Fastify types - use these simplified interfaces
- */
-export interface RequestType {
-  query: Record<string, any>;
-  params: Record<string, any>;
-  body: Record<string, any>;
-  user?: any; // Available when auth middleware is used
-}
+// Use Fastify's request type directly - no abstraction needed
+export type RequestType = FastifyRequest;
 
 export interface ResponseType {
   [key: string]: any;
 }
 
-export type RouteHandlerType = (req: RequestType) => Promise<ResponseType> | ResponseType;
+export type RouteHandlerType = (req: FastifyRequest, reply: FastifyReply) => Promise<ResponseType> | ResponseType;
+
 export type MiddlewareType = (request: FastifyRequest, reply: FastifyReply, done: Function) => void;
 
 /**
@@ -201,31 +193,23 @@ export function router(featureName: string, registerRoutes: (routes: any) => voi
         routeHandler = middlewareOrHandler as RouteHandlerType;
       }
 
-      // Register with Fastify
-      const fastifyHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-        log.info(`${method.toUpperCase()} ${path} called`, { 
-          query: request.query, 
-          params: request.params 
-        });
+     // Register with Fastify
+const fastifyHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+  log.info(`${method.toUpperCase()} ${path} called`, { 
+    query: request.query, 
+    params: request.params 
+  });
 
-        // Create simplified request object
-        const fluxReq: RequestType = {
-          query: request.query as Record<string, any>,
-          params: request.params as Record<string, any>,
-          body: request.body as Record<string, any>,
-          user: (request as any).user, // Available if auth middleware sets it
-        };
-
-        // Call handler - let AppKit handle any errors
-        const result = await routeHandler(fluxReq);
-        
-        // Add Flux metadata
-        return {
-          ...result,
-          timestamp: new Date().toISOString(),
-          feature: featureName,
-        };
-      };
+  // Call handler directly with Fastify request - no conversion needed
+  const result = await routeHandler(request, reply);
+  
+  // Add Flux metadata
+  return {
+    ...result,
+    timestamp: new Date().toISOString(),
+    feature: featureName,
+  };
+};
 
       // Register route with Fastify (with optional middleware)
       if (middleware.length > 0) {

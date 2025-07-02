@@ -10,6 +10,7 @@
     "flux:create": "node scripts/index.js create",
     "flux:contracts": "node scripts/index.js contracts",
     "flux:check": "node scripts/index.js check",
+    "flux:mock-auth": "node scripts/index.js mock-auth",
     "flux:help": "node scripts/index.js help",
     "dev": "tsx watch flux.ts",
     "build": "npm run flux:check && tsc",

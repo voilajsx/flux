@@ -1,28 +1,28 @@
 #!/usr/bin/env node
 
 /**
- * Flux Framework - Simplified CLI Entry Point
- * @description Essential Flux tools only - dev/build use standard Node.js patterns
+ * Updated Flux CLI with Mock Auth Integration
  * @file scripts/index.js
  */
-
 import { fileURLToPath } from "url";
 import path from "path";
 import { showHelp } from "./lib/help.js";
 import { runCreate } from "./lib/create.js";
 import { runContracts } from "./lib/contracts.js";
 import { runCheck } from "./lib/check.js";
+import { runMockAuth } from "./lib/mock-auth.js"; // 🔥 NEW: Mock auth import
 import { logError, logBox } from "./lib/utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Simplified command mapping - only essential Flux tools
+// Enhanced command mapping with mock auth
 const commands = {
-  create: runCreate, // Feature generator
-  contracts: runContracts, // Contract validation
-  check: runCheck, // Quality checks
-  help: showHelp, // Help system
+  create: runCreate,           // Feature generator
+  contracts: runContracts,     // Contract validation
+  check: runCheck,             // Quality checks
+  'mock-auth': runMockAuth,    // 🔥 NEW: Mock authentication generator
+  help: showHelp,              // Help system
 };
 
 /**
@@ -48,13 +48,14 @@ async function main() {
     console.log("Contract-driven TypeScript backend framework");
     console.log("");
     console.log("Essential commands:");
-    console.log("  flux:create   - Generate features");
-    console.log("  flux:check    - Quality validation");
-    console.log("  flux:help     - Show help");
+    console.log("  flux:create     - Generate features");
+    console.log("  flux:mock-auth  - Generate mock authentication"); // 🔥 NEW
+    console.log("  flux:check      - Quality validation");
+    console.log("  flux:help       - Show help");
     console.log("");
     console.log("Development:");
-    console.log("  npm run dev   - Start development (tsx watch)");
-    console.log("  npm run build - Build production (tsc)");
+    console.log("  npm run dev     - Start development (tsx watch)");
+    console.log("  npm run build   - Build production (tsc)");
     return;
   }
 
@@ -67,14 +68,20 @@ async function main() {
         `Command "${command}" not recognized`,
         "",
         "Available Flux commands:",
-        "  flux:create   - Generate new features",
-        "  flux:check    - Run quality checks",
-        "  flux:contracts- Validate contracts only",
-        "  flux:help     - Show detailed help",
+        "  flux:create       - Generate new features",
+        "  flux:mock-auth    - Generate mock authentication", // 🔥 NEW
+        "  flux:check        - Run quality checks",
+        "  flux:contracts    - Validate contracts only",
+        "  flux:help         - Show detailed help",
+        "",
+        "Mock auth usage:",
+        "  flux:mock-auth           # Generate all tokens",
+        "  flux:mock-auth copy      # Copy basic user token",
+        "  flux:mock-auth copy admin.system  # Copy specific token",
         "",
         "Development commands:",
-        "  npm run dev   - Start development server",
-        "  npm run build - Build for production",
+        "  npm run dev       - Start development server",
+        "  npm run build     - Build for production",
       ],
       "red",
     );
