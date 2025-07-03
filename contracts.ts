@@ -2,7 +2,7 @@
  * Flux Framework - Type-Safe Backend Contract Builder
  * @module @voilajsx/flux/contracts
  * @file contracts.ts
- * 
+ *
  * @llm-rule WHEN: Creating feature contracts with service-only public APIs
  * @llm-rule AVOID: Exposing models as public APIs - use services only
  * @llm-rule NOTE: Supports provides, internal, import, needs categories
@@ -11,7 +11,12 @@
 /**
  * Types of services that can be provided or consumed
  */
-export type ContractItemType = 'route' | 'service' | 'middleware' | 'model' | 'platform';
+export type ContractItemType =
+  | "route"
+  | "service"
+  | "middleware"
+  | "model"
+  | "platform";
 
 /**
  * Contract item definition
@@ -30,9 +35,9 @@ export interface ContractItem {
  * @llm-rule NOTE: Enforces service-only public APIs and private models
  */
 export interface FeatureContract {
-  readonly provides: { routes?: string[], services?: string[] };
-  readonly internal: { services?: string[], models?: string[] };
-  readonly imports: { appkit?: string[], external?: string[] };
+  readonly provides: { routes?: string[]; services?: string[] };
+  readonly internal: { services?: string[]; models?: string[] };
+  readonly imports: { appkit?: string[]; external?: string[] };
   readonly needs: { services?: string[] };
 }
 
@@ -52,32 +57,39 @@ export interface ContractValidationResult {
  * @llm-rule AVOID: Using strings directly - use these constants for validation
  */
 export const APPKIT_SERVICES = {
-  DATABASE: 'database',
-  AUTH: 'auth',
-  LOGGING: 'logging',
-  CONFIG: 'config',
-  SECURITY: 'security',
-  ERROR: 'error',
-  STORAGE: 'storage',
-  CACHE: 'cache',
-  EMAIL: 'email',
-  EVENT: 'event',
-  QUEUE: 'queue',
-  UTILS: 'utils'
+  DATABASE: "database",
+  AUTH: "auth",
+  LOGGING: "logging",
+  CONFIG: "config",
+  SECURITY: "security",
+  ERROR: "error",
+  STORAGE: "storage",
+  CACHE: "cache",
+  EMAIL: "email",
+  EVENT: "event",
+  QUEUE: "queue",
+  UTILS: "utils",
 } as const;
 
 /**
  * Type-safe AppKit service names
  */
-export type AppKitService = typeof APPKIT_SERVICES[keyof typeof APPKIT_SERVICES];
+export type AppKitService =
+  (typeof APPKIT_SERVICES)[keyof typeof APPKIT_SERVICES];
 
 /**
  * Contract categories for the enhanced syntax
  */
-export type ProvidesCategory = 'routes' | 'services';
-export type InternalCategory = 'services' | 'models' | 'validators' | 'middlewares' |  'helpers';
-export type ImportCategory = 'appkit' | 'external';
-export type NeedsCategory = 'services';
+export type ProvidesCategory = "routes" | "services";
+export type InternalCategory =
+  | "services"
+  | "models"
+  | "validators"
+  | "middlewares"
+  | "configs"
+  | "helpers";
+export type ImportCategory = "appkit" | "external";
+export type NeedsCategory = "services";
 
 /**
  * Type-safe contract builder with structured validation
@@ -87,9 +99,9 @@ export type NeedsCategory = 'services';
  */
 export class ContractBuilder {
   private readonly contract: {
-    provides: { routes: string[], services: string[] };
-    internal: { services: string[], models: string[] };
-    imports: { appkit: string[], external: string[] };
+    provides: { routes: string[]; services: string[] };
+    internal: { services: string[]; models: string[] };
+    imports: { appkit: string[]; external: string[] };
     needs: { services: string[] };
   };
 
@@ -98,7 +110,7 @@ export class ContractBuilder {
       provides: { routes: [], services: [] },
       internal: { services: [], models: [] },
       imports: { appkit: [], external: [] },
-      needs: { services: [] }
+      needs: { services: [] },
     };
   }
 
@@ -110,9 +122,9 @@ export class ContractBuilder {
    * @llm-rule AVOID: Exposing internal implementation details as public
    */
   provides(category: ProvidesCategory, items: string[]): ContractBuilder {
-    if (category === 'routes') {
+    if (category === "routes") {
       this.contract.provides.routes.push(...items);
-    } else if (category === 'services') {
+    } else if (category === "services") {
       this.contract.provides.services.push(...items);
     }
     return this;
@@ -126,9 +138,9 @@ export class ContractBuilder {
    * @llm-rule AVOID: Making internal implementation public - keep encapsulated
    */
   internal(category: InternalCategory, items: string[]): ContractBuilder {
-    if (category === 'services') {
+    if (category === "services") {
       this.contract.internal.services.push(...items);
-    } else if (category === 'models') {
+    } else if (category === "models") {
       this.contract.internal.models.push(...items);
     }
     return this;
@@ -142,9 +154,9 @@ export class ContractBuilder {
    * @llm-rule AVOID: Undeclared imports - all dependencies must be explicit
    */
   import(source: ImportCategory, items: string[]): ContractBuilder {
-    if (source === 'appkit') {
+    if (source === "appkit") {
       this.contract.imports.appkit.push(...items);
-    } else if (source === 'external') {
+    } else if (source === "external") {
       this.contract.imports.external.push(...items);
     }
     return this;
@@ -158,14 +170,14 @@ export class ContractBuilder {
    * @llm-rule AVOID: Direct model access between features - use services only
    */
   needs(category: NeedsCategory, items: string[]): ContractBuilder {
-    if (category === 'services') {
+    if (category === "services") {
       this.contract.needs.services.push(...items);
     }
     return this;
   }
 
   // 🔄 BACKWARD COMPATIBILITY - Keep old methods for existing code
-  
+
   /**
    * @deprecated Use .provides('routes', [...]) instead
    */
@@ -264,19 +276,19 @@ export class ContractBuilder {
     return {
       provides: {
         routes: [...this.contract.provides.routes],
-        services: [...this.contract.provides.services]
+        services: [...this.contract.provides.services],
       },
       internal: {
         services: [...this.contract.internal.services],
-        models: [...this.contract.internal.models]
+        models: [...this.contract.internal.models],
       },
       imports: {
         appkit: [...this.contract.imports.appkit],
-        external: [...this.contract.imports.external]
+        external: [...this.contract.imports.external],
       },
       needs: {
-        services: [...this.contract.needs.services]
-      }
+        services: [...this.contract.needs.services],
+      },
     };
   }
 }
@@ -297,47 +309,57 @@ export function createBackendContract(): ContractBuilder {
  * @llm-rule AVOID: Skipping validation - prevents runtime contract errors
  * @llm-rule NOTE: Checks for required fields and duplicate declarations
  */
-export function validateContract(contract: FeatureContract): ContractValidationResult {
+export function validateContract(
+  contract: FeatureContract,
+): ContractValidationResult {
   const errors: string[] = [];
 
   if (!contract) {
-    errors.push('Contract is required');
+    errors.push("Contract is required");
     return { valid: false, errors };
   }
 
-  if (!contract.provides || typeof contract.provides !== 'object') {
-    errors.push('Contract must have provides object');
+  if (!contract.provides || typeof contract.provides !== "object") {
+    errors.push("Contract must have provides object");
   }
 
-  if (!contract.internal || typeof contract.internal !== 'object') {
-    errors.push('Contract must have internal object');
+  if (!contract.internal || typeof contract.internal !== "object") {
+    errors.push("Contract must have internal object");
   }
 
-  if (!contract.imports || typeof contract.imports !== 'object') {
-    errors.push('Contract must have imports object');
+  if (!contract.imports || typeof contract.imports !== "object") {
+    errors.push("Contract must have imports object");
   }
 
-  if (!contract.needs || typeof contract.needs !== 'object') {
-    errors.push('Contract must have needs object');
+  if (!contract.needs || typeof contract.needs !== "object") {
+    errors.push("Contract must have needs object");
   }
 
   // Check for duplicate provides
   const provideRoutes = contract.provides.routes || [];
   const provideServices = contract.provides.services || [];
-  
-  const duplicateRoutes = provideRoutes.filter((route, index) => provideRoutes.indexOf(route) !== index);
+
+  const duplicateRoutes = provideRoutes.filter(
+    (route, index) => provideRoutes.indexOf(route) !== index,
+  );
   if (duplicateRoutes.length > 0) {
-    errors.push(`Duplicate provided routes: ${[...new Set(duplicateRoutes)].join(', ')}`);
+    errors.push(
+      `Duplicate provided routes: ${[...new Set(duplicateRoutes)].join(", ")}`,
+    );
   }
 
-  const duplicateServices = provideServices.filter((service, index) => provideServices.indexOf(service) !== index);
+  const duplicateServices = provideServices.filter(
+    (service, index) => provideServices.indexOf(service) !== index,
+  );
   if (duplicateServices.length > 0) {
-    errors.push(`Duplicate provided services: ${[...new Set(duplicateServices)].join(', ')}`);
+    errors.push(
+      `Duplicate provided services: ${[...new Set(duplicateServices)].join(", ")}`,
+    );
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
@@ -347,6 +369,8 @@ export function validateContract(contract: FeatureContract): ContractValidationR
  * @llm-rule WHEN: Validating AppKit service imports in contracts
  * @llm-rule AVOID: Hardcoded service name checks - use this helper
  */
-export function isAppKitService(serviceName: string): serviceName is AppKitService {
+export function isAppKitService(
+  serviceName: string,
+): serviceName is AppKitService {
   return Object.values(APPKIT_SERVICES).includes(serviceName as AppKitService);
 }

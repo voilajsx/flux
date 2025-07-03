@@ -19,6 +19,7 @@
 import dotenv from 'dotenv';
 import { join } from 'path';
 import { readdirSync, existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 import Fastify, { type FastifyInstance, type FastifyPluginCallback, type FastifyRequest, type FastifyReply } from 'fastify';
 
@@ -31,6 +32,10 @@ import {
   type ContractValidationResult,
   isAppKitService 
 } from './contracts.js';
+
+// 🔧 FIXED: ES Module compatibility for __filename and __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 // ============================================================================
 // 📋 TYPE DEFINITIONS
@@ -49,13 +54,18 @@ export interface FeatureRouteConfig {
 /**
  * Feature metadata for documentation and tooling
  * @llm-rule WHEN: Adding descriptive information to features
- * @llm-rule AVOID: Required metadata - all fields are optional
+ * @llm-rule AVOID: Required metadata - all fields are optional except name
  */
 export interface FeatureMeta {
   readonly name: string;
   readonly description?: string;
   readonly version?: string;
   readonly author?: string;
+  
+  // Extended metadata for better developer experience
+  readonly capabilities?: readonly string[];      // What can this feature do?
+  readonly permissions?: Record<string, string>;  // Role requirements per endpoint
+  readonly notes?: readonly string[];             // Important gotchas/tips
 }
 
 /**
@@ -104,15 +114,13 @@ export interface ContractValidationSummary {
 // 🌐 FLUX ROUTER - Simple Route Registration
 // ============================================================================
 
-// Use Fastify's request type directly - no abstraction needed
-export type RequestType = FastifyRequest;
-
-export interface ResponseType {
-  [key: string]: any;
+export interface RequestType extends Omit<FastifyRequest, 'query' | 'params' | 'body'> {
+  query: Record<string, any>;
+  params: Record<string, any>; 
+  body: any;
 }
 
-export type RouteHandlerType = (req: FastifyRequest, reply: FastifyReply) => Promise<ResponseType> | ResponseType;
-
+export type RouteHandlerType = (req: FastifyRequest, reply: FastifyReply) => Promise<any> | any;
 export type MiddlewareType = (request: FastifyRequest, reply: FastifyReply, done: Function) => void;
 
 /**
@@ -193,23 +201,23 @@ export function router(featureName: string, registerRoutes: (routes: any) => voi
         routeHandler = middlewareOrHandler as RouteHandlerType;
       }
 
-     // Register with Fastify
-const fastifyHandler = async (request: FastifyRequest, reply: FastifyReply) => {
-  log.info(`${method.toUpperCase()} ${path} called`, { 
-    query: request.query, 
-    params: request.params 
-  });
+      // Register with Fastify
+      const fastifyHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+        log.info(`${method.toUpperCase()} ${path} called`, { 
+          query: request.query, 
+          params: request.params 
+        });
 
-  // Call handler directly with Fastify request - no conversion needed
-  const result = await routeHandler(request, reply);
-  
-  // Add Flux metadata
-  return {
-    ...result,
-    timestamp: new Date().toISOString(),
-    feature: featureName,
-  };
-};
+        // Call handler directly with Fastify request - no conversion needed
+        const result = await routeHandler(request, reply);
+        
+        // Add Flux metadata
+        return {
+          ...result,
+          timestamp: new Date().toISOString(),
+          feature: featureName,
+        };
+      };
 
       // Register route with Fastify (with optional middleware)
       if (middleware.length > 0) {
@@ -244,12 +252,36 @@ function getDiscoveredFeatures(): DiscoveredFeature[] {
  * @llm-rule NOTE: Skips folders starting with _ (e.g., _templates, _archived)
  */
 async function discoverFeatures(log: any): Promise<DiscoveredFeature[]> {
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const cwd = process.cwd();
+  
+  // 🔧 FIXED: Determine if running from compiled JS or source TS
+  const runningFromDist = __filename.includes('dist') || __filename.includes('.js');
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // 🔧 FIXED: Proper path resolution based on execution context
+  const featuresPath = runningFromDist
+    ? join(cwd, 'dist', 'src', 'features')  // Running compiled: use dist/src/features
+    : join(cwd, 'src', 'features');         // Running source: use src/features
+  
   const features: DiscoveredFeature[] = [];
+
+  log.debug('Feature discovery starting', {
+    runningFromDist,
+    isProduction,
+    featuresPath,
+    cwd,
+    currentFile: __filename,
+    pathExists: existsSync(featuresPath)
+  });
 
   if (!existsSync(featuresPath)) {
     log.warn('Features directory not found - no features will be loaded', {
-      expectedPath: featuresPath
+      expectedPath: featuresPath,
+      runningFromDist,
+      isProduction,
+      suggestion: runningFromDist 
+        ? 'Run: npm run build to compile TypeScript files to dist/'
+        : 'Create features directory: mkdir -p src/features'
     });
     return features;
   }
@@ -263,32 +295,99 @@ async function discoverFeatures(log: any): Promise<DiscoveredFeature[]> {
   const enabledDirs = allDirs.filter(name => !name.startsWith('_'));
   const skippedDirs = allDirs.filter(name => name.startsWith('_'));
 
+  log.debug('Feature directories found', {
+    total: allDirs.length,
+    enabled: enabledDirs.length,
+    skipped: skippedDirs.length,
+    enabledList: enabledDirs,
+    skippedList: skippedDirs
+  });
+
   // Load enabled features
   for (const featureName of enabledDirs) {
+    // 🔧 FIXED: Declare variables outside try block for proper scope
+    const featurePath = join(featuresPath, featureName);
+    let configPath: string | null = null;
+    
     try {
-      const featurePath = join(featuresPath, featureName);
-      const indexPath = join(featurePath, 'index.ts');
-      const fallbackPath = join(featurePath, 'index.js');
-
-      // Try TypeScript first, then JavaScript
-      const configPath = existsSync(indexPath) ? indexPath : 
-                        existsSync(fallbackPath) ? fallbackPath : null;
+      // 🔧 FIXED: File extension selection based on execution context
+      const preferredExtensions = runningFromDist 
+        ? ['.js', '.ts']  // Running compiled: prefer .js, fallback to .ts
+        : ['.ts', '.js']; // Running source: prefer .ts, fallback to .js
+      
+      const triedPaths: string[] = [];
+      
+      for (const ext of preferredExtensions) {
+        const candidate = join(featurePath, `index${ext}`);
+        triedPaths.push(candidate);
+        if (existsSync(candidate)) {
+          configPath = candidate;
+          break;
+        }
+      }
 
       if (!configPath) {
         log.warn('Feature missing index file', { 
           feature: featureName,
-          tried: ['index.ts', 'index.js'] 
+          featurePath,
+          tried: triedPaths,
+          runningFromDist,
+          isProduction,
+          suggestion: runningFromDist 
+            ? `Expected compiled file: ${join(featurePath, 'index.js')} - check if build completed successfully`
+            : `Create source file: ${join(featurePath, 'index.ts')}`
         });
         continue;
       }
 
-      // Import feature configuration
-      const module = await import(`file://${configPath}`);
+      log.debug('Loading feature config', {
+        feature: featureName,
+        configPath,
+        runningFromDist,
+        isProduction,
+        extension: configPath.endsWith('.ts') ? 'TypeScript' : 'JavaScript'
+      });
+
+      // 🔧 IMPROVED: Better import with file:// protocol handling
+      const normalizedPath = configPath.replace(/\\/g, '/');
+      const moduleUrl = `file://${normalizedPath}`;
+      
+      log.debug('Importing feature module', {
+        feature: featureName,
+        moduleUrl,
+        isTypeScript: configPath.endsWith('.ts')
+      });
+      
+      const module = await import(moduleUrl);
       const featureConfig: FeatureConfig = module.default;
 
-      if (!featureConfig || !featureConfig.name) {
-        log.warn('Feature has invalid configuration', { feature: featureName });
+      // 🔧 IMPROVED: Better validation with specific error messages
+      if (!featureConfig) {
+        log.error('Feature has no default export', { 
+          feature: featureName,
+          configPath,
+          availableExports: Object.keys(module),
+          suggestion: 'Add: export default featureConfig;'
+        });
         continue;
+      }
+
+      if (!featureConfig.name) {
+        log.error('Feature config missing name property', { 
+          feature: featureName,
+          configPath,
+          config: featureConfig,
+          suggestion: 'Add: name: "feature-name" to your FeatureConfig'
+        });
+        continue;
+      }
+
+      if (featureConfig.name !== featureName) {
+        log.warn('Feature name mismatch', {
+          folderName: featureName,
+          configName: featureConfig.name,
+          suggestion: `Either rename folder to '${featureConfig.name}' or update config name to '${featureName}'`
+        });
       }
 
       features.push({
@@ -298,12 +397,87 @@ async function discoverFeatures(log: any): Promise<DiscoveredFeature[]> {
         contract: featureConfig.contract || null
       });
 
+      log.debug('Feature loaded successfully', {
+        feature: featureName,
+        hasContract: !!featureConfig.contract,
+        hasRoutes: !!(featureConfig.routes && featureConfig.routes.length > 0),
+        routeCount: featureConfig.routes?.length || 0
+      });
+
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
+      
+      // 🔧 ENHANCED: Better error categorization
+      let errorCategory = 'unknown';
+      let suggestions: string[] = [];
+      
+      if (error.message.includes('Unknown file extension ".ts"')) {
+        errorCategory = 'typescript_runtime';
+        suggestions = [
+          `You are running compiled JavaScript (from dist/) but trying to import .ts files`,
+          `Solutions:`,
+          `1. Ensure TypeScript compilation includes features: npm run build`,
+          `2. Or run directly from source: npx tsx flux.ts`,
+          `3. Check if ${featurePath.replace(featuresPath, 'dist/src/features')} exists`,
+          `4. Verify tsconfig.json includes src/features in compilation`
+        ];
+      } else if (error.message.includes('Cannot resolve module')) {
+        errorCategory = 'module_resolution';
+        suggestions = [
+          'Module import path is incorrect',
+          'Check if all dependencies are installed',
+          'Verify file paths and extensions'
+        ];
+      } else if (error.message.includes('SyntaxError')) {
+        errorCategory = 'syntax_error';
+        suggestions = [
+          'There is a syntax error in the feature file',
+          'Check for missing semicolons, brackets, or quotes',
+          'Verify TypeScript/JavaScript syntax is correct'
+        ];
+      }
+      
       log.error('Failed to load feature', {
         feature: featureName,
-        error: error.message
+        error: error.message,
+        stack: error.stack,
+        featurePath,
+        configPath: configPath || 'not determined',
+        runningFromDist,
+        isProduction,
+        nodeEnv: process.env.NODE_ENV,
+        errorType: error.name || 'UnknownError',
+        errorCategory,
+        isTypeScriptFile: configPath?.endsWith('.ts') || false,
+        expectedCompiledPath: runningFromDist ? join(cwd, 'dist', 'src', 'features', featureName, 'index.js') : null,
+        suggestions
       });
+      
+      // Additional console output for immediate debugging
+      console.error(`\n❌ FEATURE LOAD ERROR: ${featureName}`);
+      console.error(`📂 Path: ${featurePath}`);
+      console.error(`📄 Config: ${configPath || 'not found'}`);
+      console.error(`🔍 Error: ${error.message}`);
+      console.error(`📋 Category: ${errorCategory}`);
+      console.error(`🏃 Running from: ${runningFromDist ? 'compiled (dist/)' : 'source (src/)'}`);
+      
+      if (runningFromDist && errorCategory === 'typescript_runtime') {
+        const expectedPath = join(cwd, 'dist', 'src', 'features', featureName, 'index.js');
+        console.error(`🎯 Expected: ${expectedPath}`);
+        console.error(`❓ Exists: ${existsSync(expectedPath) ? 'YES' : 'NO'}`);
+      }
+      
+      if (suggestions.length > 0) {
+        console.error(`💡 Suggestions:`);
+        suggestions.forEach(suggestion => {
+          console.error(`   ${suggestion}`);
+        });
+      }
+      
+      if (error.stack) {
+        console.error(`📋 Stack: ${error.stack.split('\n').slice(0, 3).join('\n')}`);
+      }
+      console.error(''); // Empty line for readability
     }
   }
 
@@ -541,36 +715,36 @@ async function createFluxApp(config: any, log: any): Promise<FastifyInstance> {
   });
 
   // Add request logging with compact format
-app.addHook('onRequest', async (request) => {
-  (request as any).log = logger.get('http').child({
-    requestId: request.id,
-    method: request.method,
-    url: request.url,
-    ip: request.ip
+  app.addHook('onRequest', async (request) => {
+    (request as any).log = logger.get('http').child({
+      requestId: request.id,
+      method: request.method,
+      url: request.url,
+      ip: request.ip
+    });
+    
+    if (!['/favicon.ico', '/robots.txt', '/health'].includes(request.url)) {
+      const method = request.method;
+      const path = request.url;
+      const userAgent = request.headers['user-agent']?.split('/')[0] || 'Unknown'; // Just get browser/tool name
+      
+      (request as any).log.info(`→ ${method} ${path} (${userAgent})`);
+    }
   });
-  
-  if (!['/favicon.ico', '/robots.txt', '/health'].includes(request.url)) {
-    const method = request.method;
-    const path = request.url;
-    const userAgent = request.headers['user-agent']?.split('/')[0] || 'Unknown'; // Just get browser/tool name
-    
-    (request as any).log.info(`→ ${method} ${path} (${userAgent})`);
-  }
-});
 
-app.addHook('onResponse', async (request, reply) => {
-  const requestLog = (request as any).log;
-  if (requestLog && !['/favicon.ico', '/robots.txt', '/health'].includes(request.url)) {
-    const duration = Math.round(reply.elapsedTime);
-    const status = reply.statusCode;
-    const method = request.method;
-    const path = request.url;
-    
-    const logLevel = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
-    
-    requestLog[logLevel](`← ${method} ${path} → ${status} (${duration}ms)`);
-  }
-});
+  app.addHook('onResponse', async (request, reply) => {
+    const requestLog = (request as any).log;
+    if (requestLog && !['/favicon.ico', '/robots.txt', '/health'].includes(request.url)) {
+      const duration = Math.round(reply.elapsedTime);
+      const status = reply.statusCode;
+      const method = request.method;
+      const path = request.url;
+      
+      const logLevel = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
+      
+      requestLog[logLevel](`← ${method} ${path} → ${status} (${duration}ms)`);
+    }
+  });
 
   // Add health check endpoint
   app.get('/health', async (request, reply) => {
@@ -620,9 +794,41 @@ app.addHook('onResponse', async (request, reply) => {
 }
 
 // ============================================================================
-// 📡 ROUTE REGISTRATION SYSTEM
+// 🔧 ROUTE FILE RESOLUTION HELPER
 // ============================================================================
 
+/**
+ * Resolve route file path with proper fallbacks for development and production
+ * @llm-rule WHEN: Need to find route files in both .ts (dev) and .js (prod) environments
+ * @llm-rule AVOID: Hardcoded path logic - use this helper for consistency
+ * @llm-rule NOTE: Prefers .ts in development, .js in production
+ */
+function resolveRouteFilePath(featurePath: string, routeFile: string): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const basePath = join(featurePath, routeFile);
+  
+  // Remove extension if present and add both .ts and .js variants
+  const withoutExt = basePath.replace(/\.(ts|js)$/, '');
+  const jsPath = `${withoutExt}.js`;
+  const tsPath = `${withoutExt}.ts`;
+  
+  // 🔧 FIXED: Proper extension priority based on environment
+  const candidates = isProduction 
+    ? [jsPath, tsPath]  // Production: prefer compiled .js, fallback to .ts
+    : [tsPath, jsPath]; // Development: prefer source .ts, fallback to .js
+  
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  
+  throw new Error(`Route file not found: ${routeFile}. Environment: ${isProduction ? 'production' : 'development'}. Tried: ${candidates.join(', ')}`);
+}
+
+// ============================================================================
+// 📡 ROUTE REGISTRATION SYSTEM - FIXED VERSION
+// ============================================================================
 
 /**
  * Register feature routes with CONTRACT ENFORCEMENT
@@ -644,47 +850,74 @@ async function registerFeaturesWithEnforcement(app: FastifyInstance, features: D
 
       // Register routes for this feature
       for (const routeConfig of config.routes) {
-        const routePath = join(feature.path, routeConfig.file);
-        const tsPath = routePath.replace(/\.js$/, '.ts');
-        const finalPath = existsSync(tsPath) ? tsPath : routePath;
-
-        if (!existsSync(finalPath)) {
-          log.error('Route file not found', {
-            category: 'filesystem',
-            feature: feature.name,
-            file: routeConfig.file,
-            expectedPath: finalPath,
-            triedPaths: [tsPath, routePath]
-          });
-          
-          throw new Error(`Route file missing: ${routeConfig.file}`);
-        }
-
+        // ✅ Fixed: Use helper for clean, safe path resolution
+        const routeFilePath = resolveRouteFilePath(feature.path, routeConfig.file);
+        
         // Import and register route
         let module;
         try {
-          module = await import(`file://${finalPath}`);
-        } catch (importError) {
-          log.error(`Import failed: ${importError instanceof Error ? importError.message : String(importError)}`, {
-            category: 'import',
+          // 🔧 IMPROVED: Better URL handling for file imports
+          const normalizedPath = routeFilePath.replace(/\\/g, '/');
+          const moduleUrl = `file://${normalizedPath}`;
+          
+          log.debug('Importing route module', {
             feature: feature.name,
-            file: routeConfig.file
+            routeFile: routeConfig.file,
+            resolvedPath: routeFilePath,
+            moduleUrl
           });
           
-          throw new Error(`Import failed: ${importError instanceof Error ? importError.message : String(importError)}`);
+          module = await import(moduleUrl);
+        } catch (importError) {
+          const error = importError instanceof Error ? importError : new Error(String(importError));
+          
+          log.error('Route import failed', {
+            category: 'import',
+            feature: feature.name,
+            file: routeConfig.file,
+            resolvedPath: routeFilePath,
+            error: error.message,
+            stack: error.stack,
+            possibleCauses: [
+              'Syntax error in route file',
+              'Missing dependencies/imports',
+              'TypeScript compilation issue',
+              'Invalid file path',
+              'Module resolution problem'
+            ]
+          });
+          
+          // Console output for immediate debugging
+          console.error(`\n❌ ROUTE IMPORT ERROR: ${feature.name}/${routeConfig.file}`);
+          console.error(`📂 Path: ${routeFilePath}`);
+          console.error(`🔍 Error: ${error.message}`);
+          console.error('');
+          
+          throw new Error(`Import failed: ${error.message}`);
         }
 
         const routeHandler: FastifyPluginCallback = module.default;
 
         if (typeof routeHandler !== 'function') {
-          log.error(`Route file must export a function as default. Got: ${typeof routeHandler}`, {
+          const availableExports = Object.keys(module);
+          
+          log.error('Invalid route export - must be a function', {
             category: 'route',
             feature: feature.name,
             file: routeConfig.file,
             expected: 'function',
             got: typeof routeHandler,
-            availableExports: Object.keys(module)
+            availableExports,
+            suggestion: availableExports.length > 0 
+              ? `Available exports: ${availableExports.join(', ')}. Use 'export default' for your route handler.`
+              : 'Add a default export function that registers routes.'
           });
+          
+          console.error(`\n❌ INVALID ROUTE EXPORT: ${feature.name}/${routeConfig.file}`);
+          console.error(`Expected: function, Got: ${typeof routeHandler}`);
+          console.error(`Available exports: ${availableExports.join(', ')}`);
+          console.error('Fix: export default function(fastify) { ... }');
+          console.error('');
           
           throw new Error(`Route file must export a function as default. Got: ${typeof routeHandler}`);
         }
@@ -693,16 +926,46 @@ async function registerFeaturesWithEnforcement(app: FastifyInstance, features: D
         const prefix = routeConfig.prefix || `/api/${feature.name}`;
         
         try {
-          await app.register(routeHandler, { prefix });
-        } catch (registerError) {
-          log.error(`Fastify registration failed: ${registerError instanceof Error ? registerError.message : String(registerError)}`, {
-            category: 'route',
+          log.debug('Registering route with Fastify', {
             feature: feature.name,
-            prefix: prefix,
+            prefix,
             file: routeConfig.file
           });
           
-          throw new Error(`Fastify registration failed: ${registerError instanceof Error ? registerError.message : String(registerError)}`);
+          await app.register(routeHandler, { prefix });
+          
+          log.debug('Route registered successfully', {
+            feature: feature.name,
+            prefix,
+            file: routeConfig.file
+          });
+          
+        } catch (registerError) {
+          const error = registerError instanceof Error ? registerError : new Error(String(registerError));
+          
+          log.error('Fastify route registration failed', {
+            category: 'route',
+            feature: feature.name,
+            prefix: prefix,
+            file: routeConfig.file,
+            error: error.message,
+            stack: error.stack,
+            possibleCauses: [
+              'Route handler throws during registration',
+              'Duplicate route definitions',
+              'Invalid Fastify plugin structure',
+              'Middleware setup errors',
+              'Schema validation errors'
+            ]
+          });
+          
+          console.error(`\n❌ ROUTE REGISTRATION ERROR: ${feature.name}`);
+          console.error(`📍 Prefix: ${prefix}`);
+          console.error(`📄 File: ${routeConfig.file}`);
+          console.error(`🔍 Error: ${error.message}`);
+          console.error('');
+          
+          throw new Error(`Fastify registration failed: ${error.message}`);
         }
 
         registeredRoutes++;
@@ -711,14 +974,34 @@ async function registerFeaturesWithEnforcement(app: FastifyInstance, features: D
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       
-      log.error(`❌ ROUTE REGISTRATION FAILED for '${feature.name}': ${error.message}`, {
+      log.error('Route registration failed for feature', {
         category: 'startup',
         feature: feature.name,
         featurePath: feature.path,
-        routeConfigs: feature.config.routes
+        routeConfigs: feature.config.routes,
+        error: error.message,
+        stack: error.stack,
+        troubleshooting: [
+          'Check if route files exist and have correct exports',
+          'Verify TypeScript compilation completed successfully',
+          'Ensure all imports in route files are valid',
+          'Check for syntax errors in route handlers',
+          'Verify Fastify plugin structure is correct'
+        ]
       });
       
       // 🔒 ENFORCEMENT: Fail startup if route registration fails
+      console.error(`\n💥 FEATURE STARTUP FAILED: ${feature.name}`);
+      console.error(`📂 Feature path: ${feature.path}`);
+      console.error(`🔍 Root cause: ${error.message}`);
+      console.error(`📋 Routes to register: ${feature.config.routes?.length || 0}`);
+      if (feature.config.routes?.length) {
+        feature.config.routes.forEach((route, i) => {
+          console.error(`   ${i + 1}. ${route.file} → ${route.prefix || `/api/${feature.name}`}`);
+        });
+      }
+      console.error('');
+      
       throw new Error(`❌ ROUTE REGISTRATION FAILED for '${feature.name}': ${error.message}`);
     }
   }
@@ -773,9 +1056,8 @@ function setupGracefulShutdown(app: FastifyInstance, log: any): void {
 }
 
 // ============================================================================
-// 🎯 MAIN ENTRY POINT
+// 🎯 MAIN ENTRY POINT - CONTINUED
 // ============================================================================
-
 
 /**
  * Main entry point for Flux framework
@@ -813,38 +1095,140 @@ async function main(): Promise<void> {
   });
 
   try {
-    log.info('Starting Flux Framework...');
+    log.info('Starting Flux Framework...', {
+      nodeEnv: process.env.NODE_ENV,
+      isProduction: process.env.NODE_ENV === 'production',
+      cwd: process.cwd(),
+      nodeVersion: process.version
+    });
+
+    // Enable debug logging in development
+    if (process.env.NODE_ENV !== 'production') {
+      log.debug('Development mode - enabling detailed logging');
+    }
 
     // 🔍 1. Discover features
+    log.info('Step 1: Discovering features...');
     const features = await discoverFeatures(log);
     discoveredFeatures = features; // Store for root endpoint
+    log.info(`Step 1 complete: Found ${features.length} features`);
 
     // 🔒 2. ENFORCE CONTRACTS - Server will not start if contracts are invalid
+    log.info('Step 2: Enforcing contracts...');
     await enforceContracts(features, log);
+    log.info('Step 2 complete: All contracts valid');
 
     // 🚀 3. Create and configure Fastify app
+    log.info('Step 3: Creating Fastify app...');
     const app = await createFluxApp(config, log);
+    log.info('Step 3 complete: Fastify app created');
 
     // 📡 4. Register feature routes with enforcement
+    log.info('Step 4: Registering feature routes...');
     await registerFeaturesWithEnforcement(app, features, log);
+    log.info('Step 4 complete: Routes registered');
 
     // 🌐 5. Start server
+    log.info('Step 5: Starting server...');
     await startServer(app, config, log);
+    log.info('Step 5 complete: Server started');
 
     // 🛡️ 6. Setup graceful shutdown
+    log.info('Step 6: Setting up graceful shutdown...');
     setupGracefulShutdown(app, log);
+    log.info('Step 6 complete: Startup finished successfully');
 
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err));
+    
+    // 🔧 ENHANCED: Better startup error categorization
+    let errorCategory = 'unknown';
+    let suggestions: string[] = [];
+    
+    if (error.message.includes('ENOENT') || error.message.includes('not found')) {
+      errorCategory = 'missing_files';
+      suggestions = [
+        'Missing required files or directories',
+        'Check if all dependencies are installed: npm install',
+        'Verify file paths and directory structure',
+        'Ensure TypeScript files are compiled: npm run build'
+      ];
+    } else if (error.message.includes('CONTRACT_ENFORCEMENT')) {
+      errorCategory = 'contract_validation';
+      suggestions = [
+        'Feature contracts are invalid',
+        'Run: npm run flux:contracts to see specific errors',
+        'Add missing contracts to feature index.ts files',
+        'Fix contract dependencies and provides/needs declarations'
+      ];
+    } else if (error.message.includes('EADDRINUSE') || error.message.includes('port')) {
+      errorCategory = 'port_conflict';
+      suggestions = [
+        'Port is already in use',
+        'Stop other processes using the port',
+        'Change PORT environment variable',
+        'Use different port: PORT=3001 node dist/flux.js'
+      ];
+    } else if (error.message.includes('permission') || error.message.includes('EACCES')) {
+      errorCategory = 'permissions';
+      suggestions = [
+        'Permission denied',
+        'Check file/directory permissions',
+        'Run with proper permissions',
+        'Ensure you have write access to log directories'
+      ];
+    } else if (error.message.includes('Cannot resolve') || error.message.includes('MODULE_NOT_FOUND')) {
+      errorCategory = 'module_resolution';
+      suggestions = [
+        'Missing dependencies or incorrect imports',
+        'Run: npm install to install dependencies',
+        'Check import paths in your code',
+        'Verify all required packages are in package.json'
+      ];
+    }
+    
     log.error('Flux startup failed', {
       category: 'startup',
       errorType: 'STARTUP_FAILURE',
+      errorCategory,
       error: {
         name: error.name,
         message: error.message,
         stack: error.stack
-      }
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        nodeVersion: process.version,
+        platform: process.platform,
+        cwd: process.cwd()
+      },
+      suggestions
     });
+    
+    // 🔧 ENHANCED: Better console error output
+    console.error(`\n💥 FLUX STARTUP FAILED`);
+    console.error(`📋 Category: ${errorCategory}`);
+    console.error(`🔍 Error: ${error.message}`);
+    console.error(`📍 Location: ${error.stack?.split('\n')[1] || 'unknown'}`);
+    
+    if (suggestions.length > 0) {
+      console.error(`\n💡 Possible Solutions:`);
+      suggestions.forEach((suggestion, i) => {
+        console.error(`   ${i + 1}. ${suggestion}`);
+      });
+    }
+    
+    console.error(`\n🔧 Debug Info:`);
+    console.error(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.error(`   CWD: ${process.cwd()}`);
+    console.error(`   Node: ${process.version}`);
+    
+    if (error.stack) {
+      console.error(`\n📋 Full Stack Trace:`);
+      console.error(error.stack);
+    }
+    
+    console.error(''); // Empty line
     process.exit(1);
   }
 }
@@ -862,3 +1246,7 @@ main().catch(err => {
   });
   process.exit(1);
 });
+
+// ============================================================================
+// 🔄 EXPORTS FOR EXTERNAL USE
+// ============================================================================
