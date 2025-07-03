@@ -26,11 +26,12 @@ import Fastify, { type FastifyInstance, type FastifyPluginCallback, type Fastify
 import { configure } from '@voilajsx/appkit/config';
 import { error } from '@voilajsx/appkit/error';
 import { logger } from '@voilajsx/appkit/logging';
-import { 
-  type FeatureContract, 
+import {
+  type FeatureContract,
   type ContractItem,
   type ContractValidationResult,
-  isAppKitService 
+  isAppKitService,
+  APPKIT_SERVICES
 } from './contracts.js';
 
 // 🔧 FIXED: ES Module compatibility for __filename and __dirname
