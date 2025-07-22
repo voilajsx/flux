@@ -4,7 +4,7 @@
   "id": 2,
   "route": "GET /api/hello/:name",
   "status": "✅ compliant",
-  "generated_at": "2025-07-22T17:39:30.436Z",
+  "generated_at": "2025-07-22T17:39:56.585Z",
   "validation_scope": "full",
   "implementation_compliance": {
     "contract_valid": true,
