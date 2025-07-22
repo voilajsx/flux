@@ -1,0 +1,46 @@
+{
+  "feature": "hello",
+  "status": "✅ compliant",
+  "generated_at": "2025-07-22T17:39:30.436Z",
+  "validation_scope": "full",
+  "compliance_summary": {
+    "total_endpoints": 2,
+    "compliant_endpoints": 2,
+    "compliance_rate": 100,
+    "implementation_valid": true
+  },
+  "validation_summary": {
+    "total_routes": 2,
+    "total_functions": 2,
+    "total_tests": 13,
+    "structure_compliance": "100%"
+  },
+  "endpoints": [
+    {
+      "name": "main",
+      "id": 1,
+      "route": "GET /api/hello",
+      "status": "✅ compliant",
+      "files": {
+        "contract": "main.contract.ts",
+        "logic": "main.logic.ts",
+        "test": "main.test.ts"
+      }
+    },
+    {
+      "name": "@name",
+      "id": 2,
+      "route": "GET /api/hello/:name",
+      "status": "✅ compliant",
+      "files": {
+        "contract": "@name.contract.ts",
+        "logic": "@name.logic.ts",
+        "test": "@name.test.ts"
+      }
+    }
+  ],
+  "implementation_source": {
+    "file": "hello.implementation.json",
+    "validation_skip_pattern": "*_notes"
+  }
+}

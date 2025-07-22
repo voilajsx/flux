@@ -1,0 +1,34 @@
+{
+  "endpoint": "@name",
+  "feature": "hello",
+  "id": 2,
+  "route": "GET /api/hello/:name",
+  "status": "✅ compliant",
+  "generated_at": "2025-07-22T17:39:30.436Z",
+  "validation_scope": "full",
+  "implementation_compliance": {
+    "contract_valid": true,
+    "logic_valid": true,
+    "tests_valid": true,
+    "structure_valid": true
+  },
+  "specification": {
+    "folder": "src/features/hello/@name/",
+    "contract_file": "@name.contract.ts",
+    "logic_file": "@name.logic.ts",
+    "test_file": "@name.test.ts",
+    "routes": {
+      "GET /hello/:name": "get"
+    },
+    "functions": [
+      "get"
+    ],
+    "test_cases": 4
+  },
+  "validation_targets": {
+    "routes_count": 1,
+    "functions_count": 1,
+    "tests_count": 4,
+    "coverage_target": 100
+  }
+}

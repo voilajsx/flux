@@ -1,0 +1,305 @@
+# ============================================================================
+# ATOM Framework Git Ignore Rules
+# ============================================================================
+
+# ============================================================================
+# ENVIRONMENT & SECRETS
+# ============================================================================
+.env
+.env.local
+.env.production
+.env.staging
+.env.test
+.env.development
+
+# VoilaJSX AppKit secrets
+*.key
+*.pem
+*.p12
+*.crt
+
+# ============================================================================
+# NODE.JS & NPM
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Package manager lock files (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# ============================================================================
+# TYPESCRIPT & BUILD ARTIFACTS
+# ============================================================================
+dist/
+build/
+*.tsbuildinfo
+.tsbuildinfo
+
+# TypeScript cache
+*.tsbuildinfo
+
+# ============================================================================
+# TESTING & COVERAGE
+# ============================================================================
+coverage/
+.nyc_output/
+.coverage/
+*.lcov
+
+# Jest cache
+.jest/
+
+# Test results
+test-results/
+test-report.xml
+junit.xml
+
+# ============================================================================
+# ATOM FRAMEWORK SPECIFIC
+# ============================================================================
+
+# Auto-generated manifests (these are regenerated)
+src/features/*/manifest.yml
+manifest.generated.yml
+
+# Feature compilation cache
+.features-cache/
+.atom-cache/
+
+# Agent-generated temporary files
+.agent-temp/
+.agent-logs/
+
+# Contract validation cache
+.contracts-cache/
+
+# Platform monitoring data
+platform-metrics.json
+health-checks.log
+
+# ============================================================================
+# LOGS & MONITORING
+# ============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pino-*.log
+
+# VoilaJSX Logger files
+logger-*.log
+audit-*.log
+
+# Performance monitoring
+performance-*.json
+metrics-*.json
+
+# ============================================================================
+# DEVELOPMENT TOOLS
+# ============================================================================
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# VS Code specific (keep settings, ignore user-specific)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+!.vscode/tasks.json
+
+# Vim
+.vim/
+*.vim
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# DATABASE & STORAGE
+# ============================================================================
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Database dumps
+*.sql
+*.dump
+
+# Prisma (keep schema, ignore generated)
+prisma/generated/
+prisma/migrations/*
+!prisma/migrations/.keep
+
+# Local storage
+uploads/
+tmp/
+temp/
+.tmp/
+
+# ============================================================================
+# DOCKER & DEPLOYMENT
+# ============================================================================
+docker-compose.override.yml
+.dockerignore
+Dockerfile.local
+
+# Kubernetes
+*.kubeconfig
+k8s-local/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ============================================================================
+# PACKAGE MANAGERS & TOOLS
+# ============================================================================
+
+# npm
+.npm
+.npmrc
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+.pnpm-store/
+
+# ============================================================================
+# SECURITY & CERTIFICATES
+# ============================================================================
+*.p12
+*.key
+*.crt
+*.cer
+*.pem
+certificates/
+ssl/
+
+# ============================================================================
+# TEMPORARY & CACHE FILES
+# ============================================================================
+.cache/
+.temp/
+.tmp/
+*.tmp
+*.temp
+.eslintcache
+.stylelintcache
+
+# ============================================================================
+# ATOM FRAMEWORK - FEATURE PATTERNS
+# ============================================================================
+
+# Disabled features (underscore prefix) - These are intentionally tracked
+# but we ignore their generated files
+src/features/_*/manifest.yml
+src/features/_*/.generated/
+
+# Feature-specific temp files
+src/features/*/temp/
+src/features/*/.cache/
+src/features/*/node_modules/
+
+# ============================================================================
+# MONITORING & ANALYTICS
+# ============================================================================
+analytics/
+metrics/
+traces/
+*.trace
+*.prof
+
+# APM tools
+newrelic_agent.log
+.newrelic/
+
+# ============================================================================
+# KEEP THESE FILES (EXPLICIT INCLUSIONS)
+# ============================================================================
+
+# Important config files to keep
+!.env.example
+!.github/
+!.vscode/tasks.json
+!.gitkeep
+!.gitignore
+
+# ATOM Framework core files
+!src/features/*/blueprint.yml
+!src/features/*/register.ts
+!src/features/*/schema.prisma
+!src/platform/
+!prisma/schema.prisma
+
+# Documentation
+!README.md
+!CHANGELOG.md
+!LICENSE

@@ -1,0 +1,280 @@
+{
+  "feature": "hello",
+  "version": "1.0.0",
+  "generated_at": "2025-01-22T16:30:00Z",
+  "source_blueprint": "hello.blueprint.yml",
+
+  "agent_context_notes": {
+    "blueprint_mapping": {
+      "user_story_1": "welcome_message -> main endpoint",
+      "user_story_2": "personal_greeting -> @name endpoint",
+      "security_risk": "malicious name input -> input validation required",
+      "performance_target": "1 second response -> simple logic required"
+    },
+    "voilajsx_patterns": {
+      "module_init": "Always use .get() pattern: const utils = utility.get()",
+      "error_handling": "Use semantic errors: err.badRequest(), err.serverError()",
+      "input_safety": "Use secure.input() for all user parameters",
+      "logging": "Include requestId in all log entries for correlation"
+    },
+    "implementation_notes": {
+      "main_endpoint": "Return friendly welcome with platform status",
+      "name_endpoint": "Sanitize name parameter, return personalized greeting",
+      "response_format": "Always include success, data, requestId, timestamp",
+      "security_priority": "XSS prevention through input sanitization"
+    }
+  },
+
+  "code_generation_guidelines": {
+    "voilajsx_comment_standards": {
+      "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/atom/features/{feature}/{endpoint}/logic\n * @file src/features/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
+      "function_header_template": "/**\n * {function_description}\n * @llm-rule WHEN: {function_when}\n * @llm-rule AVOID: {function_avoid}\n * @llm-rule NOTE: {function_note}\n */",
+      "required_tags": ["@module", "@file", "@llm-rule WHEN", "@llm-rule AVOID"]
+    },
+    "typescript_patterns": {
+      "import_order": [
+        "express types",
+        "voilajsx appkit modules",
+        "other dependencies"
+      ],
+      "function_signature": "export async function {name}(req: Request, res: Response): Promise<void>",
+      "module_initialization": "const {var} = {module}.get();",
+      "error_patterns": [
+        "throw err.badRequest('message')",
+        "throw err.serverError('message')"
+      ],
+      "request_id_pattern": "const requestId = utils.uuid();"
+    },
+    "test_patterns": {
+      "describe_format": "describe('{Endpoint} - Contract Validated', () => {})",
+      "test_app_setup": "const testApp = express(); testApp.use(express.json()); testApp.get('/api/{path}', {function});",
+      "supertest_pattern": "await request(testApp).get('/api/{path}').expect({status})",
+      "error_handling": "Manual try-catch wrapper for VoilaJSX errors"
+    }
+  },
+
+  "endpoints": {
+    "main": {
+      "id": 1,
+      "route": "GET /api/hello",
+      "folder": "src/features/hello/main/",
+      "url": "GET /api/hello",
+      "business_purpose_notes": "Provide standard welcome greeting for all visitors",
+
+      "contract": {
+        "file": "main.contract.ts",
+        "exports": ["CONTRACT"],
+        "routes": {
+          "GET /hello": "list"
+        },
+        "imports": {
+          "appkit": ["logging", "error", "utils"],
+          "external": ["express"]
+        },
+        "helpers": [],
+        "tests": [
+          "should return welcome message (contract: GET /hello → list)",
+          "should return consistent response format",
+          "should generate unique request IDs"
+        ]
+      },
+
+      "logic": {
+        "file": "main.logic.ts",
+        "exports": ["list"],
+        "imports": [
+          "import { Request, Response } from 'express'",
+          "import { utility } from '@voilajsx/appkit/utils'",
+          "import { logger } from '@voilajsx/appkit/logging'",
+          "import { error } from '@voilajsx/appkit/error'"
+        ],
+        "functions": {
+          "list": {
+            "params": ["req: Request", "res: Response"],
+            "return_type": "Promise<void>",
+            "response_schema": {
+              "success": "boolean",
+              "data.message": "string",
+              "data.timestamp": "string",
+              "data.requestId": "string",
+              "data.status": "string"
+            }
+          }
+        }
+      },
+
+      "test": {
+        "file": "main.test.ts",
+        "imports": [
+          "import { describe, test, expect } from 'vitest'",
+          "import request from 'supertest'",
+          "import express from 'express'",
+          "import { list } from './main.logic.js'"
+        ],
+        "test_cases": [
+          {
+            "name": "should return welcome message (contract: GET /hello → list)",
+            "http_method": "GET",
+            "path": "/api/hello",
+            "expected_status": 200,
+            "expected_properties": ["success", "data.message", "data.requestId"]
+          },
+          {
+            "name": "should return consistent response format",
+            "http_method": "GET",
+            "path": "/api/hello",
+            "expected_status": 200,
+            "expected_schema": {
+              "success": "boolean",
+              "data": "object"
+            }
+          },
+          {
+            "name": "should generate unique request IDs",
+            "http_method": "GET",
+            "path": "/api/hello",
+            "expected_status": 200,
+            "validation": "two_requests_different_ids"
+          }
+        ],
+        "coverage_target": 100,
+        "coverage_files": ["main.logic.ts"]
+      }
+    },
+
+    "@name": {
+      "id": 2,
+      "route": "GET /api/hello/:name",
+      "folder": "src/features/hello/@name/",
+      "url": "GET /api/hello/:name",
+      "business_purpose_notes": "Provide personalized greeting using visitor name",
+      "security_implementation_notes": "Must sanitize name input to prevent XSS attacks",
+
+      "contract": {
+        "file": "@name.contract.ts",
+        "exports": ["CONTRACT"],
+        "routes": {
+          "GET /hello/:name": "get"
+        },
+        "imports": {
+          "appkit": ["logging", "error", "utils", "security"],
+          "external": ["express"]
+        },
+        "helpers": [],
+        "tests": [
+          "should return personalized greeting (contract: GET /hello/:name → get)",
+          "should sanitize and decode input properly",
+          "should sanitize dangerous XSS input",
+          "should reject empty name with proper error response",
+          "should return consistent ATOM response format",
+          "should generate unique request IDs",
+          "should handle names with apostrophes and hyphens",
+          "should reject names that exceed maximum length",
+          "should handle Unicode names correctly",
+          "should handle numeric names"
+        ]
+      },
+
+      "logic": {
+        "file": "@name.logic.ts",
+        "exports": ["get"],
+        "imports": [
+          "import { Request, Response } from 'express'",
+          "import { utility } from '@voilajsx/appkit/utils'",
+          "import { logger } from '@voilajsx/appkit/logging'",
+          "import { error } from '@voilajsx/appkit/error'",
+          "import { security } from '@voilajsx/appkit/security'"
+        ],
+        "functions": {
+          "get": {
+            "params": ["req: Request", "res: Response"],
+            "return_type": "Promise<void>",
+            "response_schema": {
+              "success": "boolean",
+              "data.message": "string",
+              "data.name": "string",
+              "data.timestamp": "string",
+              "data.requestId": "string",
+              "data.endpoint": "string"
+            },
+            "validation_rules": {
+              "name_length_min": 1,
+              "name_length_max": 50,
+              "sanitization_required": true,
+              "empty_name_status": 400
+            }
+          }
+        }
+      },
+
+      "test": {
+        "file": "@name.test.ts",
+        "imports": [
+          "import { describe, test, expect } from 'vitest'",
+          "import request from 'supertest'",
+          "import express from 'express'",
+          "import { get } from './@name.logic.js'"
+        ],
+        "test_cases": [
+          {
+            "name": "should return personalized greeting (contract: GET /hello/:name → get)",
+            "http_method": "GET",
+            "path": "/api/hello/World",
+            "expected_status": 200,
+            "expected_properties": [
+              "success",
+              "data.message",
+              "data.name",
+              "data.requestId"
+            ]
+          },
+          {
+            "name": "should sanitize dangerous XSS input",
+            "http_method": "GET",
+            "path": "/api/hello/%3Cscript%3Ealert%28%22xss%22%29%3C%2Fscript%3E",
+            "expected_status": 200,
+            "validation": "response_not_contains_script_tags"
+          },
+          {
+            "name": "should reject empty name with proper error response",
+            "http_method": "GET",
+            "path": "/api/hello/%20",
+            "expected_status": 400,
+            "expected_properties": ["success", "error", "message"]
+          },
+          {
+            "name": "should reject names that exceed maximum length",
+            "http_method": "GET",
+            "path": "/api/hello/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expected_status": 400,
+            "validation": "name_too_long_rejected"
+          }
+        ],
+        "coverage_target": 100,
+        "coverage_files": ["@name.logic.ts"]
+      }
+    }
+  },
+
+  "validation_skip_pattern": "*_notes",
+
+  "validation_targets": {
+    "total_endpoints": 2,
+    "total_contracts": 2,
+    "total_logic_files": 2,
+    "total_test_files": 2,
+    "total_routes": 2,
+    "total_functions": 2,
+    "total_test_cases": 13,
+    "required_coverage": 100
+  },
+
+  "file_structure": {
+    "src/features/hello/main/main.contract.ts": "exists",
+    "src/features/hello/main/main.logic.ts": "exists",
+    "src/features/hello/main/main.test.ts": "exists",
+    "src/features/hello/@name/@name.contract.ts": "exists",
+    "src/features/hello/@name/@name.logic.ts": "exists",
+    "src/features/hello/@name/@name.test.ts": "exists"
+  }
+}

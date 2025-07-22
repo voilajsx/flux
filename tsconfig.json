@@ -1,0 +1,100 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "isolatedModules": true,
+    
+    /* Emit */
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    
+    /* Interop Constraints */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    /* Type Checking - ATOM Framework Strict Mode */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    
+    /* Completeness */
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    
+    /* ATOM Framework Path Mapping */
+    "baseUrl": "./src",
+    "paths": {
+      "@features/*": ["features/*"],
+      "@platform/*": ["platform/*"],
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"]
+    },
+    
+    /* Advanced Options for Agent Safety */
+    "noErrorTruncation": true,
+    "preserveWatchOutput": true,
+    "pretty": true,
+    
+    /* Resolution */
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "checkJs": false,
+    
+    /* Emit Behavior */
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  
+  /* ATOM Framework File Inclusion */
+  "include": [
+    "src/**/*",
+    "src/**/*.json"
+  ],
+  
+  /* Exclusions for Clean Builds */
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "coverage",
+    "prisma/migrations"
+  ],
+  
+  /* TypeScript Project References for ATOM Features */
+  "references": [],
+  
+  /* Compiler Diagnostic Options */
+  "compileOnSave": false,
+  
+  /* ATOM Framework Type Checking Rules */
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": false,
+    "files": true,
+    "compilerOptions": {
+      "module": "Node16",
+      "target": "ES2022",
+      "moduleResolution": "node16"
+    }
+  }
+}

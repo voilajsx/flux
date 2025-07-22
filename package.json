@@ -1,0 +1,96 @@
+{
+  "name": "@voilajsx/atom",
+  "version": "1.0.0",
+  "description": "Highly reliable agentic backend microservices framework built for scale",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "NODE_NO_WARNINGS=1 nodemon --exec \"node --loader ts-node/esm\" src/server.ts",
+    "test": "vitest run",
+    "validate": "npm run build && npm run test",
+    "clean": "rm -rf dist",
+    "lint": "echo 'Use npm run atom:lint for ATOM Framework linting' && tsc --noEmit",
+    "atom:check": "node scripts/index.js check",
+    "atom:types": "node scripts/index.js types",
+    "atom:lint": "node scripts/index.js lint",
+    "atom:contract": "node scripts/index.js contract",
+    "atom:test": "node scripts/index.js test",
+    "atom:compliance": "node scripts/index.js compliance",
+    "atom:help": "node scripts/index.js help",
+    "atom:validate": "npm run atom:check",
+    "atom:health": "curl -f http://localhost:3000/health || echo 'Health check failed'",
+    "atom:manifest": "node -e \"import('./dist/platform/monitor.js').then(m => m.generateManifest())\"",
+    "deploy": "npm run build && node -e \"import('./dist/platform/deploy.js').then(m => m.deployToFly())\"",
+    "deploy:staging": "NODE_ENV=staging npm run deploy"
+  },
+  "keywords": [
+    "atom",
+    "framework",
+    "hello-world",
+    "voilajsx",
+    "appkit",
+    "express",
+    "agentic-development",
+    "endpoint-isolation",
+    "contract-driven",
+    "backend-framework",
+    "api-framework",
+    "microservices"
+  ],
+  "author": "ATOM Framework Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@voilajsx/appkit": "^1.0.0",
+    "express": "^4.18.2",
+    "vitest": "^3.2.4",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.8.0"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
+    "@types/supertest": "^2.0.12",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts",
+    "ignore": [
+      "src/**/*.test.ts"
+    ],
+    "exec": "ts-node src/server.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voilajsx/atom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/voilajsx/atom/issues"
+  },
+  "homepage": "https://github.com/voilajsx/atom#readme",
+  "atom": {
+    "framework": "ATOM",
+    "version": "1.0.0",
+    "features": {
+      "agentic-development": true,
+      "contract-validation": true,
+      "endpoint-isolation": true,
+      "zero-breaking-changes": true
+    },
+    "validation": {
+      "coverage-requirement": "90%",
+      "performance-threshold": "80/100",
+      "type-safety": "100%"
+    }
+  }
+}
