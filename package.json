@@ -12,6 +12,7 @@
     "validate": "npm run build && npm run test",
     "clean": "rm -rf dist",
     "lint": "echo 'Use npm run atom:lint for ATOM Framework linting' && tsc --noEmit",
+    "atom:validate": "node scripts/index.js validate",
     "atom:check": "node scripts/index.js check",
     "atom:types": "node scripts/index.js types",
     "atom:lint": "node scripts/index.js lint",
@@ -19,7 +20,6 @@
     "atom:test": "node scripts/index.js test",
     "atom:compliance": "node scripts/index.js compliance",
     "atom:help": "node scripts/index.js help",
-    "atom:validate": "npm run atom:check",
     "atom:health": "curl -f http://localhost:3000/health || echo 'Health check failed'",
     "atom:manifest": "node -e \"import('./dist/platform/monitor.js').then(m => m.generateManifest())\"",
     "deploy": "npm run build && node -e \"import('./dist/platform/deploy.js').then(m => m.deployToFly())\"",
@@ -58,7 +58,10 @@
     "@flydotio/dockerfile": "^0.7.10",
     "@types/supertest": "^2.0.12",
     "nodemon": "^3.0.1",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "js-yaml": "^4.1.0"
   },
   "nodemonConfig": {
     "watch": [

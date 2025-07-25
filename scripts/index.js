@@ -30,6 +30,7 @@ const COMMANDS = {
   contract: 'Contract validation and dependency checking',
   test: 'Endpoint functionality testing and manifest generation',
   compliance: 'Implementation validation and manifest generation',
+  validate: 'Schema validation for blueprint/agent/implementation files',
 };
 
 /**

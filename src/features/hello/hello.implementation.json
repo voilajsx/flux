@@ -25,6 +25,73 @@
     }
   },
 
+  "validation_targets": {
+    "total_endpoints": 2,
+    "total_contracts": 2,
+    "total_logic_files": 2,
+    "total_test_files": 2,
+    "total_routes": 2,
+    "total_functions": 2,
+    "total_test_cases": 13,
+    "required_coverage": 100,
+
+    "voilajsx_patterns": {
+      "required_modules": ["utils", "logger", "error"],
+      "required_patterns": [
+        ".get()",
+        "utils.uuid()",
+        "log.info(",
+        "err.badRequest"
+      ],
+      "security_patterns": ["secure.input(", "utils.get("],
+      "module_initialization": [
+        "const utils = utility.get()",
+        "const log = logger.get(",
+        "const err = error.get()"
+      ],
+      "response_patterns": ["res.json(", "success:", "data:", "requestId"]
+    },
+
+    "test_requirements": {
+      "critical_test_patterns": [
+        "error",
+        "validation",
+        "sanitiz",
+        "response",
+        "format"
+      ],
+      "minimum_critical_coverage": 2,
+      "security_test_patterns": ["XSS", "empty", "reject", "dangerous"],
+      "voilajsx_test_patterns": ["requestId", "success", "timestamp"],
+      "edge_case_patterns": ["Unicode", "length", "numeric", "special"]
+    },
+
+    "code_quality_targets": {
+      "error_handling_required": true,
+      "input_sanitization_required": true,
+      "structured_logging_required": true,
+      "voilajsx_compliance_minimum": 75,
+      "security_score_minimum": 90,
+      "type_safety_required": true
+    },
+
+    "reliability_thresholds": {
+      "contract_compliance_minimum": 100,
+      "test_validation_minimum": 90,
+      "types_validation_minimum": 100,
+      "lint_validation_minimum": 85,
+      "code_quality_minimum": 80,
+      "overall_reliability_minimum": 90
+    },
+
+    "breaking_change_prevention": {
+      "api_contract_locked": true,
+      "response_schema_stable": true,
+      "backward_compatibility_required": true,
+      "route_conflicts_blocked": true
+    }
+  },
+
   "code_generation_guidelines": {
     "voilajsx_comment_standards": {
       "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/atom/features/{feature}/{endpoint}/logic\n * @file src/features/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
@@ -60,6 +127,23 @@
       "folder": "src/features/hello/main/",
       "url": "GET /api/hello",
       "business_purpose_notes": "Provide standard welcome greeting for all visitors",
+
+      "validation_specifics": {
+        "required_voilajsx_patterns": [
+          "utility.get()",
+          "logger.get(",
+          "error.get()",
+          "utils.uuid()"
+        ],
+        "required_test_patterns": [
+          "response",
+          "format",
+          "consistent",
+          "requestId"
+        ],
+        "security_requirements": [],
+        "input_validation_requirements": []
+      },
 
       "contract": {
         "file": "main.contract.ts",
@@ -149,6 +233,37 @@
       "url": "GET /api/hello/:name",
       "business_purpose_notes": "Provide personalized greeting using visitor name",
       "security_implementation_notes": "Must sanitize name input to prevent XSS attacks",
+
+      "validation_specifics": {
+        "required_voilajsx_patterns": [
+          "utility.get()",
+          "logger.get(",
+          "error.get()",
+          "security.get()",
+          "secure.input(",
+          "utils.uuid()"
+        ],
+        "required_test_patterns": [
+          "error",
+          "validation",
+          "sanitiz",
+          "XSS",
+          "reject",
+          "response",
+          "format"
+        ],
+        "security_requirements": [
+          "input_sanitization",
+          "xss_protection",
+          "length_validation"
+        ],
+        "input_validation_requirements": [
+          "name_parameter",
+          "empty_check",
+          "length_check",
+          "special_characters"
+        ]
+      },
 
       "contract": {
         "file": "@name.contract.ts",
@@ -257,17 +372,6 @@
   },
 
   "validation_skip_pattern": "*_notes",
-
-  "validation_targets": {
-    "total_endpoints": 2,
-    "total_contracts": 2,
-    "total_logic_files": 2,
-    "total_test_files": 2,
-    "total_routes": 2,
-    "total_functions": 2,
-    "total_test_cases": 13,
-    "required_coverage": 100
-  },
 
   "file_structure": {
     "src/features/hello/main/main.contract.ts": "exists",

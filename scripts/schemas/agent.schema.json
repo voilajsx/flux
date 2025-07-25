@@ -1,0 +1,270 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ATOM Framework Agent Schema",
+  "description": "Schema for {feature}.agent.yml files",
+  "type": "object",
+  "required": [
+    "feature",
+    "version",
+    "agent_instructions",
+    "config",
+    "validation_commands",
+    "tasks",
+    "failure_handling",
+    "completion_criteria"
+  ],
+  "properties": {
+    "feature": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Feature name (must match blueprint)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "created": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Creation timestamp"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Creator (agent or human)"
+    },
+    "last_updated": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Last update timestamp"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Last modifier"
+    },
+    "agent_instructions": {
+      "type": "string",
+      "minLength": 50,
+      "description": "Multi-line instructions for agent execution"
+    },
+    "config": {
+      "type": "object",
+      "required": ["log_file", "commit_strategy", "max_retries_per_task"],
+      "properties": {
+        "log_file": {
+          "type": "string",
+          "pattern": "\\.(log|txt)$",
+          "description": "Action log filename"
+        },
+        "commit_strategy": {
+          "type": "string",
+          "enum": ["atomic_per_task", "atomic_per_step", "manual"],
+          "description": "Git commit strategy"
+        },
+        "max_retries_per_task": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum retries per task"
+        },
+        "rollback_command": {
+          "type": "string",
+          "description": "Command for rollback"
+        }
+      }
+    },
+    "validation_commands": {
+      "type": "object",
+      "required": ["contract", "types", "lint", "test", "full", "compliance"],
+      "properties": {
+        "contract": {
+          "type": "string",
+          "description": "Contract validation command"
+        },
+        "types": {
+          "type": "string",
+          "description": "TypeScript validation command"
+        },
+        "lint": {
+          "type": "string",
+          "description": "Linting command"
+        },
+        "test": {
+          "type": "string",
+          "description": "Test execution command"
+        },
+        "full": {
+          "type": "string",
+          "description": "Full validation pipeline"
+        },
+        "compliance": {
+          "type": "string",
+          "description": "Compliance check command"
+        }
+      }
+    },
+    "tasks": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[0-9]+$": {
+          "type": "object",
+          "required": ["name", "what", "steps"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z_]+$",
+              "description": "Task identifier (snake_case)"
+            },
+            "what": {
+              "type": "string",
+              "minLength": 10,
+              "description": "Task description"
+            },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "oneOf": [{ "type": "string" }, { "type": "object" }]
+              },
+              "description": "Execution steps (strings or YAML objects)"
+            },
+            "max_retries": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Retry limit for this task"
+            },
+            "if_stuck": {
+              "type": "string",
+              "description": "Escalation action when stuck"
+            },
+            "commit": {
+              "oneOf": [{ "type": "boolean" }, { "type": "string" }],
+              "description": "Commit strategy for this task"
+            },
+            "human_checkpoint": {
+              "type": "boolean",
+              "description": "Requires human approval"
+            },
+            "if_condition": {
+              "type": "string",
+              "description": "Condition to check before proceeding"
+            },
+            "else_action": {
+              "type": "string",
+              "description": "What to do if condition fails"
+            },
+            "git_branch": {
+              "type": "string",
+              "description": "Git branch name for this task"
+            },
+            "approval_required": {
+              "type": "boolean",
+              "description": "Halt and wait for developer approval"
+            },
+            "notify": {
+              "type": "object",
+              "description": "Notification configuration (for future use)"
+            },
+            "depends_on": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Task IDs that must complete first"
+            },
+            "outputs": {
+              "type": "object",
+              "description": "Variables this task produces for other tasks"
+            },
+            "skip_if": {
+              "type": "string",
+              "description": "Condition to skip this task"
+            }
+          }
+        }
+      }
+    },
+    "failure_handling": {
+      "type": "object",
+      "required": ["validation_failure", "security_failure", "git_failure"],
+      "properties": {
+        "validation_failure": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action on validation failure"
+            },
+            "escalate_after": {
+              "type": "string",
+              "description": "When to escalate"
+            }
+          }
+        },
+        "security_failure": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action on security failure"
+            }
+          }
+        },
+        "git_failure": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action on git failure"
+            },
+            "command": {
+              "type": "string",
+              "description": "Rollback command"
+            }
+          }
+        },
+        "parsing_confusion": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action when agent is confused"
+            }
+          }
+        }
+      }
+    },
+    "completion_criteria": {
+      "type": "object",
+      "required": [
+        "all_tasks_complete",
+        "all_validations_pass",
+        "deployment_ready"
+      ],
+      "properties": {
+        "all_tasks_complete": {
+          "type": "string",
+          "description": "How to check all tasks done"
+        },
+        "all_validations_pass": {
+          "type": "string",
+          "description": "How to check validations pass"
+        },
+        "deployment_ready": {
+          "type": "string",
+          "description": "How to check deployment readiness"
+        },
+        "git_clean": {
+          "type": "string",
+          "description": "Git cleanliness check"
+        }
+      }
+    },
+    "final_log_entry": {
+      "type": "string",
+      "description": "Success log message template"
+    }
+  },
+  "additionalProperties": false
+}

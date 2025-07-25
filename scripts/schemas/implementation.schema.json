@@ -1,0 +1,513 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ATOM Framework Implementation Schema",
+  "description": "Schema for {feature}.implementation.json files",
+  "type": "object",
+  "required": ["feature", "version", "validation_targets", "endpoints"],
+  "properties": {
+    "feature": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Feature name (must match blueprint)"
+    },
+
+    "business_logic": {
+      "type": "object",
+      "properties": {
+        "calculations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Business calculation rules and formulas"
+        },
+        "validations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Input validation rules and constraints"
+        },
+        "workflows": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Step-by-step business process flows"
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Access control and authorization rules"
+        },
+        "edge_cases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Special scenarios and exception handling"
+        },
+        "error_scenarios": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific error conditions and responses"
+        }
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "generated_at": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Generation timestamp"
+    },
+    "last_updated": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Last update timestamp"
+    },
+    "source_blueprint": {
+      "type": "string",
+      "description": "Source blueprint filename"
+    },
+    "validation_targets": {
+      "type": "object",
+      "required": [
+        "total_endpoints",
+        "required_coverage",
+        "voilajsx_patterns",
+        "test_requirements",
+        "code_quality_targets",
+        "reliability_thresholds"
+      ],
+      "properties": {
+        "total_endpoints": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_contracts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_logic_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_test_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_routes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_functions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_test_cases": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_coverage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "voilajsx_patterns": {
+          "type": "object",
+          "required": [
+            "required_modules",
+            "required_patterns",
+            "module_initialization"
+          ],
+          "properties": {
+            "required_modules": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "utils",
+                  "logger",
+                  "error",
+                  "security",
+                  "auth",
+                  "database",
+                  "cache",
+                  "storage",
+                  "email",
+                  "queue"
+                ]
+              }
+            },
+            "required_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "security_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "module_initialization": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "response_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "test_requirements": {
+          "type": "object",
+          "required": ["critical_test_patterns", "minimum_critical_coverage"],
+          "properties": {
+            "critical_test_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "minimum_critical_coverage": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "security_test_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "voilajsx_test_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "edge_case_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "code_quality_targets": {
+          "type": "object",
+          "required": [
+            "error_handling_required",
+            "structured_logging_required",
+            "voilajsx_compliance_minimum"
+          ],
+          "properties": {
+            "error_handling_required": {
+              "type": "boolean"
+            },
+            "input_sanitization_required": {
+              "type": "boolean"
+            },
+            "structured_logging_required": {
+              "type": "boolean"
+            },
+            "voilajsx_compliance_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "security_score_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "type_safety_required": {
+              "type": "boolean"
+            }
+          }
+        },
+        "reliability_thresholds": {
+          "type": "object",
+          "required": ["overall_reliability_minimum"],
+          "properties": {
+            "contract_compliance_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "test_validation_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "types_validation_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "lint_validation_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "code_quality_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "overall_reliability_minimum": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "breaking_change_prevention": {
+          "type": "object",
+          "properties": {
+            "api_contract_locked": {
+              "type": "boolean"
+            },
+            "response_schema_stable": {
+              "type": "boolean"
+            },
+            "backward_compatibility_required": {
+              "type": "boolean"
+            },
+            "route_conflicts_blocked": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-zA-Z@][a-zA-Z0-9@_-]*$": {
+          "type": "object",
+          "required": ["id", "route", "folder", "contract", "logic", "test"],
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "route": {
+              "type": "string",
+              "pattern": "^(GET|POST|PUT|DELETE|PATCH) /"
+            },
+            "folder": {
+              "type": "string",
+              "pattern": "^src/features/"
+            },
+            "url": {
+              "type": "string"
+            },
+            "validation_specifics": {
+              "type": "object",
+              "properties": {
+                "required_voilajsx_patterns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "required_test_patterns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "security_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "input_validation_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "contract": {
+              "type": "object",
+              "required": ["file", "exports", "routes"],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "\\.contract\\.ts$"
+                },
+                "exports": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "routes": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^(GET|POST|PUT|DELETE|PATCH) /": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "imports": {
+                  "type": "object",
+                  "properties": {
+                    "appkit": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "external": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "helpers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "tests": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "logic": {
+              "type": "object",
+              "required": ["file", "exports"],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "\\.logic\\.ts$"
+                },
+                "exports": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "imports": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "functions": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                      "type": "object",
+                      "properties": {
+                        "params": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "return_type": {
+                          "type": "string"
+                        },
+                        "response_schema": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "test": {
+              "type": "object",
+              "required": ["file", "test_cases"],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "\\.test\\.ts$"
+                },
+                "imports": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "test_cases": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "http_method",
+                      "path",
+                      "expected_status"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "http_method": {
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "expected_status": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 599
+                      },
+                      "expected_properties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "coverage_target": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "coverage_files": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "validation_skip_pattern": {
+      "type": "string",
+      "description": "Pattern for fields to skip during validation"
+    },
+    "file_structure": {
+      "type": "object",
+      "patternProperties": {
+        "^src/": {
+          "type": "string",
+          "enum": ["exists", "missing"]
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,273 @@
+# ============================================================================
+# Hello Feature - Agent Execution Instructions
+# @file src/features/hello/hello.agent.yml
+# ============================================================================
+
+feature: hello
+version: 1.0.0
+created: 2025-01-23T10:30:00Z
+created_by: claude.ai & Krishna Teja GS
+last_updated: 2025-01-23T10:30:00Z
+updated_by: agent_with_human_supervision
+
+# ============================================================================
+# AGENT INSTRUCTIONS
+# ============================================================================
+
+agent_instructions: |
+  You are executing the hello feature implementation. Follow these rules:
+
+  MEMORY & RESUME:
+  1. Check if hello.actions.log exists in this directory
+  2. If exists: Read last log entry to see where you stopped
+  3. Look for "TASK_X_STEP_Y_COMPLETE" to resume from next step
+  4. If not exists: Start fresh with task 1
+
+  EXECUTION:
+  1. Execute tasks 1-10 in order
+  2. Follow each step sequence exactly
+  3. Log every step to hello.actions.log
+  4. Stop and ask human if confused or stuck
+
+  DATA SOURCES:
+  - hello.blueprint.yml (business requirements)
+  - hello.implementation.json (technical specs)
+  - APPKIT_LLM_GUIDE.md (VoilaJSX patterns)
+
+# ============================================================================
+# AGENT CONFIGURATION
+# ============================================================================
+
+config:
+  log_file: 'hello.actions.log'
+  commit_strategy: 'atomic_per_task'
+  max_retries_per_task: 3
+  rollback_command: 'git revert HEAD~1'
+
+validation_commands:
+  contract: 'npm run atom:contract hello/{endpoint}'
+  types: 'npm run atom:types hello/{endpoint}'
+  lint: 'npm run atom:lint hello/{endpoint}'
+  test: 'npm run atom:test hello/{endpoint}'
+  full: 'npm run atom:check hello'
+  compliance: 'npm run atom:compliance hello'
+
+# ============================================================================
+# TASKS (Execute 1→10)
+# ============================================================================
+
+tasks:
+  1:
+    name: 'analyze_requirements'
+    what: 'Read and understand all specifications'
+
+    steps:
+      - log: 'Starting requirements analysis'
+      - read: 'Parse hello.blueprint.yml for business context'
+      - read: 'Parse hello.implementation.json for technical specs'
+      - read: 'Review APPKIT_LLM_GUIDE.md for VoilaJSX patterns'
+      - log: 'Analysis complete - 2 endpoints identified'
+      - analyze: 'Create execution plan for 2 endpoints (main + @name)'
+      - log: 'Plan confirmed: main=basic greeting, @name=personalized+secure'
+      - log: 'Requirements analysis completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for clarification'
+    commit: false
+    human_checkpoint: true
+
+  2:
+    name: 'create_main_contract'
+    what: 'Build the API contract file for basic hello endpoint'
+
+    steps:
+      - log: 'Starting main contract creation'
+      - read: 'Get contract spec from hello.implementation.json'
+      - create: 'Write src/features/hello/main/main.contract.ts'
+      - log: 'Contract file created with routes and tests'
+      - validate: 'npm run atom:contract hello/main'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): add main endpoint contract'
+      - log: 'Main contract task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  3:
+    name: 'create_name_contract'
+    what: 'Build the API contract file for personalized hello endpoint'
+
+    steps:
+      - log: 'Starting name contract creation'
+      - read: 'Get contract spec from hello.implementation.json'
+      - create: 'Write src/features/hello/@name/@name.contract.ts'
+      - log: 'Contract file created with security imports'
+      - validate: 'npm run atom:contract hello/@name'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): add name endpoint contract'
+      - log: 'Name contract task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  4:
+    name: 'create_main_logic'
+    what: 'Implement business logic for basic hello endpoint'
+
+    steps:
+      - log: 'Starting main logic implementation'
+      - read: 'Get logic spec from hello.implementation.json'
+      - read: 'Review VoilaJSX patterns from APPKIT_LLM_GUIDE.md'
+      - create: 'Write src/features/hello/main/main.logic.ts'
+      - log: 'Logic file created with VoilaJSX patterns'
+      - validate: 'npm run atom:types hello/main'
+      - validate: 'npm run atom:lint hello/main'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): implement main endpoint logic'
+      - log: 'Main logic task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  5:
+    name: 'create_name_logic'
+    what: 'Implement business logic for personalized hello endpoint with security'
+
+    steps:
+      - log: 'Starting name logic implementation'
+      - read: 'Get logic spec from hello.implementation.json'
+      - read: 'Review security patterns from APPKIT_LLM_GUIDE.md'
+      - create: 'Write src/features/hello/@name/@name.logic.ts'
+      - log: 'Logic file created with security validation'
+      - validate: 'npm run atom:types hello/@name'
+      - validate: 'npm run atom:lint hello/@name'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): implement name endpoint logic with security'
+      - log: 'Name logic task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  6:
+    name: 'create_main_tests'
+    what: 'Generate comprehensive tests for basic hello endpoint'
+
+    steps:
+      - log: 'Starting main tests creation'
+      - read: 'Get test spec from hello.implementation.json'
+      - create: 'Write src/features/hello/main/main.test.ts'
+      - log: 'Test file created with coverage targets'
+      - validate: 'npm run atom:test hello/main'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): add main endpoint tests'
+      - log: 'Main tests task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  7:
+    name: 'create_name_tests'
+    what: 'Generate security-focused tests for personalized hello endpoint'
+
+    steps:
+      - log: 'Starting name tests creation'
+      - read: 'Get test spec from hello.implementation.json'
+      - create: 'Write src/features/hello/@name/@name.test.ts'
+      - log: 'Test file created with security test coverage'
+      - validate: 'npm run atom:test hello/@name'
+      - on_success: 'Log validation passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): add name endpoint tests with security'
+      - log: 'Name tests task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  8:
+    name: 'validate_endpoints'
+    what: 'Run individual validation checks on both endpoints'
+
+    steps:
+      - log: 'Starting individual endpoint validation'
+      - validate: 'npm run atom:types hello/main'
+      - validate: 'npm run atom:lint hello/main'
+      - validate: 'npm run atom:test hello/main'
+      - validate: 'npm run atom:types hello/@name'
+      - validate: 'npm run atom:lint hello/@name'
+      - validate: 'npm run atom:test hello/@name'
+      - on_success: 'Log all validations passed'
+      - on_failure: 'Log validation failed - retry'
+      - commit: 'feat(hello): endpoint validations complete'
+      - log: 'Individual validation task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  9:
+    name: 'full_validation'
+    what: 'Run complete ATOM validation pipeline on entire feature'
+
+    steps:
+      - log: 'Starting full feature validation'
+      - validate: 'npm run atom:check hello'
+      - on_success: 'Log pipeline validation passed'
+      - on_failure: 'Log pipeline validation failed - retry'
+      - commit: 'feat(hello): feature validation complete'
+      - log: 'Full validation task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+  10:
+    name: 'generate_compliance'
+    what: 'Generate final compliance documentation and manifests'
+
+    steps:
+      - log: 'Starting compliance generation'
+      - validate: 'npm run atom:compliance hello'
+      - log: 'Compliance check completed'
+      - create: 'Generate src/features/hello/main/main.manifest.json'
+      - create: 'Generate src/features/hello/@name/@name.manifest.json'
+      - on_success: 'Log compliance documentation complete'
+      - on_failure: 'Log compliance generation failed - retry'
+      - commit: 'docs(hello): generate manifests and compliance report'
+      - log: 'Compliance generation task completed'
+
+    max_retries: 3
+    if_stuck: 'Ask human for help'
+
+# ============================================================================
+# FAILURE HANDLING
+# ============================================================================
+
+failure_handling:
+  validation_failure:
+    action: 'retry_with_error_analysis'
+    escalate_after: '3_failures'
+
+  security_failure:
+    action: 'stop_and_notify_human_immediately'
+
+  git_failure:
+    action: 'rollback_and_retry'
+    command: 'git revert HEAD~1'
+
+  parsing_confusion:
+    action: 'stop_and_ask_developer_for_clarification'
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+completion_criteria:
+  all_tasks_complete: 'Tasks 1-10 all show TASK_X_COMPLETE'
+  all_validations_pass: 'No validation failures in hello.actions.log'
+  deployment_ready: 'Compliance shows deployment_ready=true'
+  git_clean: 'No rollbacks or failed commits'
+
+final_log_entry: 'FEATURE_COMPLETE hello deployment_ready=true reliability=100% human_approval=pending'
