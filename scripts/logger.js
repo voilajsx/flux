@@ -1,6 +1,6 @@
 /**
- * ATOM Framework Custom Logger - Dual output system optimized for human developers and AI agents
- * @module @voilajsx/atom/scripts/logger
+ * FLUX Framework Custom Logger - Dual output system optimized for human developers and AI agents
+ * @module @voilajsx/flux/scripts/logger
  * @file scripts/logger.js
  *
  * @llm-rule WHEN: Logging validation results for both human review and agent processing
@@ -28,18 +28,18 @@ const colors = {
 };
 
 /**
- * ATOM Framework logger with specialized dual output for human-agent collaboration
- * @llm-rule WHEN: Creating logger instances for ATOM validation commands
+ * FLUX Framework logger with specialized dual output for human-agent collaboration
+ * @llm-rule WHEN: Creating logger instances for FLUX validation commands
  * @llm-rule AVOID: Using console.log directly - use structured logging methods for consistency
  * @llm-rule NOTE: Designed for 95% agent + 5% human oversight workflow
  */
 export class AtomLogger {
   /**
-   * Creates logger instance for specific ATOM component
+   * Creates logger instance for specific FLUX component
    * @llm-rule WHEN: Initializing loggers for validation commands (types, lint, contract, test)
    * @llm-rule AVOID: Generic component names - use specific command names for better debugging
    */
-  constructor(component = 'atom') {
+  constructor(component = 'flux') {
     this.component = component;
   }
 
@@ -90,7 +90,7 @@ export class AtomLogger {
 
     const robotIcon = this.colorize('🤖', 'cyan');
     const jsonData = this.colorize(JSON.stringify(logData), 'gray');
-    console.log(`${robotIcon} ATOM_DATA: ${jsonData}`);
+    console.log(`${robotIcon} FLUX_DATA: ${jsonData}`);
   }
 
   /**
@@ -109,13 +109,13 @@ export class AtomLogger {
 
   /**
    * Validation start notification for pipeline initialization
-   * @llm-rule WHEN: Beginning any ATOM validation command (types, lint, contract, test)
+   * @llm-rule WHEN: Beginning any FLUX validation command (types, lint, contract, test)
    * @llm-rule AVOID: Multiple start calls for same validation - call once per command
    * @llm-rule NOTE: Sets context for subsequent validation steps and results
    */
   validationStart(command) {
     const startText = this.colorize(
-      `🔍 ATOM: ${command} validation starting...`,
+      `🔍 FLUX: ${command} validation starting...`,
       'cyan'
     );
     this.human(startText);
@@ -196,7 +196,7 @@ export class AtomLogger {
 
   /**
    * Command completion with distinctive final status line for script termination
-   * @llm-rule WHEN: Ending ATOM validation commands with clear success/failure indication
+   * @llm-rule WHEN: Ending FLUX validation commands with clear success/failure indication
    * @llm-rule AVOID: Ambiguous completion messages - use clear success/failure indicators
    * @llm-rule NOTE: Provides process exit context and agent success notification
    */
@@ -299,7 +299,7 @@ export class AtomLogger {
   pipelineSuccess(totalTime, passedCount, totalCount) {
     this.human('');
     this.human(
-      this.colorize('🎉 ATOM: All validation checks passed!', 'green')
+      this.colorize('🎉 FLUX: All validation checks passed!', 'green')
     );
     this.human('');
 
@@ -319,7 +319,7 @@ export class AtomLogger {
     this.human('');
     this.human(
       this.colorize(
-        `💥 ATOM: Validation pipeline stopped at step ${failedStep}/${totalSteps}`,
+        `💥 FLUX: Validation pipeline stopped at step ${failedStep}/${totalSteps}`,
         'red'
       )
     );
@@ -359,9 +359,9 @@ export class AtomLogger {
 
 /**
  * Factory function to create component-specific logger instances
- * @llm-rule WHEN: Creating loggers for ATOM validation commands and components
+ * @llm-rule WHEN: Creating loggers for FLUX validation commands and components
  * @llm-rule AVOID: Creating multiple loggers for same component - reuse instances
- * @llm-rule NOTE: Provides consistent logging interface across all ATOM validation commands
+ * @llm-rule NOTE: Provides consistent logging interface across all FLUX validation commands
  */
 export function createLogger(component) {
   return new AtomLogger(component);

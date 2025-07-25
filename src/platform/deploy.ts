@@ -1,11 +1,11 @@
 /**
- * ATOM Framework simple Fly.io deployment with essential pipeline
- * @module @voilajsx/atom/platform/deploy
+ * FLUX Framework simple Fly.io deployment with essential pipeline
+ * @module @voilajsx/flux/platform/deploy
  * @file src/platform/deploy.ts
  * 
- * @llm-rule WHEN: Deploying ATOM Framework applications to Fly.io with simple automated deployment
+ * @llm-rule WHEN: Deploying FLUX Framework applications to Fly.io with simple automated deployment
  * @llm-rule AVOID: Manual deployments - use this automated script for consistent deployments
- * @llm-rule NOTE: Simple deployment focused on getting ATOM apps running on Fly.io quickly
+ * @llm-rule NOTE: Simple deployment focused on getting FLUX apps running on Fly.io quickly
  */
 
 import { logger } from '@voilajsx/appkit/logging';
@@ -24,7 +24,7 @@ const execAsync = promisify(exec);
 /**
  * Simple deployment configuration for Fly.io
  * @llm-rule WHEN: Configuring basic Fly.io deployment settings
- * @llm-rule AVOID: Over-complex configurations - keep it simple for ATOM hello app
+ * @llm-rule AVOID: Over-complex configurations - keep it simple for FLUX hello app
  */
 export interface DeployConfig {
   appName: string;
@@ -33,14 +33,14 @@ export interface DeployConfig {
 }
 
 /**
- * Deploys ATOM Framework application to Fly.io with simple pipeline
+ * Deploys FLUX Framework application to Fly.io with simple pipeline
  * @llm-rule WHEN: Deploying to Fly.io with minimal configuration and maximum reliability
  * @llm-rule AVOID: Complex multi-stage deployments - this handles the essentials
  * @llm-rule NOTE: Handles build, deploy, and basic health checking automatically
  */
 export async function deployToFly(environment: string = 'production'): Promise<void> {
   const deploymentId = utils.uuid();
-  const appName = config.get('fly.app.name') || 'atom-hello-app';
+  const appName = config.get('fly.app.name') || 'flux-hello-app';
   
   log.info('🚀 Starting Fly.io deployment', {
     deploymentId,
@@ -78,13 +78,13 @@ export async function deployToFly(environment: string = 'production'): Promise<v
 
 /**
  * Generates simple Fly.io configuration files
- * @llm-rule WHEN: Creating Fly.io config files optimized for ATOM Framework
+ * @llm-rule WHEN: Creating Fly.io config files optimized for FLUX Framework
  * @llm-rule AVOID: Complex multi-region configs - start simple and scale later
  */
 async function generateFlyConfig(appName: string, environment: string): Promise<void> {
   log.info('📝 Generating Fly.io configuration');
 
-  // Simple Dockerfile for ATOM Framework
+  // Simple Dockerfile for FLUX Framework
   const dockerfile = `FROM node:18-alpine
 
 WORKDIR /app
@@ -232,7 +232,7 @@ async function checkHealth(appName: string): Promise<void> {
  * @llm-rule AVOID: Complex rollback logic - Fly.io handles most of the complexity
  */
 export async function rollback(appName?: string): Promise<void> {
-  const app = appName || config.get('fly.app.name') || 'atom-hello-app';
+  const app = appName || config.get('fly.app.name') || 'flux-hello-app';
   
   log.info('🔄 Rolling back deployment', { appName: app });
 
@@ -256,7 +256,7 @@ export async function rollback(appName?: string): Promise<void> {
  * @llm-rule AVOID: Complex status parsing - basic info is usually sufficient
  */
 export async function getStatus(appName?: string): Promise<any> {
-  const app = appName || config.get('fly.app.name') || 'atom-hello-app';
+  const app = appName || config.get('fly.app.name') || 'flux-hello-app';
   
   try {
     const statusCmd = `flyctl status --app ${app} --json`;

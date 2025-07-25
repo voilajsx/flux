@@ -1,5 +1,5 @@
 /**
- * ATOM Framework contract for hello main endpoint
+ * FLUX Framework contract for hello main endpoint
  * @file src/features/hello/main/main.contract.ts
  */
 

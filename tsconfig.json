@@ -22,7 +22,7 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     
-    /* Type Checking - ATOM Framework Strict Mode */
+    /* Type Checking - FLUX Framework Strict Mode */
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -39,7 +39,7 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     
-    /* ATOM Framework Path Mapping */
+    /* FLUX Framework Path Mapping */
     "baseUrl": "./src",
     "paths": {
       "@features/*": ["features/*"],
@@ -63,7 +63,7 @@
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   
-  /* ATOM Framework File Inclusion */
+  /* FLUX Framework File Inclusion */
   "include": [
     "src/**/*",
     "src/**/*.json"
@@ -79,13 +79,13 @@
     "prisma/migrations"
   ],
   
-  /* TypeScript Project References for ATOM Features */
+  /* TypeScript Project References for FLUX Features */
   "references": [],
   
   /* Compiler Diagnostic Options */
   "compileOnSave": false,
   
-  /* ATOM Framework Type Checking Rules */
+  /* FLUX Framework Type Checking Rules */
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node",

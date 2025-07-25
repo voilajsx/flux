@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ATOM Framework Implementation Schema",
-  "description": "Schema for {feature}.implementation.json files",
+  "title": "FLUX Framework Implementation Schema",
+  "description": "Schema for {feature}.specification.json files",
   "type": "object",
   "required": ["feature", "version", "validation_targets", "endpoints"],
   "properties": {

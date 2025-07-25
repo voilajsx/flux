@@ -1,4 +1,4 @@
-# VoilaJSX ATOM Framework - Foundation Principles v3.0
+# VoilaJSX FLUX Framework - Foundation Principles v3.0
 
 ## 🎯 Core Foundation (Mathematical Reliability)
 
@@ -27,10 +27,10 @@
 
 ```
 src/features/{feature}/
-├── {feature}.blueprint.yml      # Human: Business requirements & user stories
-├── {feature}.agent.yml          # Human: Agent execution instructions
-├── {feature}.implementation.json # System: Auto-generated technical specs
-├── {feature}.report.json        # System: Auto-generated compliance report
+├── {feature}.requirements.yml      # Human: Business requirements & user stories
+├── {feature}.instructions.yml          # Human: Agent execution instructions
+├── {feature}.specification.json # System: Auto-generated technical specs
+├── {feature}.compliance.json        # System: Auto-generated compliance report
 ├── {feature}.actions.log        # Agent: Real-time execution progress
 └── {endpoint}/
     ├── {endpoint}.contract.ts    # Agent: API specification
@@ -50,16 +50,16 @@ src/features/{feature}/
 
 ```yaml
 # Human creates (Business Intent):
-hello.blueprint.yml              # Business requirements
+hello.requirements.yml              # Business requirements
 
 # Human creates (Execution Plan):
-hello.agent.yml                  # Task instructions
+hello.instructions.yml                  # Task instructions
 
 # System auto-generates (Technical Specs):
-hello.implementation.json        # VoilaJSX patterns, validation rules, endpoint specs
+hello.specification.json        # VoilaJSX patterns, validation rules, endpoint specs
 
 # System auto-generates (Compliance Tracking):
-hello.report.json               # Cross-endpoint analysis, reliability scores, deployment status
+hello.compliance.json               # Cross-endpoint analysis, reliability scores, deployment status
 
 # Agent creates (Execution Trail):
 hello.actions.log               # Step-by-step progress with timestamps
@@ -68,24 +68,24 @@ hello.actions.log               # Step-by-step progress with timestamps
 ### 7. **Validation Pipeline for Reliability**
 
 ```bash
-npm run atom:types     # TypeScript validation → logged to actions.log
-npm run atom:lint      # Code standards → logged to actions.log
-npm run atom:contract  # Contract compliance → logged to actions.log
-npm run atom:test      # Functionality testing → logged to actions.log
-npm run atom:compliance # Updates report.json → logged to actions.log
-npm run atom:check     # Full pipeline → logged to actions.log
+npm run flux:types     # TypeScript validation → logged to actions.log
+npm run flux:lint      # Code standards → logged to actions.log
+npm run flux:contract  # Contract compliance → logged to actions.log
+npm run flux:test      # Functionality testing → logged to actions.log
+npm run flux:compliance # Updates report.json → logged to actions.log
+npm run flux:check     # Full pipeline → logged to actions.log
 ```
 
 ### 8. **Human-Agent Interface Design**
 
 ```yaml
 # HUMAN LAYER (Strategic)
-{feature}.blueprint.yml          # "What to build and why"
-{feature}.agent.yml              # "How agent should build it"
+{feature}.requirements.yml          # "What to build and why"
+{feature}.instructions.yml              # "How agent should build it"
 
 # SYSTEM LAYER (Configuration)
-{feature}.implementation.json    # "Technical specifications for building"
-{feature}.report.json           # "Quality and compliance validation"
+{feature}.specification.json    # "Technical specifications for building"
+{feature}.compliance.json           # "Quality and compliance validation"
 
 # AGENT LAYER (Execution)
 {feature}.actions.log           # "What I'm doing right now"
@@ -145,12 +145,12 @@ Human creates → System generates → Agent executes → System validates → H
 
 ```bash
 # Step 1: Human creates business intent
-Human: Creates hello.blueprint.yml (business requirements & user stories)
-Human: Creates hello.agent.yml (step-by-step execution instructions)
+Human: Creates hello.requirements.yml (business requirements & user stories)
+Human: Creates hello.instructions.yml (step-by-step execution instructions)
 
 # Step 2: System auto-generates specifications
-System: Generates hello.implementation.json from blueprint analysis
-System: Generates hello.report.json template for compliance tracking
+System: Generates hello.specification.json from blueprint analysis
+System: Generates hello.compliance.json template for compliance tracking
 
 # Step 3: Agent executes with real-time logging
 Agent: Reads blueprint.yml + agent.yml + implementation.json
@@ -171,13 +171,13 @@ Human: Approves generated code in GitHub PR
 Bug: XSS vulnerability in @name endpoint
 
 # Human intervention
-Human: Adds task 11 to hello.agent.yml:
+Human: Adds task 11 to hello.instructions.yml:
   - name: 'fix_xss_vulnerability'
   - what: 'Strengthen input sanitization in @name endpoint'
 
 # System updates
-System: Auto-updates hello.implementation.json with new security requirements
-System: Updates hello.report.json with security fix tracking
+System: Auto-updates hello.specification.json with new security requirements
+System: Updates hello.compliance.json with security fix tracking
 
 # Agent execution
 Agent: Reads updated agent.yml and implementation.json
@@ -198,12 +198,12 @@ Human: Monitors hello.actions.log for "TASK_11_COMPLETE security_validated=true"
 Business: Admin-only greeting endpoint needed
 
 # Human specification
-Human: Updates hello.blueprint.yml with admin user story
-Human: Updates hello.agent.yml with admin endpoint tasks
+Human: Updates hello.requirements.yml with admin user story
+Human: Updates hello.instructions.yml with admin endpoint tasks
 
 # System auto-generation
-System: Auto-updates hello.implementation.json with admin endpoint specs
-System: Updates hello.report.json to track 3 endpoints instead of 2
+System: Auto-updates hello.specification.json with admin endpoint specs
+System: Updates hello.compliance.json to track 3 endpoints instead of 2
 
 # Agent execution
 Agent: Detects blueprint.yml changes
@@ -213,7 +213,7 @@ Agent: Updates report.json with new endpoint compliance metrics
 
 # Validation and deployment
 Agent: Runs full validation pipeline
-System: Updates hello.report.json with final compliance status
+System: Updates hello.compliance.json with final compliance status
 Human: Reviews feature branch with updated report.json dashboard
 ```
 
@@ -224,12 +224,12 @@ Human: Reviews feature branch with updated report.json dashboard
 ### **Human Files (Strategic Layer)**
 
 ```yaml
-{feature}.blueprint.yml:
+{feature}.requirements.yml:
   owner: "Product/Business Team"
   purpose: "Define what to build and why"
   updates: "When business requirements change"
 
-{feature}.agent.yml:
+{feature}.instructions.yml:
   owner: "Technical Team + AI Specialists"
   purpose: "Define how agent should execute"
   updates: "When execution strategy changes or bugs need fixing"
@@ -238,13 +238,13 @@ Human: Reviews feature branch with updated report.json dashboard
 ### **System Files (Configuration Layer)**
 
 ```yaml
-{feature}.implementation.json:
-  owner: "ATOM Framework System"
+{feature}.specification.json:
+  owner: "FLUX Framework System"
   purpose: "Auto-generate technical specifications from blueprint"
   updates: "Automatically when blueprint.yml changes"
 
-{feature}.report.json:
-  owner: "ATOM Framework System"
+{feature}.compliance.json:
+  owner: "FLUX Framework System"
   purpose: "Auto-generate compliance dashboard and metrics"
   updates: "Automatically during validation pipeline"
 ```
@@ -286,7 +286,7 @@ Human: Reviews feature branch with updated report.json dashboard
 
 - ✅ **Eliminates Human Error**: System generates perfect VoilaJSX patterns
 - ✅ **Version Synchronization**: implementation.json always matches blueprint.yml
-- ✅ **Standard Enforcement**: Auto-generated files follow ATOM conventions exactly
+- ✅ **Standard Enforcement**: Auto-generated files follow FLUX conventions exactly
 
 ### **2. Compliance Automation**
 
@@ -329,7 +329,7 @@ Human: Reviews feature branch with updated report.json dashboard
 - **Real-time Monitoring**: actions.log + report.json provide live compliance tracking
 - **Predictable Performance**: Auto-generated specifications optimize endpoints
 - **Independent Scaling**: Scale busy endpoints independently via auto-configuration
-- **Zero Downtime Deployments**: Auto-generated validation ensures atomic deployments
+- **Zero Downtime Deployments**: Auto-generated validation ensures fluxic deployments
 
 ### **File Architecture Benefits**
 
@@ -340,7 +340,7 @@ Human: Reviews feature branch with updated report.json dashboard
 
 ---
 
-## 🏆 The ATOM Advantage v3.0
+## 🏆 The FLUX Advantage v3.0
 
 ### **For Teams**
 
@@ -365,6 +365,6 @@ Human: Reviews feature branch with updated report.json dashboard
 
 ---
 
-**ATOM Framework v3.0: The first architecture designed for 95% agentic development with auto-generated technical specifications, real-time compliance tracking, and mathematical reliability guarantees through intelligent system configuration.**
+**FLUX Framework v3.0: The first architecture designed for 95% agentic development with auto-generated technical specifications, real-time compliance tracking, and mathematical reliability guarantees through intelligent system configuration.**
 
 **Grade: A+ (Revolutionary & Production-Ready with Intelligent Auto-Generation)** ⭐⭐⭐⭐⭐

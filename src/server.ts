@@ -1,6 +1,6 @@
 /**
- * ATOM Framework application entry point with production-ready startup and graceful shutdown
- * @module @voilajsx/atom/server
+ * FLUX Framework application entry point with production-ready startup and graceful shutdown
+ * @module @voilajsx/flux/server
  * @file src/server.ts
  */
 
@@ -96,7 +96,7 @@ function validateEnvironment(): void {
 }
 
 /**
- * Initializes ATOM Framework platform services and validates system health
+ * Initializes FLUX Framework platform services and validates system health
  * FIXED: Handle missing platform services gracefully
  */
 async function initializePlatform(): Promise<void> {
@@ -151,7 +151,7 @@ function startServer(): void {
   const server = app.listen(port, host, () => {
     const startupTime = Date.now() - startTime;
     
-    log.info('🌟 ATOM Framework server ready', {
+    log.info('🌟 FLUX Framework server ready', {
       port,
       host,
       environment: configure.getEnvironment(),
@@ -164,7 +164,7 @@ function startServer(): void {
 
     // Console output for developers
     console.log('');
-    console.log('🚀 ATOM Framework Server Started Successfully!');
+    console.log('🚀 FLUX Framework Server Started Successfully!');
     console.log('');
     console.log(`📋 Health Check: http://localhost:${port}/health`);
     console.log(`🏠 Root:        http://localhost:${port}/`);
@@ -297,7 +297,7 @@ const startTime = Date.now();
  */
 async function main(): Promise<void> {
   try {
-    log.info('🚀 Starting ATOM Framework server', {
+    log.info('🚀 Starting FLUX Framework server', {
       version: process.env.npm_package_version || '1.0.0',
       nodeVersion: process.version,
       environment: configure.getEnvironment(),

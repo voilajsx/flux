@@ -1,5 +1,5 @@
 {
-  "name": "@voilajsx/atom",
+  "name": "@voilajsx/flux",
   "version": "1.0.0",
   "description": "Highly reliable agentic backend microservices framework built for scale",
   "type": "module",
@@ -11,22 +11,25 @@
     "test": "vitest run",
     "validate": "npm run build && npm run test",
     "clean": "rm -rf dist",
-    "lint": "echo 'Use npm run atom:lint for ATOM Framework linting' && tsc --noEmit",
-    "atom:validate": "node scripts/index.js validate",
-    "atom:check": "node scripts/index.js check",
-    "atom:types": "node scripts/index.js types",
-    "atom:lint": "node scripts/index.js lint",
-    "atom:contract": "node scripts/index.js contract",
-    "atom:test": "node scripts/index.js test",
-    "atom:compliance": "node scripts/index.js compliance",
-    "atom:help": "node scripts/index.js help",
-    "atom:health": "curl -f http://localhost:3000/health || echo 'Health check failed'",
-    "atom:manifest": "node -e \"import('./dist/platform/monitor.js').then(m => m.generateManifest())\"",
+    "lint": "echo 'Use npm run flux:lint for FLUX Framework linting' && tsc --noEmit",
+    "flux:schema": "node scripts/index.js schema",
+    "flux:contract": "node scripts/index.js contract",
+    "flux:lint": "node scripts/index.js lint",
+    "flux:test": "node scripts/index.js test",
+    "flux:types": "node scripts/index.js types",
+    "flux:compliance": "node scripts/compliance.js",
+    "flux:help": "node scripts/index.js help",
+    "flux:health": "curl -f http://localhost:3000/health || echo 'Health check failed'",
+    "flux:manifest": "node -e \"import('./dist/platform/monitor.js').then(m => m.generateManifest())\"",
     "deploy": "npm run build && node -e \"import('./dist/platform/deploy.js').then(m => m.deployToFly())\"",
-    "deploy:staging": "NODE_ENV=staging npm run deploy"
+    "deploy:staging": "NODE_ENV=staging npm run deploy",
+    "flux:agent": "node scripts/agent.js",
+    "flux:build": "npm run build",
+    "flux:dev": "npm run dev",
+    "flux:start": "npm run start"
   },
   "keywords": [
-    "atom",
+    "flux",
     "framework",
     "hello-world",
     "voilajsx",
@@ -39,29 +42,30 @@
     "api-framework",
     "microservices"
   ],
-  "author": "ATOM Framework Team",
+  "author": "FLUX Framework Team",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.8.0",
     "@voilajsx/appkit": "^1.0.0",
+    "es-object-atoms": "^1.1.1",
     "express": "^4.18.2",
-    "vitest": "^3.2.4",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
-    "@types/express": "^4.17.17",
-    "@types/node": "^20.8.0"
+    "vitest": "^3.2.4"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",
     "@types/supertest": "^2.0.12",
-    "nodemon": "^3.0.1",
-    "supertest": "^6.3.3",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
   },
   "nodemonConfig": {
     "watch": [
@@ -75,14 +79,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/voilajsx/atom.git"
+    "url": "https://github.com/voilajsx/flux.git"
   },
   "bugs": {
-    "url": "https://github.com/voilajsx/atom/issues"
+    "url": "https://github.com/voilajsx/flux/issues"
   },
-  "homepage": "https://github.com/voilajsx/atom#readme",
-  "atom": {
-    "framework": "ATOM",
+  "homepage": "https://github.com/voilajsx/flux#readme",
+  "flux": {
+    "framework": "FLUX",
     "version": "1.0.0",
     "features": {
       "agentic-development": true,

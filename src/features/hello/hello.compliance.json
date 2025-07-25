@@ -207,7 +207,7 @@
     }
   ],
   "implementation_source": {
-    "file": "hello.implementation.json",
+    "file": "hello.specification.json",
     "validation_skip_pattern": "*_notes",
     "configuration_version": "1.0.0"
   }

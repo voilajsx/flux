@@ -1,9 +1,9 @@
 /**
- * ATOM Framework Check Command - Master validation pipeline with auto-commit safety
- * @module @voilajsx/atom/scripts/commands/check
+ * FLUX Framework Check Command - Master validation pipeline with auto-commit safety
+ * @module @voilajsx/flux/scripts/commands/check
  * @file scripts/commands/check.js
  *
- * @llm-rule WHEN: Running ATOM validation pipeline for full features or specific endpoints with auto-commit
+ * @llm-rule WHEN: Running FLUX validation pipeline for full features or specific endpoints with auto-commit
  * @llm-rule AVOID: Running validation without safety commits - loses progress on failures
  * @llm-rule NOTE: Supports endpoint/feature/full validation with intelligent auto-commit after success
  */
@@ -34,7 +34,7 @@ export default async function check(args) {
   const validationScope = determineValidationScope(target);
 
   log.human(
-    `🔍 ATOM: Starting ${validationScope.description} validation pipeline...`
+    `🔍 FLUX: Starting ${validationScope.description} validation pipeline...`
   );
   if (validationScope.target) {
     log.human(`🎯 Target: ${validationScope.target}`);
@@ -308,7 +308,7 @@ function printSuccessSummary(results, startTime, validationScope) {
   const totalCount = results.length;
 
   log.human('');
-  log.human('📊 ATOM Validation Summary:');
+  log.human('📊 FLUX Validation Summary:');
   log.human(
     `   Scope: ${validationScope.description} (${validationScope.scope})`
   );
@@ -323,11 +323,11 @@ function printSuccessSummary(results, startTime, validationScope) {
   if (validationScope.type === 'endpoint') {
     log.human('   Ready for: 🔧 Endpoint integration testing');
     log.human(
-      `   Next step: npm run atom:check ${validationScope.feature} (validate full feature)`
+      `   Next step: npm run flux:check ${validationScope.feature} (validate full feature)`
     );
   } else if (validationScope.type === 'feature') {
     log.human('   Ready for: 🧪 Feature integration testing');
-    log.human('   Next step: npm run atom:check (validate complete project)');
+    log.human('   Next step: npm run flux:check (validate complete project)');
   } else {
     log.human('   Ready for: 🚀 Production deployment');
     log.human('   Next step: Deploy to staging environment');
@@ -364,7 +364,7 @@ function printFailureSummary(results, startTime, validationScope) {
   const totalCount = results.length;
 
   log.human('');
-  log.human('📊 ATOM Validation Summary:');
+  log.human('📊 FLUX Validation Summary:');
   log.human(
     `   Scope: ${validationScope.description} (${validationScope.scope})`
   );

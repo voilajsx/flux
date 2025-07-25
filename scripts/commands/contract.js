@@ -1,9 +1,9 @@
 /**
- * ATOM Framework Contract Command - Enhanced contract validation with helper file support
- * @module @voilajsx/atom/scripts/commands/contract
+ * FLUX Framework Contract Command - Enhanced contract validation with helper file support
+ * @module @voilajsx/flux/scripts/commands/contract
  * @file scripts/commands/contract.js
  *
- * @llm-rule WHEN: Validating contract compliance across ATOM Framework features for mathematical reliability
+ * @llm-rule WHEN: Validating contract compliance across FLUX Framework features for mathematical reliability
  * @llm-rule AVOID: Partial contract validation - always validate complete contract-implementation consistency
  * @llm-rule NOTE: Enhanced to validate helper files, test implementations, and bidirectional consistency
  */
@@ -157,7 +157,7 @@ export default async function contract(args) {
 }
 
 /**
- * Validate all features in the ATOM Framework project
+ * Validate all features in the FLUX Framework project
  * @llm-rule WHEN: Running complete project contract validation without specific target
  * @llm-rule AVOID: Processing disabled features (underscore prefix) - skip for performance
  * @llm-rule NOTE: Discovers enabled features automatically and validates each endpoint
@@ -219,7 +219,7 @@ async function validateTarget(target) {
  * Validate all endpoints within a specific feature
  * @llm-rule WHEN: Validating complete feature including all endpoints and helper files
  * @llm-rule AVOID: Processing non-directory items as endpoints - causes validation errors
- * @llm-rule NOTE: Skips blueprint.yml and other non-endpoint files automatically
+ * @llm-rule NOTE: Skips requirements.yml and other non-endpoint files automatically
  */
 async function validateFeature(featuresPath, featureName) {
   const results = [];
@@ -541,7 +541,7 @@ function validateHelperExports(helperContent, helperFile, result) {
  * Load and parse {endpoint}.contract.ts file to extract CONTRACT object with helper support
  * @llm-rule WHEN: Loading contract specifications for comprehensive validation
  * @llm-rule AVOID: Runtime evaluation - use static parsing for security and reliability
- * @llm-rule NOTE: Enhanced to extract helpers array for new ATOM Framework helper file support
+ * @llm-rule NOTE: Enhanced to extract helpers array for new FLUX Framework helper file support
  */
 async function loadContract(contractPath) {
   try {
@@ -921,7 +921,7 @@ function getUniqueFeatures(results) {
  * Extract routes from contract string using regex parsing
  * @llm-rule WHEN: Parsing contract files to extract route-function mappings
  * @llm-rule AVOID: Complex parsing - use simple regex for reliable extraction
- * @llm-rule NOTE: Handles standard ATOM contract route format with quoted strings
+ * @llm-rule NOTE: Handles standard FLUX contract route format with quoted strings
  */
 function extractRoutes(contractStr) {
   const routes = {};
@@ -991,7 +991,7 @@ function extractImports(contractStr) {
  * Extract array property from contract string with flexible property support
  * @llm-rule WHEN: Parsing contract arrays like helpers, tests, publishes, subscribes
  * @llm-rule AVOID: Hardcoded property extraction - use generic function for all arrays
- * @llm-rule NOTE: Supports helpers array for new ATOM Framework helper file feature
+ * @llm-rule NOTE: Supports helpers array for new FLUX Framework helper file feature
  */
 function extractArrayProperty(contractStr, propName) {
   const items = [];

@@ -1,9 +1,9 @@
 /**
- * ATOM Framework schema coordination and migration management (placeholder for hello app)
- * @module @voilajsx/atom/platform/migrate
+ * FLUX Framework schema coordination and migration management (placeholder for hello app)
+ * @module @voilajsx/flux/platform/migrate
  * @file src/platform/migrate.ts
  * 
- * @llm-rule WHEN: Managing database schemas and migrations for ATOM Framework with multi-tenant support
+ * @llm-rule WHEN: Managing database schemas and migrations for FLUX Framework with multi-tenant support
  * @llm-rule AVOID: Manual schema changes - use coordinated migration system for consistency
  * @llm-rule NOTE: Placeholder implementation for hello app - no database required, but ready for future scaling
  */
@@ -20,8 +20,8 @@ const config = configure.get();
 const utils = utility.get();
 
 /**
- * Interface for ATOM Framework migration configuration and coordination
- * @llm-rule WHEN: Configuring database migrations across ATOM Framework features
+ * Interface for FLUX Framework migration configuration and coordination
+ * @llm-rule WHEN: Configuring database migrations across FLUX Framework features
  * @llm-rule AVOID: Feature-specific migration tools - use centralized coordination for consistency
  * @llm-rule NOTE: Supports multi-tenant migrations and cross-feature schema dependencies
  */
@@ -73,8 +73,8 @@ export interface MigrationResult {
 }
 
 /**
- * Coordinates schema migration across all ATOM Framework features
- * @llm-rule WHEN: Deploying or updating ATOM applications that may have schema changes
+ * Coordinates schema migration across all FLUX Framework features
+ * @llm-rule WHEN: Deploying or updating FLUX applications that may have schema changes
  * @llm-rule AVOID: Running migrations without coordination - can cause feature conflicts
  * @llm-rule NOTE: For hello app, this validates structure without actual database operations
  */
@@ -82,7 +82,7 @@ export async function coordinateMigrations(): Promise<MigrationResult> {
   const migrationId = utils.uuid();
   const startTime = Date.now();
   
-  log.info('🔄 Starting ATOM Framework schema coordination', {
+  log.info('🔄 Starting FLUX Framework schema coordination', {
     migrationId,
     timestamp: new Date().toISOString()
   });
@@ -162,10 +162,10 @@ export async function coordinateMigrations(): Promise<MigrationResult> {
 }
 
 /**
- * Discovers and analyzes schema files across all ATOM Framework features
+ * Discovers and analyzes schema files across all FLUX Framework features
  * @llm-rule WHEN: Scanning features directory for schema files and migration requirements
  * @llm-rule AVOID: Hardcoded feature lists - use auto-discovery for dynamic feature management
- * @llm-rule NOTE: Follows ATOM naming conventions (underscore prefix = disabled feature)
+ * @llm-rule NOTE: Follows FLUX naming conventions (underscore prefix = disabled feature)
  */
 async function discoverFeatureSchemas(config: MigrationConfig): Promise<FeatureSchema[]> {
   const schemas: FeatureSchema[] = [];
@@ -296,7 +296,7 @@ function analyzeSchemaContent(featureName: string, schemaPath: string, content: 
  * @llm-rule NOTE: Placeholder includes tenant_id field template for future multi-tenant scaling
  */
 async function createPlaceholderSchema(featureName: string, schemaPath: string): Promise<void> {
-  const placeholderContent = `// ATOM Framework placeholder schema for ${featureName}
+  const placeholderContent = `// FLUX Framework placeholder schema for ${featureName}
 // This feature currently doesn't require database tables
 // Add models here when database functionality is needed
 
@@ -369,7 +369,7 @@ async function mergeFeatureSchemas(schemas: FeatureSchema[], config: MigrationCo
   const mergedContent: string[] = [];
   
   // Add unified header
-  mergedContent.push('// ATOM Framework Unified Schema');
+  mergedContent.push('// FLUX Framework Unified Schema');
   mergedContent.push('// Auto-generated from feature schemas');
   mergedContent.push(`// Generated: ${new Date().toISOString()}`);
   mergedContent.push('');
@@ -427,7 +427,7 @@ async function generateUnifiedSchema(schemas: FeatureSchema[], config: Migration
   const unifiedContent: string[] = [];
   
   // Schema header with configuration
-  unifiedContent.push('// ATOM Framework Unified Schema');
+  unifiedContent.push('// FLUX Framework Unified Schema');
   unifiedContent.push(`// Generated: ${new Date().toISOString()}`);
   unifiedContent.push('// DO NOT EDIT MANUALLY - Generated from feature schemas');
   unifiedContent.push('');

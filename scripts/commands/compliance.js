@@ -1,10 +1,10 @@
 /**
- * ATOM Framework Compliance Command - Generic implementation validation driven by implementation.json
- * @module @voilajsx/atom/scripts/commands/compliance
+ * FLUX Framework Compliance Command - Generic implementation validation driven by specification.json
+ * @module @voilajsx/flux/scripts/commands/compliance
  * @file scripts/commands/compliance.js
  *
- * @llm-rule WHEN: Validating generated code against implementation.json with configurable patterns and thresholds
- * @llm-rule AVOID: Hardcoding validation patterns - always read from implementation.json for flexibility
+ * @llm-rule WHEN: Validating generated code against specification.json with configurable patterns and thresholds
+ * @llm-rule AVOID: Hardcoding validation patterns - always read from specification.json for flexibility
  * @llm-rule NOTE: Fully generic, works with any VoilaJSX AppKit modules and configurable validation rules
  */
 
@@ -20,9 +20,9 @@ import {
 const log = createLogger('compliance');
 
 /**
- * Generic compliance validation command driven by implementation.json specifications
+ * Generic compliance validation command driven by specification.json specifications
  * @llm-rule WHEN: Ensuring generated code matches implementation specifications with configurable validation
- * @llm-rule AVOID: Fixed validation logic - adapt to any implementation.json configuration
+ * @llm-rule AVOID: Fixed validation logic - adapt to any specification.json configuration
  * @llm-rule NOTE: Supports any VoilaJSX AppKit modules and endpoint-specific validation requirements
  */
 export default async function compliance(args) {
@@ -51,8 +51,8 @@ export default async function compliance(args) {
         implementationResult.duration,
         implementationResult.errors,
         [
-          'Create {feature}.implementation.json files',
-          'Ensure implementation.json follows proper schema',
+          'Create {feature}.specification.json files',
+          'Ensure specification.json follows proper schema',
           'Check file permissions and paths',
         ]
       );
@@ -78,7 +78,7 @@ export default async function compliance(args) {
         reliabilityResult.duration,
         reliabilityResult.errors,
         [
-          'Fix contract compliance issues based on implementation.json',
+          'Fix contract compliance issues based on specification.json',
           'Meet test coverage targets defined in validation_targets',
           'Resolve TypeScript compilation errors',
           'Address VoilaJSX pattern compliance issues',
@@ -191,9 +191,9 @@ export default async function compliance(args) {
         stack: error.stack?.split('\n').slice(0, 3),
       },
       [
-        'Check if implementation.json files exist and are valid',
+        'Check if specification.json files exist and are valid',
         'Verify generated code files are readable',
-        'Ensure implementation.json follows expected schema',
+        'Ensure specification.json follows expected schema',
         'Check for missing validation_targets configuration',
       ]
     );
@@ -271,7 +271,7 @@ async function loadImplementationSpecs(target) {
       const implementationFile = join(
         featuresPath,
         featureName,
-        `${featureName}.implementation.json`
+        `${featureName}.specification.json`
       );
 
       try {
@@ -339,7 +339,7 @@ function filterNotesFields(obj) {
  * Show comprehensive compliance summary with configuration details
  * @llm-rule WHEN: Displaying compliance results with configuration-driven insights
  * @llm-rule AVOID: Generic summaries - highlight configuration-driven validation
- * @llm-rule NOTE: Shows how implementation.json drove the validation process
+ * @llm-rule NOTE: Shows how specification.json drove the validation process
  */
 function showComprehensiveComplianceSummary(
   implementationResult,
@@ -379,7 +379,7 @@ function showComprehensiveComplianceSummary(
 
   log.human(`   Total time: ${totalDuration}ms`);
   log.human(
-    `   Validation approach: Configuration-driven (implementation.json)`
+    `   Validation approach: Configuration-driven (specification.json)`
   );
 
   // Show reliability status
@@ -411,7 +411,7 @@ function showComprehensiveComplianceSummary(
 
   // Show configuration-driven insights
   log.human(' 🔧 Configuration-Driven Validation:');
-  log.human('   ✅ VoilaJSX patterns from implementation.json');
+  log.human('   ✅ VoilaJSX patterns from specification.json');
   log.human('   ✅ Reliability thresholds from validation_targets');
   log.human('   ✅ Endpoint-specific requirements supported');
   log.human('   ✅ Breaking change prevention configured');
@@ -442,7 +442,7 @@ function showComprehensiveComplianceSummary(
   if (allReliable) {
     log.human('✅ Configurable compliance validation completed successfully');
     log.human(
-      '🚀 Code meets all implementation.json requirements and is deployment-ready'
+      '🚀 Code meets all specification.json requirements and is deployment-ready'
     );
   } else {
     log.human('❌ Configurable compliance validation found reliability issues');

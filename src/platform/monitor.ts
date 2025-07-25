@@ -1,6 +1,6 @@
 /**
- * ATOM Framework platform monitoring service with real-time health checks and performance tracking
- * @module @voilajsx/atom/platform/monitor
+ * FLUX Framework platform monitoring service with real-time health checks and performance tracking
+ * @module @voilajsx/flux/platform/monitor
  * @file src/platform/monitor.ts
  * 
  * @llm-rule WHEN: Building production systems that need health monitoring, performance tracking, and system status
@@ -21,8 +21,8 @@ const config = configure.get();
 const utils = utility.get();
 
 /**
- * Interface defining system health check results for ATOM Framework monitoring
- * @llm-rule WHEN: Defining health check responses for consistent monitoring across all ATOM applications
+ * Interface defining system health check results for FLUX Framework monitoring
+ * @llm-rule WHEN: Defining health check responses for consistent monitoring across all FLUX applications
  * @llm-rule AVOID: Custom health check formats - use this standard interface for consistency
  * @llm-rule NOTE: Provides comprehensive system status including services, performance, and error tracking
  */
@@ -39,7 +39,7 @@ export interface HealthStatus {
 }
 
 /**
- * Interface for individual service health within the ATOM Framework ecosystem
+ * Interface for individual service health within the FLUX Framework ecosystem
  * @llm-rule WHEN: Checking health of specific services like cache, storage, email, etc.
  * @llm-rule AVOID: Boolean-only status - include response times and error details for debugging
  * @llm-rule NOTE: Used by VoilaJSX AppKit modules to report their individual health status
@@ -82,7 +82,7 @@ export interface PerformanceMetrics {
 }
 
 /**
- * Interface for ATOM Framework manifest generation containing live documentation
+ * Interface for FLUX Framework manifest generation containing live documentation
  * @llm-rule WHEN: Auto-generating living documentation for features and API endpoints
  * @llm-rule AVOID: Static documentation - manifest updates automatically with system changes
  * @llm-rule NOTE: Used by agents for understanding current system state and available endpoints
@@ -137,14 +137,14 @@ let responseTimeSum = 0;
 let monitoringInterval: NodeJS.Timeout | null = null;
 
 /**
- * Initializes ATOM Framework monitoring system with performance tracking and health checks
+ * Initializes FLUX Framework monitoring system with performance tracking and health checks
  * @llm-rule WHEN: Application startup to begin monitoring system health and performance metrics
  * @llm-rule AVOID: Starting monitoring without proper error handling - can crash application startup
  * @llm-rule NOTE: Sets up periodic health checks and integrates with VoilaJSX AppKit logging
  */
 export async function initialize(): Promise<void> {
   try {
-    log.info('🔍 Initializing ATOM Framework monitoring', {
+    log.info('🔍 Initializing FLUX Framework monitoring', {
       environment: configure.getEnvironment(),
       monitoring_interval: config.get('monitor.interval', 60000)
     });
@@ -164,7 +164,7 @@ export async function initialize(): Promise<void> {
     // Initial metrics collection
     await collectMetrics();
 
-    log.info('✅ ATOM Framework monitoring initialized', {
+    log.info('✅ FLUX Framework monitoring initialized', {
       interval: intervalMs,
       metrics_enabled: true,
       health_checks_enabled: true
@@ -179,7 +179,7 @@ export async function initialize(): Promise<void> {
 }
 
 /**
- * Collects comprehensive system performance metrics for ATOM Framework monitoring
+ * Collects comprehensive system performance metrics for FLUX Framework monitoring
  * @llm-rule WHEN: Periodic collection of system metrics for performance tracking and alerting
  * @llm-rule AVOID: Blocking operations during metrics collection - use async operations for external checks
  * @llm-rule NOTE: Updates global performance data used by health checks and manifest generation
@@ -232,10 +232,10 @@ async function collectMetrics(): Promise<void> {
 }
 
 /**
- * Discovers and analyzes ATOM Framework features for performance and status reporting
+ * Discovers and analyzes FLUX Framework features for performance and status reporting
  * @llm-rule WHEN: Collecting metrics about discovered features and their performance characteristics
  * @llm-rule AVOID: Synchronous file system operations - use async methods for feature discovery
- * @llm-rule NOTE: Scans src/features directory following ATOM naming conventions (no underscore = enabled)
+ * @llm-rule NOTE: Scans src/features directory following FLUX naming conventions (no underscore = enabled)
  */
 async function collectFeatureMetrics(): Promise<PerformanceMetrics['features']> {
   try {
@@ -278,7 +278,7 @@ async function collectFeatureMetrics(): Promise<PerformanceMetrics['features']> 
 }
 
 /**
- * Performs comprehensive health check of all ATOM Framework services and dependencies
+ * Performs comprehensive health check of all FLUX Framework services and dependencies
  * @llm-rule WHEN: Health endpoint requests or periodic system validation for deployment readiness
  * @llm-rule AVOID: Long-running health checks - use timeouts to prevent blocking
  * @llm-rule NOTE: Integrates with VoilaJSX AppKit modules to check cache, storage, email, etc.
@@ -410,7 +410,7 @@ async function checkApplicationHealth(): Promise<ServiceHealth> {
 }
 
 /**
- * Validates memory usage and performance for ATOM Framework applications
+ * Validates memory usage and performance for FLUX Framework applications
  * @llm-rule WHEN: Monitoring memory health to prevent out-of-memory crashes in production
  * @llm-rule AVOID: Setting arbitrary memory limits - use percentage-based thresholds for different environments
  * @llm-rule NOTE: Critical for Node.js applications that can have memory leaks or high memory usage
@@ -453,10 +453,10 @@ async function checkMemoryHealth(): Promise<ServiceHealth> {
 }
 
 /**
- * Checks health and status of discovered ATOM Framework features
+ * Checks health and status of discovered FLUX Framework features
  * @llm-rule WHEN: Validating that feature auto-discovery is working and features are loadable
  * @llm-rule AVOID: Loading feature code during health checks - only verify structure and accessibility
- * @llm-rule NOTE: Ensures ATOM Framework feature discovery is functioning for agent development
+ * @llm-rule NOTE: Ensures FLUX Framework feature discovery is functioning for agent development
  */
 async function checkFeatureHealth(): Promise<ServiceHealth> {
   const startTime = performance.now();
@@ -555,14 +555,14 @@ async function checkCacheHealth(): Promise<ServiceHealth> {
 }
 
 /**
- * Generates comprehensive ATOM Framework manifest with live documentation and metrics
+ * Generates comprehensive FLUX Framework manifest with live documentation and metrics
  * @llm-rule WHEN: Creating living documentation for agents and developers about current system state
  * @llm-rule AVOID: Static documentation generation - manifest should reflect real-time system status
  * @llm-rule NOTE: Used by agents to understand available endpoints and system capabilities
  */
 export async function generateManifest(): Promise<AtomManifest> {
   try {
-    log.info('📝 Generating ATOM Framework manifest');
+    log.info('📝 Generating FLUX Framework manifest');
     
     const health = await checkSystemHealth();
     const features = await collectFeatureMetrics();
@@ -574,18 +574,18 @@ export async function generateManifest(): Promise<AtomManifest> {
       : 0;
     
     const manifest: AtomManifest = {
-      name: '@voilajsx/atom',
+      name: '@voilajsx/flux',
       version: process.env.npm_package_version || '1.0.0',
       status: health.healthy ? 'active' : 'degraded',
       last_updated: new Date().toISOString(),
-      generated_by: 'ATOM Framework Monitor',
+      generated_by: 'FLUX Framework Monitor',
       
       implementation: {
         total_features: features.discovered,
         active_features: features.active,
         total_endpoints: features.active * 2, // Estimate based on features
         completion_rate: features.discovered > 0 ? Math.round((features.active / features.discovered) * 100) : 0,
-        total_lines: features.active * 800, // Estimate based on ATOM 800-line limit
+        total_lines: features.active * 800, // Estimate based on FLUX 800-line limit
         test_coverage: 95 // Placeholder - would integrate with actual coverage tools
       },
       
@@ -626,7 +626,7 @@ export async function generateManifest(): Promise<AtomManifest> {
     const manifestPath = join(process.cwd(), 'manifest.json');
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
     
-    log.info('✅ ATOM Framework manifest generated', {
+    log.info('✅ FLUX Framework manifest generated', {
       features: manifest.implementation.active_features,
       endpoints: manifest.implementation.total_endpoints,
       status: manifest.status,

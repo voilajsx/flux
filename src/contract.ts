@@ -1,6 +1,6 @@
 /**
- * ATOM Framework contract validation and static checking enforcement
- * @module @voilajsx/atom/platform/contract
+ * FLUX Framework contract validation and static checking enforcement
+ * @module @voilajsx/flux/platform/contract
  * @file src/platform/contract.ts
  * 
  * @llm-rule WHEN: Validating feature contracts before server startup for 100% accuracy
@@ -33,7 +33,7 @@ export interface ContractValidationResult {
 }
 
 /**
- * ATOM Framework contract structure
+ * FLUX Framework contract structure
  * @llm-rule WHEN: Defining expected contract format for static validation
  * @llm-rule AVOID: Changing this structure without updating validation logic
  */
@@ -67,7 +67,7 @@ interface FeatureEndpoint {
  */
 export async function validateAllContracts(): Promise<boolean> {
   try {
-    log.info('🔍 Starting ATOM Framework contract validation');
+    log.info('🔍 Starting FLUX Framework contract validation');
 
     const featuresPath = join(process.cwd(), 'src', 'features');
     const validationResults: ContractValidationResult[] = [];
@@ -110,7 +110,7 @@ export async function validateAllContracts(): Promise<boolean> {
 
 /**
  * Discovers all feature endpoints using {endpoint}.{type}.ts naming convention
- * @llm-rule WHEN: Scanning for features following ATOM naming conventions
+ * @llm-rule WHEN: Scanning for features following FLUX naming conventions
  * @llm-rule AVOID: Hardcoded feature lists - use auto-discovery for flexibility
  * @llm-rule NOTE: Looks for {endpoint}.contract.ts and {endpoint}.logic.ts pairs
  */
@@ -514,7 +514,7 @@ function reportValidationResults(results: ContractValidationResult[]): boolean {
   let totalErrors = 0;
   let totalWarnings = 0;
 
-  console.log('\n📋 ATOM Framework Contract Validation Results\n');
+  console.log('\n📋 FLUX Framework Contract Validation Results\n');
 
   for (const result of results) {
     const status = result.valid ? '✅' : '❌';

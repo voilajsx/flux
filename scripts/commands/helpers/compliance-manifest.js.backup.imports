@@ -3,8 +3,8 @@
  * @module @voilajsx/flux/scripts/commands/helpers/compliance-manifest
  * @file scripts/commands/helpers/compliance-manifest.js
  *
- * @llm-rule WHEN: Generating manifests and reports using specification.json configuration
- * @llm-rule AVOID: Fixed manifest structure - adapt to specification.json requirements
+ * @llm-rule WHEN: Generating manifests and reports using implementation.json configuration
+ * @llm-rule AVOID: Fixed manifest structure - adapt to implementation.json requirements
  * @llm-rule NOTE: Includes reliability metrics, breaking change analysis, and duplication detection
  */
 
@@ -12,9 +12,9 @@ import { readdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 /**
- * Generate configurable manifests using specification.json specifications
- * @llm-rule WHEN: Creating manifests with reliability metrics defined in specification.json
- * @llm-rule AVOID: Fixed manifest structure - adapt to specification.json configuration
+ * Generate configurable manifests using implementation.json specifications
+ * @llm-rule WHEN: Creating manifests with reliability metrics defined in implementation.json
+ * @llm-rule AVOID: Fixed manifest structure - adapt to implementation.json configuration
  * @llm-rule NOTE: Includes all reliability validation results and deployment readiness
  */
 export async function generateConfigurableManifests(
@@ -184,7 +184,7 @@ export async function generateConfigurableManifests(
 /**
  * Generate comprehensive feature reports with configurable analysis
  * @llm-rule WHEN: Creating feature reports with breaking change and duplication analysis
- * @llm-rule AVOID: Fixed report structure - adapt to specification.json requirements
+ * @llm-rule AVOID: Fixed report structure - adapt to implementation.json requirements
  * @llm-rule NOTE: Includes cross-endpoint analysis and configuration-driven insights
  */
 export async function generateComprehensiveFeatureReports(
@@ -376,7 +376,7 @@ export async function generateComprehensiveFeatureReports(
 
 /**
  * Analyze breaking changes using configurable breaking change prevention rules
- * @llm-rule WHEN: Detecting API compatibility issues using specification.json rules
+ * @llm-rule WHEN: Detecting API compatibility issues using implementation.json rules
  * @llm-rule AVOID: Fixed breaking change detection - use configurable prevention rules
  * @llm-rule NOTE: Adapts to feature-specific breaking change prevention requirements
  */
@@ -457,7 +457,7 @@ export async function analyzeConfigurableBreakingChanges(
 
 /**
  * Analyze code duplication using configurable patterns and thresholds
- * @llm-rule WHEN: Tracking shared code patterns using specification.json configuration
+ * @llm-rule WHEN: Tracking shared code patterns using implementation.json configuration
  * @llm-rule AVOID: Fixed duplication detection - use configurable acceptable patterns
  * @llm-rule NOTE: Distinguishes acceptable VoilaJSX patterns from problematic duplication
  */
@@ -486,7 +486,7 @@ export async function analyzeConfigurableDuplication(
     // Set acceptable duplication from configuration
     analysis.acceptable_duplication = [
       'VoilaJSX module initialization patterns',
-      'Error handling patterns from specification.json',
+      'Error handling patterns from implementation.json',
       'Logging setup patterns',
       'Request ID generation',
       ...acceptablePatterns.map((p) => `Pattern: ${p}`),
@@ -510,7 +510,7 @@ export async function analyzeConfigurableDuplication(
       }
     }
 
-    // Analyze patterns defined in specification.json
+    // Analyze patterns defined in implementation.json
     for (const pattern of acceptablePatterns) {
       const endpointsWithPattern = [];
 
@@ -526,7 +526,7 @@ export async function analyzeConfigurableDuplication(
           endpoints: endpointsWithPattern,
           type: 'acceptable_configured_pattern',
           acceptable: true,
-          source: 'specification.json',
+          source: 'implementation.json',
         });
       }
     }

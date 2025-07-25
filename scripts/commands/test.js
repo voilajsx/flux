@@ -1,9 +1,9 @@
 /**
- * ATOM Framework Test Command - Pure test execution without manifest generation
- * @module @voilajsx/atom/scripts/commands/test
+ * FLUX Framework Test Command - Pure test execution without manifest generation
+ * @module @voilajsx/flux/scripts/commands/test
  * @file scripts/commands/test.js
  *
- * @llm-rule WHEN: Running ATOM Framework tests for functionality validation only
+ * @llm-rule WHEN: Running FLUX Framework tests for functionality validation only
  * @llm-rule AVOID: Mixing test execution with compliance validation - use compliance.js for that
  * @llm-rule NOTE: Focused on test execution and reporting - manifest generation moved to compliance.js
  */
@@ -148,7 +148,7 @@ export default async function test(args) {
       [
         'Check if Vitest is installed: npm list vitest',
         'Run npm run test manually to see detailed output',
-        'Verify all test files exist and follow ATOM conventions',
+        'Verify all test files exist and follow FLUX conventions',
         'Check for syntax errors in test files',
       ]
     );
@@ -158,8 +158,8 @@ export default async function test(args) {
 }
 
 /**
- * Validate test structure across ATOM Framework endpoints
- * @llm-rule WHEN: Ensuring test files exist and follow ATOM Framework conventions
+ * Validate test structure across FLUX Framework endpoints
+ * @llm-rule WHEN: Ensuring test files exist and follow FLUX Framework conventions
  * @llm-rule AVOID: Skipping structure validation - missing tests break reliability guarantees
  * @llm-rule NOTE: Validates {endpoint}.test.ts naming convention and file existence
  */
@@ -436,7 +436,7 @@ function showTestSummary(results) {
 }
 
 /**
- * Validate test coverage against ATOM Framework requirements
+ * Validate test coverage against FLUX Framework requirements
  * @llm-rule WHEN: Ensuring test coverage meets 90% minimum requirement for deployment
  * @llm-rule AVOID: Accepting low coverage - breaks reliability guarantees
  * @llm-rule NOTE: Gracefully handles missing coverage data for development environments

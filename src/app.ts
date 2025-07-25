@@ -1,6 +1,6 @@
 /**
- * ATOM Framework Express application with contract validation and action-based routing
- * @module @voilajsx/atom/app
+ * FLUX Framework Express application with contract validation and action-based routing
+ * @module @voilajsx/flux/app
  * @file src/app.ts
  * 
  * @llm-rule WHEN: Setting up Express app with contract validation and action-based endpoint discovery
@@ -28,8 +28,8 @@ const utils = utility.get();
 export const app = express();
 
 /**
- * Standard ATOM actions for validation and guidance
- * @llm-rule WHEN: Validating action names against ATOM Framework standards
+ * Standard FLUX actions for validation and guidance
+ * @llm-rule WHEN: Validating action names against FLUX Framework standards
  * @llm-rule AVOID: Custom action names without guidance - use standard actions when possible
  */
 export const STANDARD_ACTIONS = {
@@ -137,7 +137,7 @@ function setupMiddleware(): void {
 function setupDefaultRoutes(): void {
   app.get('/', (req, res) => {
     res.json({
-      message: 'Hello! ATOM Framework is active.',
+      message: 'Hello! FLUX Framework is active.',
       status: 'active',
       timestamp: new Date().toISOString(),
       contractValidation: 'passed',
@@ -150,7 +150,7 @@ function setupDefaultRoutes(): void {
 }
 
 /**
- * Discovers and registers ATOM Framework features using contract-validated action mapping
+ * Discovers and registers FLUX Framework features using contract-validated action mapping
  * @llm-rule WHEN: Auto-discovering endpoint route files following contract specifications
  * @llm-rule AVOID: Manual route registration - use contract-validated auto-discovery
  * @llm-rule NOTE: Uses {endpoint}.{type}.ts naming and contract route mappings for action functions
@@ -230,7 +230,7 @@ async function setupFeatureRouting(): Promise<void> {
 }
 
 /**
- * Registers routes for contract-validated ATOM Framework features using action mapping
+ * Registers routes for contract-validated FLUX Framework features using action mapping
  * @llm-rule WHEN: Loading endpoints that have passed contract validation with action-based routing
  * @llm-rule AVOID: Loading unvalidated endpoints - contract validation ensures they work
  * @llm-rule NOTE: Uses {endpoint}.{type}.ts naming and contract route mappings to call action functions
@@ -439,7 +439,7 @@ async function registerContractBasedEndpointRoute(
 }
 
 /**
- * Converts contract path to Express route pattern using ATOM naming conventions
+ * Converts contract path to Express route pattern using FLUX naming conventions
  * @llm-rule WHEN: Converting contract paths to Express routes with feature context
  * @llm-rule AVOID: Hardcoded route mapping - use consistent conversion for predictable API structure
  * @llm-rule NOTE: Maps contract paths like "/hello" to "/api/hello" with feature and endpoint context
@@ -510,15 +510,15 @@ function setupErrorHandling(): void {
 }
 
 /**
- * Initializes complete ATOM Framework Express application with contract validation and action-based routing
+ * Initializes complete FLUX Framework Express application with contract validation and action-based routing
  * @llm-rule WHEN: Application startup to configure all middleware, routes, and error handling
  * @llm-rule AVOID: Starting without contract validation - guarantees runtime failures
  * @llm-rule NOTE: Contract validation BLOCKS server startup and action mapping enables flexible endpoint design
  */
 async function initializeApp(): Promise<void> {
   try {
-    log.info('🚀 Initializing ATOM Framework application with contract validation and action-based routing', {
-      framework: 'ATOM',
+    log.info('🚀 Initializing FLUX Framework application with contract validation and action-based routing', {
+      framework: 'FLUX',
       appkit: 'VoilaJSX',
       server: 'Express',
       modules: 'ES2022',
@@ -544,7 +544,7 @@ async function initializeApp(): Promise<void> {
     setupSystemRoutes();            // 4. Health and API info endpoints
     setupErrorHandling();           // 5. Global error handling (MUST BE LAST)
 
-    log.info('✅ ATOM Framework application ready', {
+    log.info('✅ FLUX Framework application ready', {
       contractValidation: 'passed',
       middleware: 'configured',
       features: 'contract-action-based',
@@ -562,7 +562,7 @@ async function initializeApp(): Promise<void> {
   }
 }
 
-// Extend Express Request interface for ATOM Framework
+// Extend Express Request interface for FLUX Framework
 declare global {
   namespace Express {
     interface Request {

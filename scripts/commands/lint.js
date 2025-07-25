@@ -1,9 +1,9 @@
 /**
- * ATOM Framework Lint Command - Code standards validation with dual logging for agent reliability
- * @module @voilajsx/atom/scripts/commands/lint
+ * FLUX Framework Lint Command - Code standards validation with dual logging for agent reliability
+ * @module @voilajsx/flux/scripts/commands/lint
  * @file scripts/commands/lint.js
  *
- * @llm-rule WHEN: Validating ATOM Framework coding standards and VoilaJSX patterns for reliability
+ * @llm-rule WHEN: Validating FLUX Framework coding standards and VoilaJSX patterns for reliability
  * @llm-rule AVOID: Linting without proper file structure validation - breaks endpoint isolation
  * @llm-rule NOTE: Enhanced to validate helper files and maintain mathematical endpoint isolation
  */
@@ -15,8 +15,8 @@ import { createLogger } from '../logger.js';
 const log = createLogger('lint');
 
 /**
- * Lint validation command with comprehensive ATOM Framework standards checking
- * @llm-rule WHEN: Ensuring code follows ATOM conventions before deployment or generation
+ * Lint validation command with comprehensive FLUX Framework standards checking
+ * @llm-rule WHEN: Ensuring code follows FLUX conventions before deployment or generation
  * @llm-rule AVOID: Ignoring file structure violations - causes runtime failures in production
  * @llm-rule NOTE: Validates file naming, VoilaJSX patterns, helper files, and security patterns
  */
@@ -28,7 +28,7 @@ export default async function lint(args) {
   log.validationStart('lint', target, [
     'file_structure',
     'voilajsx_patterns',
-    'atom_conventions',
+    'flux_conventions',
     'helper_validation',
     'security_patterns',
   ]);
@@ -59,7 +59,7 @@ export default async function lint(args) {
         errors.map((e) => `${e.file}: ${e.message}`),
         [
           'Fix critical code standard violations listed above',
-          'Follow ATOM Framework naming conventions',
+          'Follow FLUX Framework naming conventions',
           'Add required VoilaJSX documentation patterns',
           'Ensure helper files are properly declared in contracts',
         ]
@@ -119,7 +119,7 @@ export default async function lint(args) {
 }
 
 /**
- * Lint all features in the ATOM Framework project
+ * Lint all features in the FLUX Framework project
  * @llm-rule WHEN: Running complete project validation without specific target
  * @llm-rule AVOID: Processing disabled features (underscore prefix) - skip for performance
  * @llm-rule NOTE: Discovers enabled features automatically and processes each endpoint
@@ -172,7 +172,7 @@ async function lintTarget(target) {
  * Lint all endpoints within a specific feature
  * @llm-rule WHEN: Validating complete feature including all endpoints and helper files
  * @llm-rule AVOID: Processing non-directory items as endpoints - causes validation errors
- * @llm-rule NOTE: Skips blueprint.yml and other non-endpoint files automatically
+ * @llm-rule NOTE: Skips requirements.yml and other non-endpoint files automatically
  */
 async function lintFeature(featuresPath, featureName) {
   const violations = [];
@@ -256,7 +256,7 @@ async function lintEndpoint(featuresPath, featureName, endpointName) {
 
 /**
  * Lint helper files in endpoint directory with naming convention validation
- * @llm-rule WHEN: Validating helper files following ATOM Framework patterns
+ * @llm-rule WHEN: Validating helper files following FLUX Framework patterns
  * @llm-rule AVOID: Processing non-helper TypeScript files as helpers - causes false violations
  * @llm-rule NOTE: Validates both simple helpers and service-specific helpers
  */
@@ -306,7 +306,7 @@ async function lintHelperFiles(endpointPath, endpointName) {
 
 /**
  * Lint a specific file with comprehensive validation patterns
- * @llm-rule WHEN: Validating individual files for ATOM Framework compliance
+ * @llm-rule WHEN: Validating individual files for FLUX Framework compliance
  * @llm-rule AVOID: Skipping file existence checks - causes downstream validation failures
  * @llm-rule NOTE: Supports contract, logic, test, and helper file types with specific validations
  */
@@ -337,8 +337,8 @@ async function lintFile(filePath, fileType, featureName, endpointName) {
       ...validateVoilaJSXPatterns(content, relativePath, fileType)
     );
 
-    // 3. ATOM structure validation
-    violations.push(...validateATOMStructure(content, relativePath, fileType));
+    // 3. FLUX structure validation
+    violations.push(...validateFLUXStructure(content, relativePath, fileType));
 
     // 4. Security patterns validation
     violations.push(
@@ -519,12 +519,12 @@ function validateVoilaJSXPatterns(content, filePath, fileType) {
 }
 
 /**
- * Validate ATOM Framework structure and naming conventions
+ * Validate FLUX Framework structure and naming conventions
  * @llm-rule WHEN: Ensuring files follow {endpoint}.{type}.ts naming convention
- * @llm-rule AVOID: Non-standard naming - breaks ATOM Framework auto-discovery
+ * @llm-rule AVOID: Non-standard naming - breaks FLUX Framework auto-discovery
  * @llm-rule NOTE: Validates contract, logic, test, and helper file naming patterns
  */
-function validateATOMStructure(content, filePath, fileType) {
+function validateFLUXStructure(content, filePath, fileType) {
   const violations = [];
 
   // Validate filename convention
@@ -595,7 +595,7 @@ function validateSecurityPatterns(content, filePath, fileType) {
 /**
  * Validate contract file structure and required properties
  * @llm-rule WHEN: Ensuring contract files have proper structure and helper declarations
- * @llm-rule AVOID: Missing CONTRACT export - breaks ATOM Framework validation
+ * @llm-rule AVOID: Missing CONTRACT export - breaks FLUX Framework validation
  * @llm-rule NOTE: Enhanced to validate helpers array for new helper file support
  */
 function validateContractFile(content, filePath) {
@@ -642,7 +642,7 @@ function validateContractFile(content, filePath) {
 
 /**
  * Validate logic file structure and VoilaJSX patterns
- * @llm-rule WHEN: Ensuring logic files follow ATOM Framework patterns
+ * @llm-rule WHEN: Ensuring logic files follow FLUX Framework patterns
  * @llm-rule AVOID: Missing function exports - breaks contract validation
  * @llm-rule NOTE: Validates function exports, request ID generation, and structured logging
  */
@@ -731,7 +731,7 @@ function validateTestFile(content, filePath) {
 
 /**
  * Validate helper file structure and VoilaJSX patterns
- * @llm-rule WHEN: Ensuring helper files follow ATOM Framework patterns
+ * @llm-rule WHEN: Ensuring helper files follow FLUX Framework patterns
  * @llm-rule AVOID: Complex business logic in helpers - keep focused on utilities
  * @llm-rule NOTE: Helper files should contain reusable utility functions, not endpoint logic
  */
@@ -761,7 +761,7 @@ function validateHelperFile(content, filePath) {
         file: filePath,
         message: 'Helper file should use .get() pattern for VoilaJSX modules',
         suggestion:
-          'Use module.get() pattern for consistency with ATOM Framework',
+          'Use module.get() pattern for consistency with FLUX Framework',
       });
     }
   }

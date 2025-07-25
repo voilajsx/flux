@@ -1,10 +1,10 @@
 /**
- * FLUX Framework Compliance Validation - Generic reliability validation driven by specification.json
+ * FLUX Framework Compliance Validation - Generic reliability validation driven by implementation.json
  * @module @voilajsx/flux/scripts/commands/helpers/compliance-validation
  * @file scripts/commands/helpers/compliance-validation.js
  *
- * @llm-rule WHEN: Performing configurable reliability validation using specification.json specifications
- * @llm-rule AVOID: Hardcoded validation patterns - always read from specification.json configuration
+ * @llm-rule WHEN: Performing configurable reliability validation using implementation.json specifications
+ * @llm-rule AVOID: Hardcoded validation patterns - always read from implementation.json configuration
  * @llm-rule NOTE: Supports any VoilaJSX AppKit modules and endpoint-specific validation requirements
  */
 
@@ -12,9 +12,9 @@ import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 
 /**
- * Generic reliability validation driven by specification.json configuration
+ * Generic reliability validation driven by implementation.json configuration
  * @llm-rule WHEN: Validating all reliability aspects using configurable patterns and thresholds
- * @llm-rule AVOID: Hardcoded validation patterns - read from specification.json validation_targets
+ * @llm-rule AVOID: Hardcoded validation patterns - read from implementation.json validation_targets
  * @llm-rule NOTE: Adapts to any VoilaJSX AppKit modules and endpoint-specific requirements
  */
 export async function validateConfigurableReliability(
@@ -88,9 +88,9 @@ export async function validateConfigurableReliability(
 }
 
 /**
- * Validate single endpoint using configurable patterns from specification.json
+ * Validate single endpoint using configurable patterns from implementation.json
  * @llm-rule WHEN: Performing reliability check using endpoint-specific and global configuration
- * @llm-rule AVOID: Fixed validation patterns - use specification.json specifications
+ * @llm-rule AVOID: Fixed validation patterns - use implementation.json specifications
  * @llm-rule NOTE: Supports any VoilaJSX AppKit modules and configurable thresholds
  */
 export async function validateSingleEndpointConfigurable(
@@ -218,7 +218,7 @@ export async function validateSingleEndpointConfigurable(
 
 /**
  * Validate contract compliance using configurable patterns
- * @llm-rule WHEN: Checking contract compliance with specification.json specified patterns
+ * @llm-rule WHEN: Checking contract compliance with implementation.json specified patterns
  * @llm-rule AVOID: Hardcoded route/function validation - use contract specification
  * @llm-rule NOTE: Adapts to any contract structure and import requirements
  */
@@ -370,7 +370,7 @@ export async function validateConfigurableContractCompliance(
 
 /**
  * Validate test reliability using configurable test patterns
- * @llm-rule WHEN: Checking test coverage and patterns defined in specification.json
+ * @llm-rule WHEN: Checking test coverage and patterns defined in implementation.json
  * @llm-rule AVOID: Hardcoded test pattern detection - use configurable patterns
  * @llm-rule NOTE: Supports endpoint-specific test requirements and global test targets
  */
@@ -608,7 +608,7 @@ export async function validateConfigurableTypesReliability(
 
 /**
  * Validate lint compliance using configurable VoilaJSX patterns
- * @llm-rule WHEN: Checking VoilaJSX patterns and conventions from specification.json
+ * @llm-rule WHEN: Checking VoilaJSX patterns and conventions from implementation.json
  * @llm-rule AVOID: Hardcoded pattern detection - use configurable VoilaJSX patterns
  * @llm-rule NOTE: Supports any VoilaJSX AppKit modules and endpoint-specific patterns
  */
@@ -720,7 +720,7 @@ export async function validateConfigurableLintReliability(
 
 /**
  * Validate code quality using configurable quality targets
- * @llm-rule WHEN: Checking code quality metrics defined in specification.json
+ * @llm-rule WHEN: Checking code quality metrics defined in implementation.json
  * @llm-rule AVOID: Fixed quality checks - use configurable quality targets
  * @llm-rule NOTE: Adapts to endpoint-specific quality requirements
  */

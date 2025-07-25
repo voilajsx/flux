@@ -1,6 +1,6 @@
 # ============================================================================
 # Hello Feature - Agent Execution Instructions
-# @file src/features/hello/hello.agent.yml
+# @file src/features/hello/hello.instructions.yml
 # ============================================================================
 
 feature: hello
@@ -30,8 +30,8 @@ agent_instructions: |
   4. Stop and ask human if confused or stuck
 
   DATA SOURCES:
-  - hello.blueprint.yml (business requirements)
-  - hello.implementation.json (technical specs)
+  - hello.requirements.yml (business requirements)
+  - hello.specification.json (technical specs)
   - APPKIT_LLM_GUIDE.md (VoilaJSX patterns)
 
 # ============================================================================
@@ -40,17 +40,17 @@ agent_instructions: |
 
 config:
   log_file: 'hello.actions.log'
-  commit_strategy: 'atomic_per_task'
+  commit_strategy: 'fluxic_per_task'
   max_retries_per_task: 3
   rollback_command: 'git revert HEAD~1'
 
 validation_commands:
-  contract: 'npm run atom:contract hello/{endpoint}'
-  types: 'npm run atom:types hello/{endpoint}'
-  lint: 'npm run atom:lint hello/{endpoint}'
-  test: 'npm run atom:test hello/{endpoint}'
-  full: 'npm run atom:check hello'
-  compliance: 'npm run atom:compliance hello'
+  contract: 'npm run flux:contract hello/{endpoint}'
+  types: 'npm run flux:types hello/{endpoint}'
+  lint: 'npm run flux:lint hello/{endpoint}'
+  test: 'npm run flux:test hello/{endpoint}'
+  full: 'npm run flux:check hello'
+  compliance: 'npm run flux:compliance hello'
 
 # ============================================================================
 # TASKS (Execute 1→10)
@@ -63,8 +63,8 @@ tasks:
 
     steps:
       - log: 'Starting requirements analysis'
-      - read: 'Parse hello.blueprint.yml for business context'
-      - read: 'Parse hello.implementation.json for technical specs'
+      - read: 'Parse hello.requirements.yml for business context'
+      - read: 'Parse hello.specification.json for technical specs'
       - read: 'Review APPKIT_LLM_GUIDE.md for VoilaJSX patterns'
       - log: 'Analysis complete - 2 endpoints identified'
       - analyze: 'Create execution plan for 2 endpoints (main + @name)'
@@ -82,10 +82,10 @@ tasks:
 
     steps:
       - log: 'Starting main contract creation'
-      - read: 'Get contract spec from hello.implementation.json'
+      - read: 'Get contract spec from hello.specification.json'
       - create: 'Write src/features/hello/main/main.contract.ts'
       - log: 'Contract file created with routes and tests'
-      - validate: 'npm run atom:contract hello/main'
+      - validate: 'npm run flux:contract hello/main'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): add main endpoint contract'
@@ -100,10 +100,10 @@ tasks:
 
     steps:
       - log: 'Starting name contract creation'
-      - read: 'Get contract spec from hello.implementation.json'
+      - read: 'Get contract spec from hello.specification.json'
       - create: 'Write src/features/hello/@name/@name.contract.ts'
       - log: 'Contract file created with security imports'
-      - validate: 'npm run atom:contract hello/@name'
+      - validate: 'npm run flux:contract hello/@name'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): add name endpoint contract'
@@ -118,12 +118,12 @@ tasks:
 
     steps:
       - log: 'Starting main logic implementation'
-      - read: 'Get logic spec from hello.implementation.json'
+      - read: 'Get logic spec from hello.specification.json'
       - read: 'Review VoilaJSX patterns from APPKIT_LLM_GUIDE.md'
       - create: 'Write src/features/hello/main/main.logic.ts'
       - log: 'Logic file created with VoilaJSX patterns'
-      - validate: 'npm run atom:types hello/main'
-      - validate: 'npm run atom:lint hello/main'
+      - validate: 'npm run flux:types hello/main'
+      - validate: 'npm run flux:lint hello/main'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): implement main endpoint logic'
@@ -138,12 +138,12 @@ tasks:
 
     steps:
       - log: 'Starting name logic implementation'
-      - read: 'Get logic spec from hello.implementation.json'
+      - read: 'Get logic spec from hello.specification.json'
       - read: 'Review security patterns from APPKIT_LLM_GUIDE.md'
       - create: 'Write src/features/hello/@name/@name.logic.ts'
       - log: 'Logic file created with security validation'
-      - validate: 'npm run atom:types hello/@name'
-      - validate: 'npm run atom:lint hello/@name'
+      - validate: 'npm run flux:types hello/@name'
+      - validate: 'npm run flux:lint hello/@name'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): implement name endpoint logic with security'
@@ -158,10 +158,10 @@ tasks:
 
     steps:
       - log: 'Starting main tests creation'
-      - read: 'Get test spec from hello.implementation.json'
+      - read: 'Get test spec from hello.specification.json'
       - create: 'Write src/features/hello/main/main.test.ts'
       - log: 'Test file created with coverage targets'
-      - validate: 'npm run atom:test hello/main'
+      - validate: 'npm run flux:test hello/main'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): add main endpoint tests'
@@ -176,10 +176,10 @@ tasks:
 
     steps:
       - log: 'Starting name tests creation'
-      - read: 'Get test spec from hello.implementation.json'
+      - read: 'Get test spec from hello.specification.json'
       - create: 'Write src/features/hello/@name/@name.test.ts'
       - log: 'Test file created with security test coverage'
-      - validate: 'npm run atom:test hello/@name'
+      - validate: 'npm run flux:test hello/@name'
       - on_success: 'Log validation passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): add name endpoint tests with security'
@@ -194,12 +194,12 @@ tasks:
 
     steps:
       - log: 'Starting individual endpoint validation'
-      - validate: 'npm run atom:types hello/main'
-      - validate: 'npm run atom:lint hello/main'
-      - validate: 'npm run atom:test hello/main'
-      - validate: 'npm run atom:types hello/@name'
-      - validate: 'npm run atom:lint hello/@name'
-      - validate: 'npm run atom:test hello/@name'
+      - validate: 'npm run flux:types hello/main'
+      - validate: 'npm run flux:lint hello/main'
+      - validate: 'npm run flux:test hello/main'
+      - validate: 'npm run flux:types hello/@name'
+      - validate: 'npm run flux:lint hello/@name'
+      - validate: 'npm run flux:test hello/@name'
       - on_success: 'Log all validations passed'
       - on_failure: 'Log validation failed - retry'
       - commit: 'feat(hello): endpoint validations complete'
@@ -210,11 +210,11 @@ tasks:
 
   9:
     name: 'full_validation'
-    what: 'Run complete ATOM validation pipeline on entire feature'
+    what: 'Run complete FLUX validation pipeline on entire feature'
 
     steps:
       - log: 'Starting full feature validation'
-      - validate: 'npm run atom:check hello'
+      - validate: 'npm run flux:check hello'
       - on_success: 'Log pipeline validation passed'
       - on_failure: 'Log pipeline validation failed - retry'
       - commit: 'feat(hello): feature validation complete'
@@ -229,7 +229,7 @@ tasks:
 
     steps:
       - log: 'Starting compliance generation'
-      - validate: 'npm run atom:compliance hello'
+      - validate: 'npm run flux:compliance hello'
       - log: 'Compliance check completed'
       - create: 'Generate src/features/hello/main/main.manifest.json'
       - create: 'Generate src/features/hello/@name/@name.manifest.json'

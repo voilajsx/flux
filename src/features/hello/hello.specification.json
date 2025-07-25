@@ -2,7 +2,7 @@
   "feature": "hello",
   "version": "1.0.0",
   "generated_at": "2025-01-22T16:30:00Z",
-  "source_blueprint": "hello.blueprint.yml",
+  "source_blueprint": "hello.requirements.yml",
 
   "agent_context_notes": {
     "blueprint_mapping": {
@@ -94,7 +94,7 @@
 
   "code_generation_guidelines": {
     "voilajsx_comment_standards": {
-      "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/atom/features/{feature}/{endpoint}/logic\n * @file src/features/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
+      "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/flux/features/{feature}/{endpoint}/logic\n * @file src/features/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
       "function_header_template": "/**\n * {function_description}\n * @llm-rule WHEN: {function_when}\n * @llm-rule AVOID: {function_avoid}\n * @llm-rule NOTE: {function_note}\n */",
       "required_tags": ["@module", "@file", "@llm-rule WHEN", "@llm-rule AVOID"]
     },
@@ -281,7 +281,7 @@
           "should sanitize and decode input properly",
           "should sanitize dangerous XSS input",
           "should reject empty name with proper error response",
-          "should return consistent ATOM response format",
+          "should return consistent FLUX response format",
           "should generate unique request IDs",
           "should handle names with apostrophes and hyphens",
           "should reject names that exceed maximum length",

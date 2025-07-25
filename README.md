@@ -1,11 +1,11 @@
-# ATOM Framework
+# FLUX Framework
 
 > **The first framework designed for 95% AI-driven development with mathematical reliability guarantees**
 
-[![ATOM Framework](https://img.shields.io/badge/ATOM-Framework-green.svg)](https://github.com/voilajsx/atom)
+[![FLUX Framework](https://img.shields.io/badge/FLUX-Framework-green.svg)](https://github.com/voilajsx/flux)
 [![VoilaJSX AppKit](https://img.shields.io/badge/VoilaJSX-AppKit-purple.svg)](https://github.com/voilajsx/appkit)
 
-**ATOM Framework** enables AI agents to build production-ready microservices while humans focus on business strategy. Write specifications in plain English, let agents generate enterprise-grade code.
+**FLUX Framework** enables AI agents to build production-ready microservices while humans focus on business strategy. Write specifications in plain English, let agents generate enterprise-grade code.
 
 ---
 
@@ -22,7 +22,7 @@ Traditional microservices frameworks were built for human developers in 2010-202
 
 ---
 
-## 🚀 **ATOM's Revolutionary Approach**
+## 🚀 **FLUX's Revolutionary Approach**
 
 ### **The 95/5 Development Model**
 
@@ -33,7 +33,7 @@ Traditional microservices frameworks were built for human developers in 2010-202
 
 ### **Mathematical Reliability**
 
-Unlike frameworks that rely on developer discipline, ATOM provides **mathematical guarantees**:
+Unlike frameworks that rely on developer discipline, FLUX provides **mathematical guarantees**:
 
 - ✅ **Endpoint Isolation** - Zero cross-dependencies between features
 - ✅ **Contract Validation** - Runtime failures prevented at build time
@@ -42,7 +42,7 @@ Unlike frameworks that rely on developer discipline, ATOM provides **mathematica
 
 ### **Agent-Native Design**
 
-ATOM is the first framework built specifically for AI development:
+FLUX is the first framework built specifically for AI development:
 
 - **Perfect Agent Context** - ≤800 lines per file, clear specifications
 - **Auto-Generated Specs** - System creates technical implementation from business requirements
@@ -53,7 +53,7 @@ ATOM is the first framework built specifically for AI development:
 
 ## 📊 **Framework Comparison: The 8 Critical Parameters**
 
-| Parameter             | ATOM Framework                          | Spring Boot                     | NestJS                              | Express.js                  | Serverless                     |
+| Parameter             | FLUX Framework                          | Spring Boot                     | NestJS                              | Express.js                  | Serverless                     |
 | --------------------- | --------------------------------------- | ------------------------------- | ----------------------------------- | --------------------------- | ------------------------------ |
 | **Development Speed** | ⭐⭐⭐⭐⭐<br>30x faster via agents     | ⭐⭐<br>Manual coding           | ⭐⭐⭐<br>Good scaffolding          | ⭐⭐<br>Minimal structure   | ⭐⭐⭐<br>Fast functions       |
 | **Reliability**       | ⭐⭐⭐⭐⭐<br>Mathematical guarantees   | ⭐⭐⭐<br>Depends on developer  | ⭐⭐⭐<br>TypeScript helps          | ⭐⭐<br>Manual validation   | ⭐⭐⭐⭐<br>Isolated functions |
@@ -64,13 +64,13 @@ ATOM is the first framework built specifically for AI development:
 | **Breaking Changes**  | ⭐⭐⭐⭐⭐<br>Mathematical isolation    | ⭐⭐<br>Risk of coupling        | ⭐⭐⭐<br>Module dependencies       | ⭐⭐<br>High risk           | ⭐⭐⭐⭐<br>Function isolation |
 | **Production Ready**  | ⭐⭐⭐⭐⭐<br>Auto-generated enterprise | ⭐⭐⭐⭐<br>Enterprise standard | ⭐⭐⭐⭐<br>Good ecosystem          | ⭐⭐<br>Manual setup        | ⭐⭐⭐⭐<br>AWS integration    |
 
-### **ATOM Framework: 40/40 ⭐**
+### **FLUX Framework: 40/40 ⭐**
 
 ### **Best Traditional Framework: 28/40 ⭐**
 
 ---
 
-## 🏆 **Why ATOM Wins Every Parameter**
+## 🏆 **Why FLUX Wins Every Parameter**
 
 ### **Development Speed: 30x Faster**
 
@@ -150,11 +150,11 @@ ATOM is the first framework built specifically for AI development:
 src/
 ├── features/
 │   └── hello/                    # Feature name
-│       ├── hello.blueprint.yml   # 👨 Human: Business requirements
-│       ├── hello.agent.yml       # 👨 Human: Agent instructions
-│       ├── hello.implementation.json # 👨 Human: Technical specs
+│       ├── hello.requirements.yml   # 👨 Human: Business requirements
+│       ├── hello.instructions.yml       # 👨 Human: Agent instructions
+│       ├── hello.specification.json # 👨 Human: Technical specs
 │       ├── hello.actions.log     # 🤖 Agent: Execution log
-│       ├── hello.report.json     # 🤖 Agent: Compliance report
+│       ├── hello.compliance.json     # 🤖 Agent: Compliance report
 │       │
 │       ├── main/                 # GET/POST /api/hello
 │       │   ├── main.contract.ts  # 🤖 Agent: API specification
@@ -166,7 +166,7 @@ src/
 │           ├── @name.logic.ts    # 🤖 Agent: Business logic
 │           └── @name.test.ts     # 🤖 Agent: Tests
 │
-├── scripts/                      # ATOM Framework tools
+├── scripts/                      # FLUX Framework tools
 │   ├── schemas/                  # Validation schemas
 │   └── commands/                 # CLI commands
 │
@@ -182,7 +182,7 @@ src/
 ### **1. Installation**
 
 ```bash
-git clone https://github.com/voilajsx/atom-starter.git my-app
+git clone https://github.com/voilajsx/flux-starter.git my-app
 cd my-app
 npm install
 npm run dev
@@ -193,7 +193,7 @@ npm run dev
 #### **Write Business Requirements** (2 minutes)
 
 ```yaml
-# src/features/todos/todos.blueprint.yml
+# src/features/todos/todos.requirements.yml
 name: todos
 description: Task management for productivity
 version: 1.0.0
@@ -208,7 +208,7 @@ user_stories:
 #### **Define Agent Instructions** (3 minutes)
 
 ```yaml
-# src/features/todos/todos.agent.yml
+# src/features/todos/todos.instructions.yml
 feature: todos
 version: 1.0.0
 agent_instructions: |
@@ -229,7 +229,7 @@ tasks:
 #### **Specify Technical Requirements** (5 minutes)
 
 ```json
-// src/features/todos/todos.implementation.json
+// src/features/todos/todos.specification.json
 {
   "feature": "todos",
   "version": "1.0.0",
@@ -260,10 +260,10 @@ tasks:
 
 ```bash
 # Validate your specifications
-npm run atom:validate all
+npm run flux:validate all
 
 # Agent generates all code
-npm run atom:agent execute todos
+npm run flux:agent execute todos
 
 # Test the results
 npm start
@@ -354,20 +354,20 @@ export async function create(req: Request, res: Response): Promise<void> {
 
 ```bash
 # Specification validation
-npm run atom:validate schema:blueprint    # Validate business requirements
-npm run atom:validate schema:agent        # Validate agent instructions
-npm run atom:validate schema:implementation # Validate technical specs
-npm run atom:validate all                 # Validate everything
+npm run flux:validate schema:blueprint    # Validate business requirements
+npm run flux:validate schema:agent        # Validate agent instructions
+npm run flux:validate schema:implementation # Validate technical specs
+npm run flux:validate all                 # Validate everything
 
 # Agent execution
-npm run atom:agent execute todos          # Run agent on specific feature
-npm run atom:check todos                  # Validate generated code
+npm run flux:agent execute todos          # Run agent on specific feature
+npm run flux:check todos                  # Validate generated code
 
 # Quality gates
-npm run atom:types                        # TypeScript validation
-npm run atom:lint                         # Code standards
-npm run atom:test                         # Run all tests
-npm run atom:compliance                   # Implementation validation
+npm run flux:types                        # TypeScript validation
+npm run flux:lint                         # Code standards
+npm run flux:test                         # Run all tests
+npm run flux:compliance                   # Implementation validation
 ```
 
 ### **Real-Time Monitoring**
@@ -379,7 +379,7 @@ GET /manifest                            # Live API documentation
 
 # Per-feature files
 todos.actions.log                        # Agent execution log
-todos.report.json                        # Compliance dashboard
+todos.compliance.json                        # Compliance dashboard
 main.manifest.json                       # Endpoint reliability metrics
 ```
 
@@ -393,7 +393,7 @@ main.manifest.json                       # Endpoint reliability metrics
 
 ---
 
-## 🎯 **Why ATOM Framework?**
+## 🎯 **Why FLUX Framework?**
 
 ### **For Development Teams**
 
@@ -425,10 +425,10 @@ main.manifest.json                       # Endpoint reliability metrics
 
 ### **Core Guides**
 
-- 📋 **[ATOM_FEATURE_SPEC.md](./ATOM_FEATURE_SPEC.md)** - How to write specifications
+- 📋 **[FLUX_FEATURE_SPEC.md](./FLUX_FEATURE_SPEC.md)** - How to write specifications
 - 🤖 **[APPKIT_LLM_GUIDE.md](./APPKIT_LLM_GUIDE.md)** - VoilaJSX patterns for agents
 - 💬 **[VOILA-COMMENT-GUIDELINES.md](./VOILA-COMMENT-GUIDELINES.md)** - Code documentation standards
-- 🏗️ **[ATOM_FOUNDATION_PRINCIPLES.md](./ATOM_FOUNDATION_PRINCIPLES.md)** - Framework architecture
+- 🏗️ **[FLUX_FOUNDATION_PRINCIPLES.md](./FLUX_FOUNDATION_PRINCIPLES.md)** - Framework architecture
 
 ### **Reference**
 
@@ -479,8 +479,8 @@ curl -f http://localhost:3000/health || exit 1
 ## 🎯 **Ready to Build?**
 
 ```bash
-# Start your first ATOM project
-git clone https://github.com/voilajsx/atom-starter.git my-app
+# Start your first FLUX project
+git clone https://github.com/voilajsx/flux-starter.git my-app
 cd my-app
 npm install
 npm run dev
@@ -488,7 +488,7 @@ npm run dev
 # Create specifications → Let agents build → Deploy to production
 ```
 
-**ATOM Framework: Where human creativity meets AI precision.** ✨
+**FLUX Framework: Where human creativity meets AI precision.** ✨
 
 ---
 

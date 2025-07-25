@@ -1,9 +1,9 @@
 /**
  * Business logic for hello main endpoint with VoilaJSX AppKit integration
- * @module @voilajsx/atom/features/hello/main/logic
+ * @module @voilajsx/flux/features/hello/main/logic
  * @file src/features/hello/main/main.logic.ts
  * 
- * @llm-rule WHEN: Implementing simple hello endpoint for ATOM Framework demonstration
+ * @llm-rule WHEN: Implementing simple hello endpoint for FLUX Framework demonstration
  * @llm-rule AVOID: Complex logic - this is a basic hello world example
  * @llm-rule NOTE: Shows VoilaJSX AppKit integration patterns for other endpoints
  */
@@ -37,10 +37,10 @@ export async function list(req: Request, res: Response): Promise<void> {
     const response = {
       success: true,
       data: {
-        message: 'Hello, World! ATOM Framework is running perfectly.',
+        message: 'Hello, World! FLUX Framework is running perfectly.',
         timestamp: new Date().toISOString(),
         requestId,
-        framework: 'ATOM',
+        framework: 'FLUX',
         appkit: 'VoilaJSX',
         status: 'active'
       }

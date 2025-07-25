@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ATOM Framework Agent Schema",
-  "description": "Schema for {feature}.agent.yml files",
+  "title": "FLUX Framework Agent Schema",
+  "description": "Schema for {feature}.instructions.yml files",
   "type": "object",
   "required": [
     "feature",
@@ -56,7 +56,7 @@
         },
         "commit_strategy": {
           "type": "string",
-          "enum": ["atomic_per_task", "atomic_per_step", "manual"],
+          "enum": ["fluxic_per_task", "fluxic_per_step", "manual"],
           "description": "Git commit strategy"
         },
         "max_retries_per_task": {

@@ -1,12 +1,12 @@
-# ATOM Framework Feature Specification Guide
+# FLUX Framework Feature Specification Guide
 
-> **The definitive guide for creating perfect ATOM Framework feature specifications that enable 95% agentic development with 100% reliability**
+> **The definitive guide for creating perfect FLUX Framework feature specifications that enable 95% agentic development with 100% reliability**
 
 ## 🎯 Why This Document Exists
 
 **Problem:** Agents fail when given unclear specifications. Vague requirements lead to wrong code, missing tests, and deployment failures.
 
-**Solution:** ATOM Framework uses 3 precisely structured files that give agents perfect clarity:
+**Solution:** FLUX Framework uses 3 precisely structured files that give agents perfect clarity:
 
 - **Blueprint** - WHAT to build (business requirements)
 - **Agent** - HOW to build it (execution instructions)
@@ -68,7 +68,7 @@ Define WHAT to build and WHY from a business perspective. This file answers: "Wh
    - Function documentation requirements
    - Module and method commenting standards
 
-3. **ATOM_FOUNDATION_PRINCIPLES.md** - Framework architecture
+3. **FLUX_FOUNDATION_PRINCIPLES.md** - Framework architecture
    - Endpoint isolation principles
    - Contract-driven development
    - Mathematical reliability guarantees
@@ -78,7 +78,7 @@ Define WHAT to build and WHY from a business perspective. This file answers: "Wh
 
 - Ensures consistent VoilaJSX patterns across all generated code
 - Prevents common implementation mistakes
-- Maintains ATOM Framework architectural principles
+- Maintains FLUX Framework architectural principles
 - Enables reliable agent code generation
 
 #### 🔴 REQUIRED FIELDS (Must Have)
@@ -163,7 +163,7 @@ Requirements:
 - Write 2-4 specific user stories with acceptance criteria
 - Include measurable success metrics
 - Define clear business rules and constraints
-- Use ATOM schema validation requirements
+- Use FLUX schema validation requirements
 
 Business context: [PROVIDE_CONTEXT]
 Target users: [DEFINE_USERS]
@@ -250,12 +250,12 @@ tasks:
 
 ```yaml
 validation_commands:
-  contract: 'npm run atom:contract {feature}/{endpoint}'
-  types: 'npm run atom:types {feature}/{endpoint}'
-  lint: 'npm run atom:lint {feature}/{endpoint}'
-  test: 'npm run atom:test {feature}/{endpoint}'
-  full: 'npm run atom:check {feature}'
-  compliance: 'npm run atom:compliance {feature}'
+  contract: 'npm run flux:contract {feature}/{endpoint}'
+  types: 'npm run flux:types {feature}/{endpoint}'
+  lint: 'npm run flux:lint {feature}/{endpoint}'
+  test: 'npm run flux:test {feature}/{endpoint}'
+  full: 'npm run flux:check {feature}'
+  compliance: 'npm run flux:compliance {feature}'
 ```
 
 ### LLM Generation Prompt
@@ -266,14 +266,14 @@ Create an agent.yml for [FEATURE_NAME] with [ENDPOINT_COUNT] endpoints.
 CRITICAL - Read these documents FIRST:
 1. APPKIT_LLM_GUIDE.md - VoilaJSX patterns and best practices
 2. VOILA-COMMENT-GUIDELINES.md - Code documentation standards
-3. ATOM_FOUNDATION_PRINCIPLES.md - Framework architecture
+3. FLUX_FOUNDATION_PRINCIPLES.md - Framework architecture
 
 Requirements:
 - Create 8-12 sequential tasks for complete implementation
 - Include contract, logic, and test creation for each endpoint
 - Add validation steps after each major milestone
 - Include git workflow and human approval gates
-- Use ATOM validation commands
+- Use FLUX validation commands
 - Plan for failure scenarios and recovery
 - Ensure all generated code follows VoilaJSX AppKit patterns
 - Include proper @llm-rule comments in all generated files
@@ -434,7 +434,7 @@ Create an implementation.json for [FEATURE_NAME] based on the blueprint.yml.
 CRITICAL - Read these documents FIRST:
 1. APPKIT_LLM_GUIDE.md - VoilaJSX patterns and modules
 2. VOILA-COMMENT-GUIDELINES.md - Code documentation standards
-3. ATOM_FOUNDATION_PRINCIPLES.md - Framework architecture
+3. FLUX_FOUNDATION_PRINCIPLES.md - Framework architecture
 
 Requirements:
 - Generate complete endpoint specifications for each user story
@@ -442,7 +442,7 @@ Requirements:
 - Follow VoilaJSX comment standards FROM VOILA-COMMENT-GUIDELINES.md
 - Define exact test cases with expected responses
 - Specify business logic, validations, and error scenarios
-- Use ATOM validation targets and reliability thresholds
+- Use FLUX validation targets and reliability thresholds
 - Include security requirements for user input handling
 - Use ONLY VoilaJSX AppKit modules (utils, logger, error, security, etc.)
 - Follow .get() pattern for ALL module initialization
@@ -452,7 +452,7 @@ Endpoints needed: [LIST_ENDPOINTS_FROM_STORIES]
 Security level: [LOW/MEDIUM/HIGH]
 Complexity: [SIMPLE/COMPLEX]
 
-REMINDER: All code must follow VoilaJSX standards and ATOM Framework principles.
+REMINDER: All code must follow VoilaJSX standards and FLUX Framework principles.
 ```
 
 ---
@@ -535,7 +535,7 @@ For implementations: Focus on technical precision and business logic
 
 ```
 Always include:
-- ATOM validation commands in agent files
+- FLUX validation commands in agent files
 - Complete test specifications in implementation files
 - Business rule validation in all three files
 ```
@@ -590,7 +590,7 @@ Always include:
 
 ## 🎯 Success Criteria
 
-### Perfect ATOM Feature Specifications Achieve:
+### Perfect FLUX Feature Specifications Achieve:
 
 **95% Agent Reliability:**
 
@@ -628,12 +628,12 @@ All files must pass schema validation before agent execution:
 
 ```bash
 # Validate individual schemas
-npm run atom:validate schema:blueprint
-npm run atom:validate schema:agent
-npm run atom:validate schema:implementation
+npm run flux:validate schema:blueprint
+npm run flux:validate schema:agent
+npm run flux:validate schema:implementation
 
 # Validate all schemas and cross-references
-npm run atom:validate all
+npm run flux:validate all
 ```
 
 **Why Schema Validation Matters:**

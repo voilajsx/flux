@@ -56,7 +56,7 @@ export async function get(req: Request, res: Response): Promise<void> {
         name: safeName,
         timestamp: new Date().toISOString(),
         requestId,
-        framework: 'ATOM',
+        framework: 'FLUX',
         endpoint: 'name',
         greeting: 'personalized',
         // userAge: userAge
