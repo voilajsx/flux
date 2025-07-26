@@ -1,85 +1,40 @@
-# FLUX Framework Feature Specification Guide
+# FLUX Framework Feature Specification Guide v3.1
 
-> **The definitive guide for creating perfect FLUX Framework feature specifications that enable 95% agentic development with 100% reliability**
+## 🎯 **The FLUX Feature Creation System**
 
-## 🎯 Why This Document Exists
+FLUX Framework enables **95% agentic development** through precise human-controlled specifications that guide AI agents in generating production-ready code.
 
-**Problem:** Agents fail when given unclear specifications. Vague requirements lead to wrong code, missing tests, and deployment failures.
+### **Three-File Human Specification System**
 
-**Solution:** FLUX Framework uses 3 precisely structured files that give agents perfect clarity:
+```yaml
+{feature}.requirements.yml     # Human: Business requirements & user stories
+{feature}.instructions.yml     # Human: Agent execution instructions
+{feature}.specification.json   # Human: Technical specifications & patterns
+```
 
-- **Blueprint** - WHAT to build (business requirements)
-- **Agent** - HOW to build it (execution instructions)
-- **Implementation** - EXACTLY what to build (technical specifications)
+### **Two-File Agent Reporting System**
 
-**Result:** 95% agent autonomy with mathematical reliability guarantees.
+```yaml
+{feature}.compliance.json      # Agent: Generated compliance tracking
+{feature}.actions.log          # Agent: Real-time execution progress
+```
 
 ---
 
-## 📋 The Three-File System
-
-### Why Three Files?
-
-**Separation of Concerns:**
-
-- **Humans excel at:** Business strategy, user needs, execution planning
-- **Agents excel at:** Code generation, testing, compliance validation
-- **System excels at:** Technical specifications, validation rules
-
-**File Responsibilities:**
-
-```
-Blueprint.yml     → Business person writes user stories
-Agent.yml         → Technical lead writes execution plan
-Implementation.json → System/human writes technical specs
-```
-
-**Mathematical Isolation:** Each file serves a single purpose, preventing conflicts and ensuring clarity.
-
----
-
-## 📝 Blueprint.yml - Business Requirements
+## 📋 Requirements.yml - Business Requirements
 
 ### Purpose
 
-Define WHAT to build and WHY from a business perspective. This file answers: "What problem are we solving for users?"
+Define WHAT to build and WHY it matters. This file answers: "What business value does this feature provide?"
 
 ### Philosophy
 
-- **Business-first thinking** - Start with user value, not technical solutions
-- **Story-driven development** - Every feature must solve real user problems
-- **Measurable outcomes** - Define success criteria upfront
-- **Risk awareness** - Identify and plan for business risks
+- **User-focused** - Every feature solves real user problems
+- **Measurable outcomes** - Success criteria are specific and trackable
+- **Business clarity** - Clear business rules and constraints
+- **Acceptance-driven** - Precise acceptance criteria for each story
 
-### Required Reading for Implementation Generation
-
-**Before generating any implementation.json file, LLMs MUST read:**
-
-1. **APPKIT_LLM_GUIDE.md** - Complete VoilaJSX AppKit patterns
-   - Module initialization with .get() pattern
-   - Error handling with semantic error types
-   - Security patterns with secure.input()
-   - Logging patterns with structured data
-   - All available AppKit modules and their usage
-
-2. **VOILA-COMMENT-GUIDELINES.md** - Code documentation standards
-   - @llm-rule WHEN/AVOID/NOTE patterns
-   - File header templates
-   - Function documentation requirements
-   - Module and method commenting standards
-
-3. **FLUX_FOUNDATION_PRINCIPLES.md** - Framework architecture
-   - Endpoint isolation principles
-   - Contract-driven development
-   - Mathematical reliability guarantees
-   - 95% agentic + 5% human workflow
-
-**Why This Matters:**
-
-- Ensures consistent VoilaJSX patterns across all generated code
-- Prevents common implementation mistakes
-- Maintains FLUX Framework architectural principles
-- Enables reliable agent code generation
+### Schema Structure
 
 #### 🔴 REQUIRED FIELDS (Must Have)
 
@@ -156,7 +111,7 @@ business_rules:
 ### LLM Generation Prompt
 
 ```
-Create a blueprint.yml for [FEATURE_NAME] that [BUSINESS_GOAL].
+Create a {feature}.requirements.yml for [FEATURE_NAME] that [BUSINESS_GOAL].
 
 Requirements:
 - Focus on user value and business outcomes
@@ -172,7 +127,7 @@ Success criteria: [DEFINE_SUCCESS]
 
 ---
 
-## 🤖 Agent.yml - Execution Instructions
+## 🤖 Instructions.yml - Agent Execution Instructions
 
 ### Purpose
 
@@ -190,7 +145,7 @@ Define HOW agents should execute the feature implementation. This file answers: 
 #### 🔴 REQUIRED FIELDS (Must Have)
 
 ```yaml
-feature: string # Must match blueprint name
+feature: string # Must match requirements name
 version: string # Semantic version
 agent_instructions: string # Multi-line execution guidance
 config: object # Log file, retry limits, commit strategy
@@ -237,8 +192,8 @@ tasks:
     name: 'analyze_requirements' # Clear, descriptive name
     what: 'Read and understand specs' # What this task accomplishes
     steps: # Step-by-step instructions
-      - 'Read blueprint.yml for business context'
-      - 'Parse implementation.json for technical specs'
+      - 'Read {feature}.requirements.yml for business context'
+      - 'Parse {feature}.specification.json for technical specs'
       - 'Create execution plan'
       - 'Log analysis complete'
     max_retries: 3
@@ -261,7 +216,7 @@ validation_commands:
 ### LLM Generation Prompt
 
 ```
-Create an agent.yml for [FEATURE_NAME] with [ENDPOINT_COUNT] endpoints.
+Create a {feature}.instructions.yml for [FEATURE_NAME] with [ENDPOINT_COUNT] endpoints.
 
 CRITICAL - Read these documents FIRST:
 1. APPKIT_LLM_GUIDE.md - VoilaJSX patterns and best practices
@@ -287,7 +242,7 @@ REMINDER: Generated code must use VoilaJSX AppKit modules with .get() pattern.
 
 ---
 
-## 🔧 Implementation.json - Technical Specifications
+## 🔧 Specification.json - Technical Specifications
 
 ### Purpose
 
@@ -305,7 +260,7 @@ Define EXACTLY what to build with precise technical specifications. This file an
 #### 🔴 REQUIRED FIELDS (Must Have)
 
 ```yaml
-feature: string # Must match blueprint name
+feature: string # Must match requirements name
 version: string # Semantic version
 validation_targets: object # Coverage, patterns, thresholds
 endpoints: object # Complete endpoint specifications
@@ -316,9 +271,9 @@ endpoints: object # Complete endpoint specifications
 #### 🟡 RECOMMENDED FIELDS (Should Have)
 
 ```yaml
-generated_at: string/date # Generation timestamp
+created_at: string/date # Creation timestamp
 last_updated: string/date # Change tracking
-source_blueprint: string # Source blueprint file
+source_requirements: string # Source requirements file
 business_logic: object # Business rules and calculations
 code_generation_guidelines: object # Coding patterns and standards
 ```
@@ -335,101 +290,52 @@ validation_skip_pattern: string # Fields to skip during validation
 
 **Why Optional:** Provides additional context without overwhelming core specifications.
 
-### Endpoint Specification Structure
+### Writing Guidelines
 
-Each endpoint requires complete specifications:
+#### Endpoint Specification Structure
 
 ```json
-"endpoints": {
-  "main": {
-    "id": 1,
-    "route": "GET /api/hello",
-    "folder": "src/features/hello/main/",
-
-    "contract": {
-      "file": "main.contract.ts",
-      "routes": {"GET /hello": "list"},
-      "imports": {
-        "appkit": ["logging", "error", "utils"],
-        "external": ["express"]
+{
+  "endpoints": {
+    "main": {
+      "id": "hello-main",
+      "route": "/api/hello",
+      "folder": "src/features/hello/main",
+      "contract": {
+        "file": "main.contract.ts",
+        "routes": {
+          "GET /api/hello": "getHello"
+        },
+        "imports": {
+          "appkit": ["utils", "logging"],
+          "external": []
+        }
       },
-      "tests": ["should return welcome message"]
-    },
-
-    "logic": {
-      "file": "main.logic.ts",
-      "exports": ["list"],
-      "functions": {
-        "list": {
-          "params": ["req: Request", "res: Response"],
-          "return_type": "Promise<void>",
-          "response_schema": {
-            "success": "boolean",
-            "data.message": "string",
-            "data.requestId": "string"
-          }
-        }
+      "logic": {
+        "file": "main.logic.ts",
+        "exports": ["getHello"],
+        "business_rules": [
+          "Return greeting with unique request ID",
+          "Log all requests for monitoring"
+        ]
+      },
+      "test": {
+        "file": "main.test.ts",
+        "coverage_target": 100,
+        "test_cases": [
+          "should return 200 with greeting message",
+          "should include unique requestId in response"
+        ]
       }
-    },
-
-    "test": {
-      "file": "main.test.ts",
-      "test_cases": [
-        {
-          "name": "should return welcome message",
-          "http_method": "GET",
-          "path": "/api/hello",
-          "expected_status": 200,
-          "expected_properties": ["success", "data.message"]
-        }
-      ],
-      "coverage_target": 100
     }
   }
-}
-```
-
-### Business Logic Specifications
-
-For complex features, include precise business logic:
-
-```json
-"business_logic": {
-  "calculations": [
-    "discount = amount * 0.1 if amount > 100",
-    "tax = subtotal * tax_rate based on shipping_address.state"
-  ],
-  "validations": [
-    "email must be unique across all users",
-    "password must contain 8+ chars, 1 uppercase, 1 number",
-    "age must be >= 18 for account creation"
-  ],
-  "workflows": [
-    "order_creation: validate_cart → calculate_totals → process_payment → create_order",
-    "user_registration: validate_input → create_account → send_verification → activate_account"
-  ],
-  "permissions": [
-    "admin: full access to all endpoints",
-    "user: read-only access to own data",
-    "guest: access to public endpoints only"
-  ],
-  "edge_cases": [
-    "handle timezone differences for date calculations",
-    "gracefully handle null/undefined user preferences",
-    "retry failed external API calls with exponential backoff"
-  ],
-  "error_scenarios": [
-    "invalid_email: return 400 with 'Invalid email format'",
-    "duplicate_user: return 409 with 'Email already registered'",
-    "server_error: return 500 with generic message, log details"
-  ]
 }
 ```
 
 ### LLM Generation Prompt
 
 ```
-Create an implementation.json for [FEATURE_NAME] based on the blueprint.yml.
+Create a {feature}.specification.json for [FEATURE_NAME] based on the requirements.
 
 CRITICAL - Read these documents FIRST:
 1. APPKIT_LLM_GUIDE.md - VoilaJSX patterns and modules
@@ -447,7 +353,7 @@ Requirements:
 - Use ONLY VoilaJSX AppKit modules (utils, logger, error, security, etc.)
 - Follow .get() pattern for ALL module initialization
 
-Blueprint context: [INCLUDE_BLUEPRINT_CONTENT]
+Requirements context: [INCLUDE_REQUIREMENTS_CONTENT]
 Endpoints needed: [LIST_ENDPOINTS_FROM_STORIES]
 Security level: [LOW/MEDIUM/HIGH]
 Complexity: [SIMPLE/COMPLEX]
@@ -462,11 +368,11 @@ REMINDER: All code must follow VoilaJSX standards and FLUX Framework principles.
 ### How Files Work Together
 
 ```
-Blueprint.yml (Business Intent)
+Requirements.yml (Business Intent)
     ↓
-Agent.yml (Execution Plan)
+Specification.json (Technical Specs)
     ↓
-Implementation.json (Technical Specs)
+Instructions.yml (Execution Plan)
     ↓
 Agent Execution → Generated Code
 ```
@@ -475,12 +381,12 @@ Agent Execution → Generated Code
 
 **Name Consistency:**
 
-- `blueprint.name` = `agent.feature` = `implementation.feature`
+- `requirements.name` = `instructions.feature` = `specification.feature`
 
 **Story-to-Endpoint Mapping:**
 
-- Each user story should map to specific endpoints in implementation.json
-- Agent tasks should cover all endpoints defined in implementation.json
+- Each user story should map to specific endpoints in specification.json
+- Agent tasks should cover all endpoints defined in specification.json
 
 **Version Alignment:**
 
@@ -493,7 +399,7 @@ Agent Execution → Generated Code
 
 - [ ] All three files validate against schemas
 - [ ] Feature names match across all files
-- [ ] User stories map to implementation endpoints
+- [ ] User stories map to specification endpoints
 - [ ] Agent tasks cover all required work
 - [ ] Business logic is clearly specified
 - [ ] Validation commands are complete
@@ -516,7 +422,7 @@ Agent Execution → Generated Code
 
 ```
 Always provide:
-1. Business context from existing blueprint
+1. Business context from existing requirements
 2. Technical complexity level
 3. Security requirements
 4. Integration needs
@@ -526,37 +432,37 @@ Always provide:
 #### Specification Completeness
 
 ```
-For blueprints: Focus on user value and business outcomes
-For agents: Focus on execution steps and failure handling
-For implementations: Focus on technical precision and business logic
+For requirements: Focus on user value and business outcomes
+For instructions: Focus on execution steps and failure handling
+For specifications: Focus on technical precision and business logic
 ```
 
 #### Validation Integration
 
 ```
 Always include:
-- FLUX validation commands in agent files
-- Complete test specifications in implementation files
+- FLUX validation commands in instruction files
+- Complete test specifications in specification files
 - Business rule validation in all three files
 ```
 
 ### Common LLM Mistakes to Avoid
 
-#### Blueprint Generation
+#### Requirements Generation
 
 - ❌ Technical implementation details in business stories
 - ❌ Vague acceptance criteria without measurable outcomes
 - ❌ Missing business rules and constraints
 - ✅ Focus on user value, clear success metrics, specific business rules
 
-#### Agent Generation
+#### Instructions Generation
 
 - ❌ Missing validation steps between tasks
 - ❌ No failure handling or retry logic
 - ❌ Unclear task dependencies and order
 - ✅ Sequential tasks, comprehensive validation, clear failure recovery
 
-#### Implementation Generation
+#### Specifications Generation
 
 - ❌ Missing business logic specifications
 - ❌ Incomplete test case definitions
@@ -569,15 +475,15 @@ Always include:
 
 ### Hello Feature Example
 
-**Blueprint Focus:** Simple greeting service for user engagement
-**Agent Focus:** Sequential implementation with validation gates
-**Implementation Focus:** Two endpoints with security and testing
+**Requirements Focus:** Simple greeting service for user engagement
+**Instructions Focus:** Sequential implementation with validation gates
+**Specifications Focus:** Two endpoints with security and testing
 
 **File Relationships:**
 
-- Blueprint user stories → Implementation endpoints
-- Agent tasks → Complete development workflow
-- Implementation specs → Generated code structure
+- Requirements user stories → Specification endpoints
+- Instructions tasks → Complete development workflow
+- Specification specs → Generated code structure
 
 **Validation Flow:**
 
@@ -599,17 +505,17 @@ Always include:
 - Error scenarios are explicitly handled
 - Validation gates prevent failures
 
-**Mathematical Isolation:**
+**Practical Isolation:**
 
 - Each feature is completely self-contained
 - No cross-dependencies between features
 - Changes to one feature don't affect others
-- Deployment failures are impossible
+- Deployment failures are minimized
 
 **Human-Agent Collaboration:**
 
-- Humans focus on business strategy and value
-- Agents focus on technical implementation
+- Humans focus on business strategy and technical specifications
+- Agents focus on code implementation and compliance tracking
 - Clear handoff points with approval gates
 - Audit trails for accountability
 
@@ -628,9 +534,9 @@ All files must pass schema validation before agent execution:
 
 ```bash
 # Validate individual schemas
-npm run flux:validate schema:blueprint
-npm run flux:validate schema:agent
-npm run flux:validate schema:implementation
+npm run flux:validate schema:requirements
+npm run flux:validate schema:instructions
+npm run flux:validate schema:specification
 
 # Validate all schemas and cross-references
 npm run flux:validate all

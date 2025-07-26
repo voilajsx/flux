@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FLUX Framework Agent Schema",
+  "title": "FLUX Framework Instructions Schema",
   "description": "Schema for {feature}.instructions.yml files",
   "type": "object",
   "required": [
@@ -30,7 +30,7 @@
     },
     "created_by": {
       "type": "string",
-      "description": "Creator (agent or human)"
+      "description": "Creator (human)"
     },
     "last_updated": {
       "oneOf": [{ "type": "string" }, { "type": "object" }],

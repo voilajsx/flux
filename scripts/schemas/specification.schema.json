@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FLUX Framework Implementation Schema",
+  "title": "FLUX Framework Specification Schema",
   "description": "Schema for {feature}.specification.json files",
   "type": "object",
   "required": ["feature", "version", "validation_targets", "endpoints"],
@@ -8,7 +8,7 @@
     "feature": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
-      "description": "Feature name (must match blueprint)"
+      "description": "Feature name (must match requirements file)"
     },
 
     "business_logic": {
@@ -59,9 +59,9 @@
       "oneOf": [{ "type": "string" }, { "type": "object" }],
       "description": "Last update timestamp"
     },
-    "source_blueprint": {
+    "source_requirements": {
       "type": "string",
-      "description": "Source blueprint filename"
+      "description": "Source requirements filename"
     },
     "validation_targets": {
       "type": "object",

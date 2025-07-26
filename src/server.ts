@@ -101,34 +101,7 @@ function validateEnvironment(): void {
  */
 async function initializePlatform(): Promise<void> {
   try {
-    // Try to import platform services, but don't fail if they don't exist
-    try {
-      const { monitor } = await import('./platform/monitor.js');
-      
-      // Initialize monitoring system
-      await monitor.initialize();
-      
-      // Validate platform health
-      const healthCheck = await monitor.checkSystemHealth();
-      
-      if (!healthCheck.healthy) {
-        log.warn('⚠️ Platform health check warnings', { 
-          errors: healthCheck.errors,
-          services: healthCheck.services 
-        });
-      } else {
-        log.info('🚀 Platform services initialized', {
-          services: healthCheck.services,
-          uptime: healthCheck.uptime,
-          environment: configure.getEnvironment()
-        });
-      }
-    } catch (platformError) {
-      // Platform services are optional - continue without them
-      log.info('ℹ️ Platform services not available, continuing without monitoring', {
-        reason: platformError instanceof Error ? platformError.message : 'Unknown error'
-      });
-    }
+   
 
     log.info('✅ Platform initialization completed');
 
@@ -217,17 +190,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
       });
     }
 
-    // 2. Close platform services (if they exist)
-    try {
-      const { monitor } = await import('./platform/monitor.js');
-      await monitor.shutdown();
-      log.info('✅ Platform services closed', { shutdownId });
-    } catch (error) {
-      log.debug('ℹ️ Platform services not available for shutdown', { 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        shutdownId 
-      });
-    }
+    
 
     // 3. Flush remaining logs
     try {

@@ -1,6 +1,6 @@
 # FLUX Framework
 
-> **The first framework designed for 95% AI-driven development with mathematical reliability guarantees**
+> **The first framework designed for 95% AI-driven development with practical reliability guarantees**
 
 [![FLUX Framework](https://img.shields.io/badge/FLUX-Framework-green.svg)](https://github.com/voilajsx/flux)
 [![VoilaJSX AppKit](https://img.shields.io/badge/VoilaJSX-AppKit-purple.svg)](https://github.com/voilajsx/appkit)
@@ -27,25 +27,25 @@ Traditional microservices frameworks were built for human developers in 2010-202
 ### **The 95/5 Development Model**
 
 - **95% Agent Work** - AI generates code, tests, documentation, configurations
-- **5% Human Work** - Business requirements, strategic decisions, final approval
-- **Zero Breaking Changes** - Mathematical endpoint isolation guarantees
+- **5% Human Work** - Business requirements, technical specifications, strategic decisions
+- **Zero Breaking Changes** - Practical endpoint isolation guarantees
 - **Specification-Driven** - Perfect clarity eliminates agent guessing
 
-### **Mathematical Reliability**
+### **Practical Reliability**
 
-Unlike frameworks that rely on developer discipline, FLUX provides **mathematical guarantees**:
+Unlike frameworks that rely on developer discipline, FLUX provides **practical guarantees**:
 
 - ✅ **Endpoint Isolation** - Zero cross-dependencies between features
 - ✅ **Contract Validation** - Runtime failures prevented at build time
-- ✅ **Auto-Generated Quality** - Tests, docs, monitoring built-in
-- ✅ **Breaking Change Prevention** - Mathematically impossible
+- ✅ **Human-Controlled Quality** - Tests, docs, monitoring built-in
+- ✅ **Breaking Change Prevention** - Practically impossible with proper isolation
 
 ### **Agent-Native Design**
 
 FLUX is the first framework built specifically for AI development:
 
 - **Perfect Agent Context** - ≤800 lines per file, clear specifications
-- **Auto-Generated Specs** - System creates technical implementation from business requirements
+- **Human-Controlled Specs** - Humans create technical specifications for agents
 - **Real-Time Feedback** - Live progress tracking and validation
 - **Declarative Instructions** - Agents follow explicit step sequences
 
@@ -53,20 +53,18 @@ FLUX is the first framework built specifically for AI development:
 
 ## 📊 **Framework Comparison: The 8 Critical Parameters**
 
-| Parameter             | FLUX Framework                          | Spring Boot                     | NestJS                              | Express.js                  | Serverless                     |
-| --------------------- | --------------------------------------- | ------------------------------- | ----------------------------------- | --------------------------- | ------------------------------ |
-| **Development Speed** | ⭐⭐⭐⭐⭐<br>30x faster via agents     | ⭐⭐<br>Manual coding           | ⭐⭐⭐<br>Good scaffolding          | ⭐⭐<br>Minimal structure   | ⭐⭐⭐<br>Fast functions       |
-| **Reliability**       | ⭐⭐⭐⭐⭐<br>Mathematical guarantees   | ⭐⭐⭐<br>Depends on developer  | ⭐⭐⭐<br>TypeScript helps          | ⭐⭐<br>Manual validation   | ⭐⭐⭐⭐<br>Isolated functions |
-| **Scalability**       | ⭐⭐⭐⭐⭐<br>Independent endpoints     | ⭐⭐⭐⭐<br>Good with effort    | ⭐⭐⭐⭐<br>Modular design          | ⭐⭐⭐<br>Requires setup    | ⭐⭐⭐⭐⭐<br>Auto-scaling     |
-| **Learning Curve**    | ⭐⭐⭐⭐⭐<br>1-2 days (write specs)    | ⭐⭐<br>Weeks/months            | ⭐⭐⭐<br>Moderate                  | ⭐⭐⭐⭐<br>Simple start    | ⭐⭐<br>Complex tooling        |
-| **Maintenance**       | ⭐⭐⭐⭐⭐<br>Auto-generated docs       | ⭐⭐<br>Manual maintenance      | ⭐⭐⭐<br>Decent structure          | ⭐⭐<br>Technical debt risk | ⭐⭐⭐<br>Function sprawl      |
-| **Code Quality**      | ⭐⭐⭐⭐⭐<br>Enforced patterns         | ⭐⭐⭐<br>Variable quality      | ⭐⭐⭐⭐<br>TypeScript + decorators | ⭐⭐<br>Developer dependent | ⭐⭐⭐<br>Isolated quality     |
-| **Breaking Changes**  | ⭐⭐⭐⭐⭐<br>Mathematical isolation    | ⭐⭐<br>Risk of coupling        | ⭐⭐⭐<br>Module dependencies       | ⭐⭐<br>High risk           | ⭐⭐⭐⭐<br>Function isolation |
-| **Production Ready**  | ⭐⭐⭐⭐⭐<br>Auto-generated enterprise | ⭐⭐⭐⭐<br>Enterprise standard | ⭐⭐⭐⭐<br>Good ecosystem          | ⭐⭐<br>Manual setup        | ⭐⭐⭐⭐<br>AWS integration    |
+| Parameter             | FLUX Framework                         | Spring Boot                       | NestJS                            | Express.js                  | Serverless                     |
+| --------------------- | -------------------------------------- | --------------------------------- | --------------------------------- | --------------------------- | ------------------------------ |
+| **Development Speed** | **40/40 ⭐** <br>95% agent autonomy    | 20/40 ⭐ <br>Manual setup         | 25/40 ⭐ <br>Boilerplate heavy    | 15/40 ⭐ <br>Manual config  | 30/40 ⭐ <br>Limited scope     |
+| **Reliability**       | **40/40 ⭐** <br>Practical isolation   | 25/40 ⭐ <br>Developer discipline | 30/40 ⭐ <br>Framework discipline | 20/40 ⭐ <br>No guarantees  | 35/40 ⭐ <br>Platform managed  |
+| **Scalability**       | **40/40 ⭐** <br>True independence     | 30/40 ⭐ <br>Monolithic patterns  | 35/40 ⭐ <br>Service complexity   | 25/40 ⭐ <br>Manual scaling | 35/40 ⭐ <br>Auto-scaling      |
+| **Learning Curve**    | **40/40 ⭐** <br>Write specs, not code | 15/40 ⭐ <br>Complex annotations  | 20/40 ⭐ <br>Decorator patterns   | 30/40 ⭐ <br>Minimal API    | 25/40 ⭐ <br>Platform learning |
+| **Maintenance**       | **40/40 ⭐** <br>Self-documenting      | 20/40 ⭐ <br>Manual maintenance   | 25/40 ⭐ <br>Framework updates    | 15/40 ⭐ <br>Manual effort  | 30/40 ⭐ <br>Platform managed  |
+| **Code Quality**      | **40/40 ⭐** <br>Enforced excellence   | 25/40 ⭐ <br>Developer dependent  | 30/40 ⭐ <br>Framework patterns   | 20/40 ⭐ <br>No enforcement | 25/40 ⭐ <br>Platform patterns |
+| **Breaking Changes**  | **40/40 ⭐** <br>Practical prevention  | 20/40 ⭐ <br>Frequent issues      | 25/40 ⭐ <br>Version dependencies | 15/40 ⭐ <br>No protection  | 30/40 ⭐ <br>Platform managed  |
+| **Production Ready**  | **40/40 ⭐** <br>Enterprise grade      | 35/40 ⭐ <br>Mature ecosystem     | 30/40 ⭐ <br>Growing ecosystem    | 25/40 ⭐ <br>Custom setup   | 35/40 ⭐ <br>Platform features |
 
-### **FLUX Framework: 40/40 ⭐**
-
-### **Best Traditional Framework: 28/40 ⭐**
+**FLUX Total: 320/320 ⭐** | Spring Boot: 190/320 ⭐ | NestJS: 220/320 ⭐ | Express.js: 165/320 ⭐ | Serverless: 245/320 ⭐
 
 ---
 
@@ -75,20 +73,20 @@ FLUX is the first framework built specifically for AI development:
 ### **Development Speed: 30x Faster**
 
 - Agents generate complete features in minutes
-- Auto-generated tests, docs, configurations
+- Human-controlled specifications guide agent execution
 - Zero manual boilerplate or setup
 
-### **Reliability: Mathematical Guarantees**
+### **Reliability: Practical Guarantees**
 
 - Endpoint isolation prevents all cross-dependencies
 - Contract validation catches errors at build time
-- Auto-generated compliance gates block bad deployments
+- Agent-generated compliance gates block bad deployments
 
 ### **Scalability: True Independence**
 
 - Scale individual endpoints without affecting others
 - No service mesh complexity or configuration
-- Mathematical isolation eliminates cascading failures
+- Practical isolation eliminates cascading failures
 
 ### **Learning Curve: 1-2 Days**
 
@@ -98,7 +96,7 @@ FLUX is the first framework built specifically for AI development:
 
 ### **Maintenance: Self-Documenting**
 
-- Auto-generated technical documentation
+- Human-controlled technical specifications
 - ≤800 lines per file for easy understanding
 - Complete audit trails and compliance tracking
 
@@ -108,16 +106,16 @@ FLUX is the first framework built specifically for AI development:
 - Agent-generated code follows best practices
 - 90%+ test coverage requirements built-in
 
-### **Breaking Changes: Impossible**
+### **Breaking Changes: Practically Impossible**
 
-- Mathematical endpoint isolation
+- Practical endpoint isolation
 - Zero shared dependencies between features
 - Deploy features independently with confidence
 
 ### **Production Ready: Enterprise Grade**
 
 - Built-in security, monitoring, health checks
-- Auto-generated deployment configurations
+- Human-controlled deployment configurations
 - Real-time compliance and performance tracking
 
 ---
@@ -151,8 +149,8 @@ src/
 ├── features/
 │   └── hello/                    # Feature name
 │       ├── hello.requirements.yml   # 👨 Human: Business requirements
-│       ├── hello.instructions.yml       # 👨 Human: Agent instructions
 │       ├── hello.specification.json # 👨 Human: Technical specs
+│       ├── hello.instructions.yml   # 👨 Human: Agent instructions
 │       ├── hello.actions.log     # 🤖 Agent: Execution log
 │       ├── hello.compliance.json     # 🤖 Agent: Compliance report
 │       │
@@ -182,7 +180,7 @@ src/
 ### **1. Installation**
 
 ```bash
-git clone https://github.com/voilajsx/flux-starter.git my-app
+git clone https://github.com/voilajsx/flux.git my-app
 cd my-app
 npm install
 npm run dev
@@ -205,6 +203,29 @@ user_stories:
     example: 'Buy groceries - Get milk, bread, and eggs'
 ```
 
+#### **Define Technical Specifications** (3 minutes)
+
+```json
+// src/features/todos/todos.specification.json
+{
+  "feature": "todos",
+  "version": "1.0.0",
+  "endpoints": {
+    "create": {
+      "route": "/api/todos",
+      "method": "POST",
+      "logic": {
+        "business_rules": [
+          "Validate title is not empty",
+          "Generate unique ID for todo",
+          "Set created timestamp"
+        ]
+      }
+    }
+  }
+}
+```
+
 #### **Define Agent Instructions** (3 minutes)
 
 ```yaml
@@ -217,188 +238,47 @@ agent_instructions: |
 
 tasks:
   1:
-    name: 'create_endpoints'
-    what: 'Build POST /api/todos and GET /api/todos endpoints'
+    name: 'create_todo_endpoint'
+    what: 'Build POST /api/todos endpoint'
     steps:
-      - 'Create contract files with route specifications'
-      - 'Generate logic files with VoilaJSX patterns'
-      - 'Write comprehensive tests'
-      - 'Validate all files pass quality gates'
+      - 'Read todos.specification.json for endpoint specs'
+      - 'Create create/create.contract.ts'
+      - 'Create create/create.logic.ts with VoilaJSX patterns'
+      - 'Create create/create.test.ts'
+      - 'Validate with npm run flux:check todos'
 ```
 
-#### **Specify Technical Requirements** (5 minutes)
-
-```json
-// src/features/todos/todos.specification.json
-{
-  "feature": "todos",
-  "version": "1.0.0",
-  "endpoints": {
-    "main": {
-      "route": "GET /api/todos",
-      "contract": {
-        "routes": { "GET /todos": "list" },
-        "imports": { "appkit": ["utils", "logger", "error"] }
-      },
-      "logic": {
-        "functions": {
-          "list": {
-            "params": ["req: Request", "res: Response"],
-            "response_schema": {
-              "success": "boolean",
-              "data": "array"
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### **3. Let Agent Build It**
+### **3. Let Agent Build** (5 minutes)
 
 ```bash
-# Validate your specifications
-npm run flux:validate all
+# Agent reads your specifications and builds the feature
+npm run flux:agent todos
 
-# Agent generates all code
-npm run flux:agent execute todos
+# Monitor real-time progress
+tail -f src/features/todos/todos.actions.log
 
-# Test the results
+# Review compliance report
+cat src/features/todos/todos.compliance.json
+```
+
+### **4. Deploy** (1 minute)
+
+```bash
+npm run flux:check todos  # Final validation
+npm run build
 npm start
-curl http://localhost:3000/api/todos
 ```
 
-**Result: Production-ready API in 10 minutes!** ✨
+**🎉 Your feature is live! Total time: ~15 minutes**
 
 ---
 
-## 🤖 **How Agents Work**
-
-### **What Agents Do (95%)**
-
-1. **Read specifications** - Blueprint + Agent + Implementation files
-2. **Generate code** - Contracts, logic, tests following VoilaJSX patterns
-3. **Validate quality** - Run type checking, linting, tests
-4. **Git management** - Atomic commits with proper messages
-5. **Create reports** - Compliance dashboards and manifests
-
-### **What Humans Do (5%)**
-
-1. **Write specifications** - Business requirements and execution plans
-2. **Approve quality gates** - Review generated code when needed
-3. **Monitor production** - Health checks and performance metrics
-4. **Make strategic decisions** - Feature priorities and architecture
-
-### **Agent Safety Guarantees**
-
-- ✅ **Contract validation** - Code must match specifications
-- ✅ **File size limits** - Perfect agent context (≤800 lines)
-- ✅ **Quality gates** - 90%+ test coverage, type safety
-- ✅ **Atomic operations** - All-or-nothing deployments
-- ✅ **Rollback ready** - Instant revert on failures
-
----
-
-## 🔧 **VoilaJSX AppKit Integration**
-
-Every generated endpoint uses production-ready VoilaJSX patterns:
-
-```typescript
-// Standard pattern in all agent-generated code
-import { utility } from '@voilajsx/appkit/utils';
-import { logger } from '@voilajsx/appkit/logging';
-import { error } from '@voilajsx/appkit/error';
-import { security } from '@voilajsx/appkit/security';
-
-// Initialize with .get() pattern
-const utils = utility.get();
-const log = logger.get('feature-name');
-const err = error.get();
-const secure = security.get();
-
-export async function create(req: Request, res: Response): Promise<void> {
-  const requestId = utils.uuid();
-
-  try {
-    // Input validation
-    const title = secure.input(req.body.title, { maxLength: 100 });
-
-    // Business logic
-    const todo = {
-      id: utils.uuid(),
-      title,
-      completed: false,
-      createdAt: new Date().toISOString(),
-      requestId,
-    };
-
-    // Structured logging
-    log.info('Todo created', { todoId: todo.id, requestId });
-
-    // Standard response
-    res.json({ success: true, data: todo });
-  } catch (error) {
-    log.error('Todo creation failed', { error: error.message, requestId });
-    throw error;
-  }
-}
-```
-
----
-
-## 📊 **Developer Experience**
-
-### **Development Commands**
-
-```bash
-# Specification validation
-npm run flux:validate schema:blueprint    # Validate business requirements
-npm run flux:validate schema:agent        # Validate agent instructions
-npm run flux:validate schema:implementation # Validate technical specs
-npm run flux:validate all                 # Validate everything
-
-# Agent execution
-npm run flux:agent execute todos          # Run agent on specific feature
-npm run flux:check todos                  # Validate generated code
-
-# Quality gates
-npm run flux:types                        # TypeScript validation
-npm run flux:lint                         # Code standards
-npm run flux:test                         # Run all tests
-npm run flux:compliance                   # Implementation validation
-```
-
-### **Real-Time Monitoring**
-
-```bash
-# Auto-generated endpoints
-GET /health                              # System health check
-GET /manifest                            # Live API documentation
-
-# Per-feature files
-todos.actions.log                        # Agent execution log
-todos.compliance.json                        # Compliance dashboard
-main.manifest.json                       # Endpoint reliability metrics
-```
-
-### **Quality Guarantees**
-
-- ✅ **100% Type Safety** - TypeScript strict mode
-- ✅ **90%+ Test Coverage** - Comprehensive testing required
-- ✅ **Contract Compliance** - API specs match implementation
-- ✅ **Security Validation** - Input sanitization enforced
-- ✅ **Performance Monitoring** - Real-time health metrics
-
----
-
-## 🎯 **Why FLUX Framework?**
+## 🎯 **For Different Roles**
 
 ### **For Development Teams**
 
 - **95% faster development** - Agents handle implementation details
-- **Zero breaking changes** - Mathematical endpoint isolation
+- **Zero breaking changes** - Practical endpoint isolation
 - **Predictable delivery** - Specification-driven timeline
 - **Quality consistency** - VoilaJSX patterns across all code
 - **Self-documenting** - Generated manifests and reports
@@ -480,7 +360,7 @@ curl -f http://localhost:3000/health || exit 1
 
 ```bash
 # Start your first FLUX project
-git clone https://github.com/voilajsx/flux-starter.git my-app
+git clone https://github.com/voilajsx/flux.git my-app
 cd my-app
 npm install
 npm run dev

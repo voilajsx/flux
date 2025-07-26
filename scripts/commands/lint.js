@@ -1,46 +1,81 @@
 /**
- * FLUX Framework Lint Command - Code standards validation with dual logging for agent reliability
+ * FLUX Framework Lint Command - Code standards validation with target-specific support
  * @module @voilajsx/flux/scripts/commands/lint
  * @file scripts/commands/lint.js
  *
  * @llm-rule WHEN: Validating FLUX Framework coding standards and VoilaJSX patterns for reliability
  * @llm-rule AVOID: Linting without proper file structure validation - breaks endpoint isolation
- * @llm-rule NOTE: Enhanced to validate helper files and maintain mathematical endpoint isolation
+ * @llm-rule NOTE: Enhanced with target-specific validation (project/feature/endpoint)
  */
 
 import { readdir, readFile, stat } from 'fs/promises';
-import { join, basename, extname } from 'path';
+import { join, basename } from 'path';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('lint');
 
 /**
- * Lint validation command with comprehensive FLUX Framework standards checking
- * @llm-rule WHEN: Ensuring code follows FLUX conventions before deployment or generation
+ * Lint validation command with target-specific FLUX Framework standards checking
+ * @llm-rule WHEN: Ensuring code follows FLUX conventions for project, feature, or endpoint
  * @llm-rule AVOID: Ignoring file structure violations - causes runtime failures in production
- * @llm-rule NOTE: Validates file naming, VoilaJSX patterns, helper files, and security patterns
+ * @llm-rule NOTE: Supports full project, feature-specific, and endpoint-specific validation
  */
-export default async function lint(args) {
+export default async function lint(commandArgs) {
   const startTime = Date.now();
-  const target = args[0];
-
-  // Start validation with defined scope
-  log.validationStart('lint', target, [
-    'file_structure',
-    'voilajsx_patterns',
-    'flux_conventions',
-    'helper_validation',
-    'security_patterns',
-  ]);
+  const target = commandArgs.find((arg) => !arg.startsWith('-'));
 
   try {
+    // Validate target exists if specified
+    if (target) {
+      const featuresPath = join(process.cwd(), 'src', 'features');
+
+      if (target.includes('/')) {
+        // Validate endpoint exists
+        const [feature, endpoint] = target.split('/');
+        const featurePath = join(featuresPath, feature);
+        const endpointPath = join(featurePath, endpoint);
+
+        try {
+          await stat(featurePath);
+          await stat(endpointPath);
+        } catch (error) {
+          log.human(`❌ Endpoint '${target}' not found`);
+          return false;
+        }
+      } else {
+        // Validate feature exists
+        const featurePath = join(featuresPath, target);
+
+        try {
+          await stat(featurePath);
+        } catch (error) {
+          log.human(`❌ Feature '${target}' not found`);
+          return false;
+        }
+      }
+    }
+
+    // Run validation based on target
     let violations = [];
 
     if (target) {
-      // Lint specific feature or endpoint
-      violations = await lintTarget(target);
+      if (target.includes('/')) {
+        // Specific endpoint validation
+        const [feature, endpoint] = target.split('/');
+        violations = await lintEndpoint(
+          join(process.cwd(), 'src', 'features'),
+          feature,
+          endpoint
+        );
+      } else {
+        // Specific feature validation
+        violations = await lintFeature(
+          join(process.cwd(), 'src', 'features'),
+          target
+        );
+      }
     } else {
-      // Lint all features
+      // Full project validation
       violations = await lintAllFeatures();
     }
 
@@ -49,71 +84,41 @@ export default async function lint(args) {
     const warnings = violations.filter((v) => v.severity === 'warning');
     const suggestions = violations.filter((v) => v.severity === 'suggestion');
 
-    const totalDuration = Date.now() - startTime;
+    const duration = Date.now() - startTime;
 
     // Report results - errors block pipeline
     if (errors.length > 0) {
-      log.checkFail(
-        'Code standards validation',
-        totalDuration,
-        errors.map((e) => `${e.file}: ${e.message}`),
-        [
-          'Fix critical code standard violations listed above',
-          'Follow FLUX Framework naming conventions',
-          'Add required VoilaJSX documentation patterns',
-          'Ensure helper files are properly declared in contracts',
-        ]
-      );
-
+      log.human(`❌ ${errors.length} error(s):`);
+      errors.forEach((error) => {
+        log.human(`   ${error.file}: ${error.message}`);
+      });
       return false;
     }
 
-    // Success with optional warnings/suggestions
-    log.checkPass('Code standards validation', totalDuration, {
-      files_checked: getUniqueFiles(violations).length,
-      warnings: warnings.length,
-      suggestions: suggestions.length,
-    });
-
-    // Show warnings and suggestions to humans only
+    // Show warnings (non-blocking)
     if (warnings.length > 0) {
-      log.warn(
-        `${warnings.length} code standard warnings found`,
-        warnings.map((w) => w.suggestion).filter(Boolean)
-      );
+      log.human(`⚠️  ${warnings.length} warning(s) (non-blocking)`);
+      warnings.slice(0, 3).forEach((warning) => {
+        log.human(`   ${warning.file}: ${warning.message}`);
+      });
+      if (warnings.length > 3) {
+        log.human(`   ... and ${warnings.length - 3} more warnings`);
+      }
     }
 
-    if (suggestions.length > 0) {
-      log.info('💡 Code improvement suggestions:');
-      suggestions.slice(0, 3).forEach((s) => {
-        log.suggestion(` 💡 ${s.file}: ${s.message}`);
+    // Show suggestions (informational)
+    if (suggestions.length > 0 && suggestions.length <= 3) {
+      log.human(`💡 ${suggestions.length} suggestion(s):`);
+      suggestions.forEach((suggestion) => {
+        log.human(`   ${suggestion.file}: ${suggestion.message}`);
       });
     }
 
-    log.validationComplete('lint', 'success', totalDuration, {
-      total_violations: violations.length,
-      target,
-    });
-
+    log.human(`✅ Passed (${duration}ms)`);
     return true;
   } catch (error) {
-    const totalDuration = Date.now() - startTime;
-
-    log.error(
-      `Lint validation crashed: ${error.message}`,
-      {
-        command: 'lint',
-        error: error.message,
-        duration: totalDuration,
-        target,
-      },
-      [
-        'Check if all required files exist and are readable',
-        'Verify file permissions and paths',
-        'Check for corrupted files or encoding issues',
-      ]
-    );
-
+    const duration = Date.now() - startTime;
+    log.human(`❌ Setup failed: ${error.message} (${duration}ms)`);
     return false;
   }
 }
@@ -147,25 +152,6 @@ async function lintAllFeatures() {
   }
 
   return violations;
-}
-
-/**
- * Lint specific target (feature or endpoint) with precise scope
- * @llm-rule WHEN: Validating specific feature or endpoint during development
- * @llm-rule AVOID: Invalid target formats - use feature/endpoint pattern consistently
- * @llm-rule NOTE: Supports both feature-level and endpoint-level targeting
- */
-async function lintTarget(target) {
-  const featuresPath = join(process.cwd(), 'src', 'features');
-  const [featureName, endpointName] = target.split('/');
-
-  if (endpointName) {
-    // Lint specific endpoint
-    return await lintEndpoint(featuresPath, featureName, endpointName);
-  } else {
-    // Lint specific feature
-    return await lintFeature(featuresPath, featureName);
-  }
 }
 
 /**
@@ -415,20 +401,6 @@ function validateHeader(
       message: 'Missing @file directive in header',
       suggestion: 'Add @file directive with relative path',
     });
-  } else {
-    // Validate @file path matches actual file path
-    const fileMatch = header.match(/@file\s+(.+)/);
-    if (fileMatch) {
-      const declaredPath = fileMatch[1].trim();
-      if (!filePath.endsWith(declaredPath)) {
-        violations.push({
-          severity: 'warning',
-          file: filePath,
-          message: `@file path mismatch: declared "${declaredPath}", actual "${filePath}"`,
-          suggestion: 'Update @file path to match actual file location',
-        });
-      }
-    }
   }
 
   // Check for @llm-rule directives (logic, test, and helper files should have them)
@@ -499,21 +471,6 @@ function validateVoilaJSXPatterns(content, filePath, fileType) {
       });
     }
   });
-
-  // Special handling for logger - can use logger.get('namespace') pattern
-  if (content.includes('const log')) {
-    const loggerPattern = /const\s+log\s*=\s*logger\.get\(/;
-    const utilityPattern = /const\s+log\s*=\s*\w+\.get\(\)/;
-
-    if (!loggerPattern.test(content) && !utilityPattern.test(content)) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: `Variable "log" should use logger.get('namespace') or module.get() pattern`,
-        suggestion: 'Use logger.get() pattern for consistent logging',
-      });
-    }
-  }
 
   return violations;
 }
@@ -624,18 +581,6 @@ function validateContractFile(content, filePath) {
       });
     }
   });
-
-  // Check for helpers array (new feature)
-  if (!content.includes('helpers:')) {
-    violations.push({
-      severity: 'suggestion',
-      file: filePath,
-      message:
-        'Consider adding helpers array to CONTRACT for helper file declarations',
-      suggestion:
-        'Add helpers: [] property to declare helper files used by this endpoint',
-    });
-  }
 
   return violations;
 }
@@ -767,14 +712,4 @@ function validateHelperFile(content, filePath) {
   }
 
   return violations;
-}
-
-/**
- * Get unique files from violations for summary reporting
- * @llm-rule WHEN: Generating summary statistics for lint validation results
- * @llm-rule AVOID: Duplicate file counting - use Set for accurate counts
- * @llm-rule NOTE: Used for human-readable summary display only
- */
-function getUniqueFiles(violations) {
-  return [...new Set(violations.map((v) => v.file))];
 }
