@@ -4,8 +4,8 @@
   "id": 1,
   "route": "GET /api/hello",
   "status": "✅ compliant",
-  "generated_at": "2025-07-23T04:20:06.893Z",
-  "validation_scope": "full",
+  "generated_at": "2025-07-26T05:34:07.719Z",
+  "validation_scope": "endpoint",
   "reliability_validation": {
     "contract_compliance": {
       "routes_declared_vs_implemented": "1/1",

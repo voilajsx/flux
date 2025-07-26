@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FLUX Framework Specification Schema",
-  "description": "Schema for {feature}.specification.json files",
+  "description": "Schema for {feature}.specification.json files with optional complex feature support",
   "type": "object",
   "required": ["feature", "version", "validation_targets", "endpoints"],
   "properties": {
@@ -10,9 +10,27 @@
       "pattern": "^[a-z][a-z0-9-]*$",
       "description": "Feature name (must match requirements file)"
     },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "generated_at": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Generation timestamp"
+    },
+    "last_updated": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }],
+      "description": "Last update timestamp"
+    },
+    "source_requirements": {
+      "type": "string",
+      "description": "Source requirements filename"
+    },
 
     "business_logic": {
       "type": "object",
+      "description": "Core business rules and processes",
       "properties": {
         "calculations": {
           "type": "array",
@@ -46,23 +64,400 @@
         }
       }
     },
-    "version": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Semantic version"
+
+    "external_integrations": {
+      "type": "object",
+      "description": "External API specifications (optional for complex features)",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "provider": { "type": "string" },
+          "base_url": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "auth_method": { "type": "string" },
+          "auth_param": { "type": "string" },
+          "env_variable": { "type": "string" },
+          "timeout_ms": { "type": "integer" },
+          "retry_attempts": { "type": "integer" },
+          "retry_delay_ms": { "type": "integer" },
+          "rate_limit": { "type": "string" },
+          "required_params": { "type": "object" },
+          "response_mapping": { "type": "object" }
+        }
+      }
     },
-    "generated_at": {
-      "oneOf": [{ "type": "string" }, { "type": "object" }],
-      "description": "Generation timestamp"
+
+    "response_schemas": {
+      "type": "object",
+      "description": "Exact response formats (optional for reliability)",
+      "properties": {
+        "success_format": {
+          "type": "object",
+          "description": "Standard success response structure"
+        },
+        "error_format": {
+          "type": "object",
+          "description": "Standard error response structure"
+        },
+        "error_types": {
+          "type": "object",
+          "description": "Mapping of error codes to descriptions"
+        }
+      }
     },
-    "last_updated": {
-      "oneOf": [{ "type": "string" }, { "type": "object" }],
-      "description": "Last update timestamp"
+
+    "environment_requirements": {
+      "type": "object",
+      "description": "Environment variables (optional for deployment)",
+      "properties": {
+        "required_vars": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "optional_vars": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "default_values": {
+          "type": "object"
+        },
+        "validation": {
+          "type": "object"
+        }
+      }
     },
-    "source_requirements": {
-      "type": "string",
-      "description": "Source requirements filename"
+
+    "implementation_details": {
+      "type": "object",
+      "description": "Algorithms and business logic (optional for precision)",
+      "additionalProperties": {
+        "type": "object"
+      }
     },
+
+    "security_requirements": {
+      "type": "object",
+      "description": "Security specifications (optional for secure features)",
+      "properties": {
+        "authentication": {
+          "type": "string",
+          "enum": ["none", "jwt", "api_key", "oauth", "session"]
+        },
+        "authorization": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "input_validation": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "rate_limiting": {
+          "type": "object",
+          "properties": {
+            "requests_per_minute": { "type": "integer" },
+            "requests_per_hour": { "type": "integer" },
+            "per_ip_limit": { "type": "integer" },
+            "per_user_limit": { "type": "integer" }
+          }
+        },
+        "data_protection": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cors_policy": {
+          "type": "object",
+          "properties": {
+            "allowed_origins": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "allowed_methods": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "allowed_headers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "performance_requirements": {
+      "type": "object",
+      "description": "Performance specifications (optional for high-performance features)",
+      "properties": {
+        "response_time_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "throughput_rps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "concurrent_users": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_limit_mb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cpu_limit_percent": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "cache_strategy": {
+          "type": "string",
+          "enum": ["none", "memory", "redis", "cdn", "hybrid"]
+        },
+        "cache_ttl_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "compression": {
+          "type": "boolean"
+        },
+        "connection_pooling": {
+          "type": "object",
+          "properties": {
+            "min_connections": { "type": "integer" },
+            "max_connections": { "type": "integer" },
+            "idle_timeout_ms": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "database_requirements": {
+      "type": "object",
+      "description": "Database and storage specifications (optional for data-driven features)",
+      "properties": {
+        "storage_type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "postgresql",
+            "mysql",
+            "mongodb",
+            "redis",
+            "sqlite",
+            "cassandra",
+            "dynamodb"
+          ]
+        },
+        "connection_config": {
+          "type": "object",
+          "properties": {
+            "host_env_var": { "type": "string" },
+            "port_env_var": { "type": "string" },
+            "database_env_var": { "type": "string" },
+            "username_env_var": { "type": "string" },
+            "password_env_var": { "type": "string" },
+            "ssl_required": { "type": "boolean" },
+            "connection_timeout_ms": { "type": "integer", "minimum": 1000 },
+            "pool_size": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "schema_definitions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "table_name": { "type": "string" },
+              "primary_key": { "type": "string" },
+              "columns": { "type": "object" },
+              "indexes": { "type": "array" },
+              "constraints": { "type": "array" }
+            }
+          }
+        },
+        "migration_scripts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string" },
+              "description": { "type": "string" },
+              "up_script": { "type": "string" },
+              "down_script": { "type": "string" },
+              "dependencies": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "seed_data": {
+          "type": "object"
+        },
+        "query_patterns": {
+          "type": "object",
+          "properties": {
+            "create_operations": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "read_operations": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "update_operations": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "delete_operations": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "complex_queries": { "type": "array" }
+          }
+        },
+        "backup_strategy": {
+          "type": "object",
+          "properties": {
+            "frequency": {
+              "type": "string",
+              "enum": ["hourly", "daily", "weekly", "monthly", "on_demand"]
+            },
+            "retention_days": { "type": "integer", "minimum": 1 },
+            "backup_type": {
+              "type": "string",
+              "enum": ["full", "incremental", "differential"]
+            },
+            "storage_location": { "type": "string" },
+            "encryption_required": { "type": "boolean" }
+          }
+        },
+        "data_validation": {
+          "type": "object",
+          "properties": {
+            "integrity_checks": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "business_rules": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "referential_integrity": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "event_specifications": {
+      "type": "object",
+      "description": "Event-driven architecture (optional for async features)",
+      "properties": {
+        "event_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "publish",
+              "subscribe",
+              "event_sourcing",
+              "webhook",
+              "websocket"
+            ]
+          }
+        },
+        "events_published": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_name": { "type": "string" },
+              "description": { "type": "string" },
+              "payload_schema": { "type": "object" },
+              "frequency": {
+                "type": "string",
+                "enum": ["rare", "occasional", "frequent", "high_volume"]
+              }
+            }
+          }
+        },
+        "events_subscribed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_name": { "type": "string" },
+              "description": { "type": "string" },
+              "handler_function": { "type": "string" },
+              "retry_policy": {
+                "type": "string",
+                "enum": ["none", "simple", "exponential", "custom"]
+              }
+            }
+          }
+        },
+        "event_store": {
+          "type": "object",
+          "properties": {
+            "storage_type": {
+              "type": "string",
+              "enum": ["memory", "redis", "database", "kafka", "rabbitmq"]
+            },
+            "retention_policy": { "type": "string" },
+            "ordering_guarantee": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "queue_requirements": {
+      "type": "object",
+      "description": "Background jobs and queues (optional for async processing)",
+      "properties": {
+        "queue_type": {
+          "type": "string",
+          "enum": ["none", "memory", "redis", "rabbitmq", "kafka", "sqs"]
+        },
+        "job_definitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "job_name": { "type": "string" },
+              "description": { "type": "string" },
+              "trigger": {
+                "type": "string",
+                "enum": ["immediate", "scheduled", "event_driven", "cron"]
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["low", "normal", "high", "critical"]
+              },
+              "max_attempts": { "type": "integer", "minimum": 1 },
+              "timeout_ms": { "type": "integer", "minimum": 1000 },
+              "payload_schema": { "type": "object" }
+            }
+          }
+        },
+        "retry_policies": {
+          "type": "object",
+          "properties": {
+            "default_strategy": {
+              "type": "string",
+              "enum": ["linear", "exponential", "custom"]
+            },
+            "max_retries": { "type": "integer", "minimum": 0 },
+            "base_delay_ms": { "type": "integer", "minimum": 100 },
+            "max_delay_ms": { "type": "integer", "minimum": 1000 }
+          }
+        },
+        "dead_letter_queue": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "retention_days": { "type": "integer", "minimum": 1 },
+            "notification_required": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
     "validation_targets": {
       "type": "object",
       "required": [
@@ -280,6 +675,7 @@
         }
       }
     },
+
     "endpoints": {
       "type": "object",
       "minProperties": 1,
@@ -405,6 +801,18 @@
                     "type": "string"
                   }
                 },
+                "business_rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "environment_usage": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "functions": {
                   "type": "object",
                   "patternProperties": {
@@ -474,6 +882,10 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "validation": {
+                        "type": "string",
+                        "description": "Custom validation logic description"
                       }
                     }
                   }
@@ -495,10 +907,12 @@
         }
       }
     },
+
     "validation_skip_pattern": {
       "type": "string",
       "description": "Pattern for fields to skip during validation"
     },
+
     "file_structure": {
       "type": "object",
       "patternProperties": {

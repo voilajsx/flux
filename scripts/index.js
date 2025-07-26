@@ -143,7 +143,7 @@ async function main() {
       process.exit(0);
     } else {
       console.log(`❌ FLUX: ${command} failed (${duration}ms)`);
-      showFailureGuidance(command);
+
       process.exit(1);
     }
   } catch (error) {

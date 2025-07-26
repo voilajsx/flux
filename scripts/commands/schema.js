@@ -25,64 +25,69 @@ const log = createLogger('schema');
  * - npm run flux:schema hello              # Hello feature, all schemas
  * - npm run flux:schema hello:requirements # Hello feature, requirements only
  */
+
+/**
+ * Clean schema validation with minimal, clear output
+ * Replace the verbose logging in schema.js with this approach
+ */
+
+// In schema.js - Replace the verbose validation start/complete calls with:
+
 export default async function schema(args) {
   const startTime = Date.now();
-  const target = args[0]; // Can be: undefined, "hello", "hello:requirements", etc.
-
-  // Parse the target argument
+  const target = args[0];
   const scope = parseTarget(target);
 
-  log.validationStart('schema', scope.description, [
-    'scope_parsing',
-    'feature_discovery',
-    'schema_validation',
-    'cross_reference_validation',
-  ]);
-
   try {
-    const validationResults = [];
+    const results = [];
 
-    // Execute validation based on parsed scope
+    // Execute validation (existing logic)
     if (scope.feature && scope.schemaType) {
-      // Single file validation: hello:requirements
-      validationResults.push(
+      results.push(
         ...(await validateSingleSchema(scope.feature, scope.schemaType))
       );
     } else if (scope.feature) {
-      // Single feature validation: hello
-      validationResults.push(...(await validateFeatureSchemas(scope.feature)));
+      results.push(...(await validateFeatureSchemas(scope.feature)));
     } else {
-      // All features validation: (no args)
-      validationResults.push(...(await validateAllSchemas()));
+      results.push(...(await validateAllSchemas()));
     }
 
-    // Report results
-    const allValid = reportValidationResults(validationResults, scope);
-    const totalDuration = Date.now() - startTime;
+    // Clean, minimal output
+    reportResults(results, Date.now() - startTime);
 
-    if (allValid) {
-      log.validationComplete('schema', 'success', totalDuration, {
-        schemas_validated: validationResults.length,
-        scope: scope.description,
-      });
-    } else {
-      log.validationComplete('schema', 'failed', totalDuration, {
-        schemas_validated: validationResults.length,
-        failures: validationResults.filter((r) => !r.valid).length,
-        scope: scope.description,
-      });
-    }
-
-    return allValid;
+    return results.every((r) => r.valid);
   } catch (error) {
-    const totalDuration = Date.now() - startTime;
-    log.error(`Schema validation crashed: ${error.message}`, {
-      command: 'schema',
-      error: error.message,
-      duration: totalDuration,
-      scope: scope.description,
-    });
+    console.log(`❌ Schema validation failed: ${error.message}`);
     return false;
+  }
+}
+
+/**
+ * Clean, focused result reporting
+ */
+function reportResults(results, duration) {
+  const valid = results.filter((r) => r.valid).length;
+  const total = results.length;
+  const failed = results.filter((r) => !r.valid);
+
+  if (failed.length === 0) {
+    // Success: one clean line
+    console.log(
+      `✅ Schema validation passed (${valid}/${total}) ${duration}ms`
+    );
+  } else {
+    // Failure: show only errors
+    console.log(
+      `❌ Schema validation failed (${valid}/${total}) ${duration}ms`
+    );
+    console.log('');
+
+    failed.forEach((result) => {
+      console.log(`❌ ${result.feature}.${result.type}`);
+      result.errors.forEach((error) => {
+        console.log(`   ${error}`);
+      });
+    });
   }
 }
 
