@@ -1,8 +1,8 @@
 {
   "feature": "hello",
   "status": "✅ compliant",
-  "generated_at": "2025-07-23T04:20:06.895Z",
-  "validation_scope": "full",
+  "generated_at": "2025-07-26T05:35:35.121Z",
+  "validation_scope": "feature",
   "implementation_checklist": {
     "blueprint_requirements": "✅ 2/2",
     "endpoint_completion": "2/2 ✅",
@@ -35,7 +35,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "utils.uuid()",
@@ -45,7 +45,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "log.info(",
@@ -55,7 +55,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "const utils = utility.get()",
@@ -65,7 +65,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "const log = logger.get(",
@@ -75,7 +75,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "const err = error.get()",
@@ -85,7 +85,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "res.json(",
@@ -95,7 +95,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "success:",
@@ -105,7 +105,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "data:",
@@ -115,7 +115,7 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       },
       {
         "pattern": "requestId",
@@ -125,12 +125,12 @@
         ],
         "type": "acceptable_configured_pattern",
         "acceptable": true,
-        "source": "implementation.json"
+        "source": "specification.json"
       }
     ],
     "acceptable_duplication": [
       "VoilaJSX module initialization patterns",
-      "Error handling patterns from implementation.json",
+      "Error handling patterns from specification.json",
       "Logging setup patterns",
       "Request ID generation",
       "Pattern: .get()",
