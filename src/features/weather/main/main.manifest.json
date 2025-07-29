@@ -1,34 +1,38 @@
 {
   "endpoint": "main",
   "feature": "weather",
-  "route": "GET /api/weather",
-  "status": "✅ READY",
-  "generated_at": "2025-07-29T09:49:42.620Z",
+  "route": "GET /weather",
+  "routes": {
+    "GET /weather": "getWeather"
+  },
+  "status": "READY",
+  "active": true,
+  "generated_at": "2025-07-29T16:22:03.994Z",
   "contract_compliance": {
-    "routes_match": "✅ 1/1",
-    "functions_match": "✅ 1/1",
-    "imports_complete": "✅ ALL",
-    "tests_declared": "✅ 3/3",
+    "routes_match": "PASS",
+    "functions_match": "PASS",
+    "imports_complete": "COMPLETE",
+    "tests_declared": "3/3",
     "score": "100%"
   },
   "specification_requirements": {
     "validation_details": {
-      "schema_validation": "✅ PASSED",
-      "types_validation": "✅ PASSED",
-      "lint_validation": "✅ PASSED",
-      "test_validation": "✅ PASSED"
+      "schema_validation": "PASSED",
+      "types_validation": "PASSED",
+      "lint_validation": "PASSED",
+      "test_validation": "PASSED"
     },
     "business_logic": {
-      "function_exports": "✅ IMPLEMENTED",
-      "module_initialization": "✅ IMPLEMENTED"
+      "function_exports": "IMPLEMENTED",
+      "module_initialization": "IMPLEMENTED"
     },
     "score": "100%"
   },
   "test_coverage": {
     "test_case_mapping": {
-      "should return Hyderabad weather by default": "✅ IMPLEMENTED",
-      "should return weather for query parameter city": "✅ IMPLEMENTED",
-      "should handle API failures with 503 status": "✅ IMPLEMENTED"
+      "should return Hyderabad weather by default": "IMPLEMENTED",
+      "should return weather for query parameter city": "IMPLEMENTED",
+      "should handle API failures with 503 status": "IMPLEMENTED"
     },
     "score": "100%"
   },
@@ -40,10 +44,10 @@
     "blocking_count": 0
   },
   "quick_status": {
-    "contract": "✅ PASS",
-    "spec": "✅ PASS",
-    "tests": "✅ PASS",
-    "deployment": "✅ READY",
+    "contract": "PASS",
+    "spec": "PASS",
+    "tests": "PASS",
+    "deployment": "READY",
     "overall": "100%"
   },
   "compliance_data": {
@@ -56,6 +60,6 @@
     ],
     "blocking_count": 0,
     "warning_count": 0,
-    "last_validated": "2025-07-29T09:49:42.621Z"
+    "last_validated": "2025-07-29T16:22:03.994Z"
   }
 }
