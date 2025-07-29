@@ -44,15 +44,10 @@ function ensureGitRepository() {
 }
 
 /**
- * Get current git status with file change information
- * @llm-rule WHEN: Analyzing what files have changed for intelligent operations
- * @llm-rule AVOID: Operating on git without understanding current state
- */
-/**
  * Get current git status with improved file path handling
  * @llm-rule WHEN: Analyzing what files have changed for intelligent operations
- * @llm-rule AVOID: Malformed file paths - validate paths before processing
- * @llm-rule NOTE: Filters out invalid paths and directories that don't exist
+ * @llm-rule AVOID: Incorrect file path extraction - handle all git status formats
+ * @llm-rule NOTE: Git status format: XY filename, where X and Y are status codes
  */
 function getGitStatus() {
   try {
@@ -61,28 +56,25 @@ function getGitStatus() {
       .split('\n')
       .filter((line) => line.trim())
       .map((line) => {
-        const status = line.substring(0, 2).trim();
-        const file = line.substring(3);
+        // Git status format: XY filename
+        // Where X is staged status, Y is working tree status
+        const statusCodes = line.substring(0, 2);
+
+        // File path starts after the status codes and space
+        // Handle both "XY filename" and "XY  filename" formats
+        const filePath = line.substring(2).replace(/^[\s]+/, '');
 
         return {
-          status: status,
-          file: file,
+          status: statusCodes.trim(),
+          file: filePath,
           isNew: line.startsWith('A') || line.startsWith('??'),
           isModified: line.startsWith('M') || line.startsWith(' M'),
           isDeleted: line.startsWith('D'),
         };
       })
       .filter((item) => {
-        // Filter out empty files and malformed paths
-        if (!item.file || item.file.trim() === '') return false;
-
-        // Filter out paths that are clearly malformed (like 'ocs/' instead of 'docs/')
-        if (item.file.includes('ocs/') && !item.file.includes('docs/')) {
-          console.log(`⚠️ Skipping malformed path: ${item.file}`);
-          return false;
-        }
-
-        return true;
+        // Filter out empty files
+        return item.file && item.file.trim() !== '';
       });
   } catch (error) {
     console.log(`⚠️ Git status error: ${error.message}`);
