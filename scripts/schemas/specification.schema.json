@@ -82,7 +82,8 @@
           "retry_delay_ms": { "type": "integer" },
           "rate_limit": { "type": "string" },
           "required_params": { "type": "object" },
-          "response_mapping": { "type": "object" }
+          "response_mapping": { "type": "object" },
+          "implementation_pattern": { "type": "object" }
         }
       }
     },
@@ -122,6 +123,9 @@
           "type": "object"
         },
         "validation": {
+          "type": "object"
+        },
+        "usage_patterns": {
           "type": "object"
         }
       }
@@ -515,7 +519,7 @@
               "items": {
                 "type": "string",
                 "enum": [
-                  "utils",
+                  "util",
                   "logger",
                   "error",
                   "security",
@@ -524,7 +528,9 @@
                   "cache",
                   "storage",
                   "email",
-                  "queue"
+                  "queue",
+                  "event",
+                  "config"
                 ]
               }
             },
@@ -699,6 +705,9 @@
             "url": {
               "type": "string"
             },
+            "template_replacements": {
+              "type": "object"
+            },
             "validation_specifics": {
               "type": "object",
               "properties": {
@@ -795,6 +804,9 @@
                     "type": "string"
                   }
                 },
+                "function_signature": {
+                  "type": "string"
+                },
                 "imports": {
                   "type": "array",
                   "items": {
@@ -806,6 +818,9 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "implementation_guidance": {
+                  "type": "object"
                 },
                 "environment_usage": {
                   "type": "array",
@@ -844,6 +859,9 @@
                 "file": {
                   "type": "string",
                   "pattern": "\\.test\\.ts$"
+                },
+                "template_replacements": {
+                  "type": "object"
                 },
                 "imports": {
                   "type": "array",
@@ -886,6 +904,12 @@
                       "validation": {
                         "type": "string",
                         "description": "Custom validation logic description"
+                      },
+                      "mock_setup": {
+                        "type": "string"
+                      },
+                      "template_values": {
+                        "type": "object"
                       }
                     }
                   }

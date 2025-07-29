@@ -1,293 +1,148 @@
-# ============================================================================
-# Weather API - Agent Execution Instructions
+# Weather API - Agent Instructions
 # @file src/features/weather/weather.instructions.yml
-# ============================================================================
 
 feature: weather
 version: 1.0.0
-created: 2025-07-26T00:00:00Z
-created_by: human_with_claude_assistance
-last_updated: 2025-07-26T00:00:00Z
-updated_by: initial_creation
+created: 2025-07-26
+created_by: Human Developer
 
 # ============================================================================
-# AGENT INSTRUCTIONS
+# AGENT EXECUTION RULES
 # ============================================================================
 
 agent_instructions: |
-  You are implementing a weather API feature with external OpenWeatherMap integration.
-  This is a COMPLEX feature requiring external API calls, environment variables, and error handling.
+  You are implementing weather feature with OpenWeatherMap API integration.
 
-  CRITICAL REQUIREMENTS:
-  1. Read weather.specification.json for EXACT implementation details
-  2. Use external_integrations.weather_api configuration for OpenWeatherMap calls
-  3. Follow response_schemas.success_format and error_format exactly
-  4. Implement environment_requirements for API key and configuration
-  5. Use implementation_details for algorithms and business logic
-  6. Generate 2 endpoints: main (query param) and @city (URL param)
-  7. All code must use VoilaJSX AppKit patterns with .get() methodology
-  8. Include comprehensive error handling for external API failures
-  9. Validate and sanitize all user inputs for security
-  10. Log every step using weather.actions.log for human monitoring
+  STEP COMMAND KEYWORDS - USE THESE EXACTLY:
+  - Log: = Write to action log using npm run flux:actionlog weather write:"message"
+  - Read: = Read and understand a file's contents  
+  - Create: = Create a new file with specified content
+  - Run: = Execute a terminal command
+  - Print: = Tell human what you're about to do
+  - Condition: = Check if something is true/false and take action
+  - Wait: = Stop and wait for human response before continuing
 
-  EXECUTION ORDER:
-  - Create folder structure first
-  - Implement contracts for both endpoints
-  - Implement business logic with external API integration
-  - Create comprehensive tests covering success and error scenarios
-  - Validate everything before completion
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+  EXECUTION RULES:
+  1. Always use step keywords as first word in each step
+  2. Read weather.specification.json for exact implementation details
+  3. Use VoilaJSX AppKit patterns with .get() methodology
+  4. If schema validation fails in Task 1.1, STOP IMMEDIATELY
+  5. Always explain validations before running them using Print:
 
 config:
-  log_file: weather.actions.log
-  commit_strategy: flux_per_task
+  log_file: 'src/features/weather/weather.actions.log'
+  commit_strategy: 'flux_per_task'
   max_retries_per_task: 3
-  rollback_command: git reset --hard HEAD~1
-
-# ============================================================================
-# VALIDATION COMMANDS
-# ============================================================================
 
 validation_commands:
-  contract: npm run flux:contract weather
-  types: npm run flux:types weather
-  lint: npm run flux:lint weather
-  test: npm run flux:test weather
-  full: npm run flux:check weather
-  compliance: npm run flux:compliance weather
+  schema: 'npm run flux:schema weather'
+  contract: 'npm run flux:contract weather'
+  types: 'npm run flux:types weather'
+  lint: 'npm run flux:lint weather'
+  test: 'npm run flux:test weather/{endpoint}.test.ts'
+  compliance: 'npm run flux:compliance weather'
+  full: 'npm run flux:check weather'
+  skim: 'npm run flux:skim weather/{endpoint}.{file_type}.ts'
+
+failure_handling:
+  validation_failure:
+    action: 'Stop execution and log exact error details'
+  security_failure:
+    action: 'Stop execution and log security error'
+  git_failure:
+    action: 'Continue execution but log warning'
+
+completion_criteria:
+  all_tasks_complete: 'All tasks 1.1-2.4 completed successfully'
+  all_validations_pass: 'npm run flux:check weather/main returns success'
+  deployment_ready: 'Weather main endpoint production-ready'
 
 # ============================================================================
 # EXECUTION TASKS
 # ============================================================================
 
 tasks:
-  1:
-    name: setup_feature_structure
-    what: Create weather feature folder structure and prepare for development
+  1.1:
+    name: 'validate_schemas'
+    what: 'Validate all specification files'
     steps:
-      - Create src/features/weather/ directory if not exists
-      - Create src/features/weather/main/ directory for default endpoint
-      - Create src/features/weather/@city/ directory for city parameter endpoint
-      - Log folder structure creation to weather.actions.log
-      - Verify all directories are accessible and writable
-    max_retries: 2
-    if_stuck: Create directories manually and continue
+      - 'Log: TASK_1.1_START validate_schemas'
+      - 'Print: Validating weather.requirements.yml, weather.specification.json, weather.instructions.yml schemas'
+      - 'Run: npm run flux:schema weather'
+      - 'Condition: IF FAILS - Display "❌ SCHEMA FAILED - Fix files manually and restart agent" and STOP'
+      - 'Condition: IF PASSES - Log: TASK_1.1_COMPLETE SCHEMAS_VALID ready_for_setup'
+      - 'Wait: Schemas validated. Type continue to proceed or exit to stop.'
 
-  2:
-    name: analyze_specifications
-    what: Read and understand complete weather feature specifications
+  1.2:
+    name: 'read_documentation'
+    what: 'Read all required documentation files'
     steps:
-      - Read weather.requirements.yml for business context and user stories
-      - Parse weather.specification.json for technical implementation details
-      - Understand external_integrations.weather_api configuration
-      - Review response_schemas for exact response format requirements
-      - Study implementation_details for algorithms and business logic
-      - Note environment_requirements for API key and configuration
-      - Log specification analysis complete to weather.actions.log
-    max_retries: 2
-    approval_required: true
-    if_stuck: Ask human to verify specification files exist and are readable
+      - 'Log: TASK_1.2_START read_documentation'
+      - 'Read: weather.specification.json - understand main endpoint requirements'
+      - 'Read: weather.requirements.yml - understand business goals'
+      - 'Read: docs/APPKIT_LLM_GUIDE.md - understand AppKit patterns'
+      - 'Read: docs/VOILA-COMMENT-GUIDELINES.md - understand code documentation standards'
+      - 'Log: TASK_1.2_COMPLETE DOCUMENTATION_READ ready_for_folders'
+      - 'Wait: Documentation read. Type continue to proceed or exit to stop.'
 
-  3:
-    name: implement_main_contract
-    what: Create contract file for main weather endpoint (query parameter)
+  1.3:
+    name: 'create_folder_structure'
+    what: 'Create weather feature directories'
     steps:
-      - Create src/features/weather/main/main.contract.ts
-      - Import VoilaJSX AppKit modules as specified in weather.specification.json
-      - Define CONTRACT object with routes: GET /api/weather -> getWeather
-      - Include all imports specified in endpoints.main.contract.imports
-      - Add proper TypeScript types for Request and Response
-      - Include @llm-rule comments for agent guidance
-      - Log main contract creation complete
-    max_retries: 3
-    validation_after: contract
-    if_stuck: Review weather.specification.json endpoints.main.contract section
+      - 'Log: TASK_1.3_START create_folder_structure'
+      - 'Create: src/features/weather/main/ subdirectory'
+      - 'Log: TASK_1.3_COMPLETE FOLDERS_CREATED ready_for_implementation'
+      - 'Wait: Folder created. Type continue to proceed or exit to stop.'
 
-  4:
-    name: implement_main_logic
-    what: Create business logic for main weather endpoint with OpenWeatherMap integration
+  2.1:
+    name: 'implement_main_contract'
+    what: 'Create and validate contract file'
     steps:
-      - Create src/features/weather/main/main.logic.ts
-      - Import VoilaJSX AppKit modules using .get() pattern as specified
-      - Initialize modules: const utils = utility.get(), const log = logger.get('weather'), etc.
-      - Implement getWeather function following business_rules in specification
-      - Extract city from query parameter, default to 'hyderabad' per specification
-      - Use implementation_details.city_normalization for input processing
-      - Integrate with OpenWeatherMap API using external_integrations.weather_api config
-      - Handle environment variables as specified in environment_requirements
-      - Transform API response using response_mapping from specification
-      - Return response in exact response_schemas.success_format structure
-      - Implement error handling for all error_scenarios with proper error_types
-      - Add comprehensive logging using implementation_details.logging_format
-      - Include proper @llm-rule comments throughout
-      - Log main logic implementation complete
-    max_retries: 3
-    validation_after: types
-    if_stuck: Review external_integrations and implementation_details sections carefully
+      - 'Log: TASK_2.1_START implement_main_contract'
+      - 'Read: the contract template from scripts/templates/contract.template.ts and use it to create the contract file'
+      - 'Read: weather.specification.json endpoints.main.contract section for exact requirements'
+      - 'Print: Creating main.contract.ts with API routes and imports'
+      - 'Create: src/features/weather/main/main.contract.ts using specification requirements'
+      - 'Print: Running skim validation on contract structure'
+      - 'Run: npm run flux:skim weather/main.contract.ts'
+      - 'Condition: IF FAILS - Fix errors and retry until passes'
+      - 'Condition: IF PASSES - Log: TASK_2.1_COMPLETE MAIN_CONTRACT_CREATED validation=passed'
+      - 'Wait: Contract validated. Type continue to proceed or exit to stop.'
 
-  5:
-    name: implement_main_tests
-    what: Create comprehensive tests for main weather endpoint
+  2.2:
+    name: 'implement_main_logic'
+    what: 'Create and validate business logic file'
     steps:
-      - Create src/features/weather/main/main.test.ts
-      - Import test frameworks and logic function as specified
-      - Set up test app with Express and error handling
-      - Implement all test_cases from endpoints.main.test.test_cases
-      - Test default Hyderabad weather functionality
-      - Test query parameter city functionality
-      - Test API failure scenarios with proper status codes
-      - Verify response format matches response_schemas exactly
-      - Test error handling and proper error_types
-      - Ensure coverage meets coverage_target (95%)
-      - Log main tests implementation complete
-    max_retries: 3
-    validation_after: test
-    if_stuck: Review test_cases in weather.specification.json for exact requirements
+      - 'Log: TASK_2.2_START implement_main_logic'
+      - 'Read: the logic template from scripts/templates/logic.template.ts and use it to create the logic file'
+      - 'Read: weather.specification.json endpoints.main.logic section for business rules'
+      - 'Print: Creating main.logic.ts with business logic and OpenWeatherMap API integration'
+      - 'Create: src/features/weather/main/main.logic.ts using specification requirements'
+      - 'Print: Running skim validation on logic structure'
+      - 'Run: npm run flux:skim weather/main.logic.ts'
+      - 'Condition: IF FAILS - Fix errors and retry until passes'
+      - 'Condition: IF PASSES - Log: TASK_2.2_COMPLETE MAIN_LOGIC_CREATED validation=passed'
+      - 'Wait: Business logic validated. Type continue to proceed or exit to stop.'
 
-  6:
-    name: implement_city_contract
-    what: Create contract file for @city weather endpoint (URL parameter)
+  2.3:
+    name: 'implement_main_tests'
+    what: 'Create and validate test file'
     steps:
-      - Create src/features/weather/@city/@city.contract.ts
-      - Import VoilaJSX AppKit modules as specified
-      - Define CONTRACT object with routes: GET /api/weather/:city -> getWeatherForCity
-      - Include all imports specified in endpoints.@city.contract.imports
-      - Add proper TypeScript types and parameter validation
-      - Include @llm-rule comments for agent guidance
-      - Log @city contract creation complete
-    max_retries: 3
-    validation_after: contract
-    if_stuck: Follow same pattern as main contract but with city parameter
+      - 'Log: TASK_2.3_START implement_main_tests'
+      - 'Read: scripts/templates/test.template.ts and weather.specification.json endpoints.main.test'
+      - 'Create: src/features/weather/main/main.test.ts using specification test_cases exactly'
+      - 'Run: npm run flux:test weather/main.test.ts'
+      - 'Condition: IF FAILS - fix and retry'
+      - 'Condition: IF PASSES - Log: TASK_2.3_COMPLETE MAIN_TESTS_CREATED'
+      - 'Wait: Tests validated. Type continue to proceed or exit to stop.'
 
-  7:
-    name: implement_city_logic
-    what: Create business logic for @city endpoint with parameter validation and security
+  2.4:
+    name: 'validate_main_endpoint'
+    what: 'Run full validation pipeline'
     steps:
-      - Create src/features/weather/@city/@city.logic.ts
-      - Import VoilaJSX AppKit modules using .get() pattern
-      - Initialize modules following VoilaJSX patterns
-      - Implement getWeatherForCity function following business_rules
-      - Extract city from req.params.city
-      - Validate city name using implementation_details.city_normalization.validation
-      - Reject city names longer than 50 characters with BAD_REQUEST
-      - Sanitize input using secure.input() to prevent XSS
-      - Normalize city name using specified algorithm
-      - Integrate with OpenWeatherMap API using same configuration
-      - Handle all error scenarios with proper response_schemas.error_types
-      - Return response in success_format structure
-      - Add comprehensive logging and error handling
-      - Include proper @llm-rule comments
-      - Log @city logic implementation complete
-    max_retries: 3
-    validation_after: types
-    if_stuck: Focus on input validation and security requirements from specification
-
-  8:
-    name: implement_city_tests
-    what: Create comprehensive tests for @city endpoint with security focus
-    steps:
-      - Create src/features/weather/@city/@city.test.ts
-      - Import test frameworks and logic function
-      - Set up test app with proper error handling
-      - Implement all test_cases from endpoints.@city.test.test_cases
-      - Test valid city names with proper URL encoding
-      - Test security: empty city names, long city names, XSS attempts
-      - Test URL encoded city names (New York -> New%20York)
-      - Verify all error scenarios return proper status codes and error_types
-      - Test response format matches response_schemas exactly
-      - Ensure coverage meets target and includes security test patterns
-      - Log @city tests implementation complete
-    max_retries: 3
-    validation_after: test
-    if_stuck: Pay special attention to security_test_patterns in specification
-
-  9:
-    name: environment_setup_validation
-    what: Validate environment requirements and provide setup guidance
-    steps:
-      - Check if .env.example file exists, create if missing
-      - Add OPENWEATHER_API_KEY to .env.example with description
-      - Add optional environment variables from environment_requirements
-      - Document environment_requirements.validation rules
-      - Create environment setup documentation
-      - Verify environment variables are properly used in logic files
-      - Log environment validation complete
-    max_retries: 2
-    if_stuck: Create basic .env.example with required variables
-
-  10:
-    name: integration_validation
-    what: Validate external API integration configuration
-    steps:
-      - Verify OpenWeatherMap API configuration is properly implemented
-      - Check timeout, retry logic, and error handling
-      - Validate response mapping from external API to internal format
-      - Test API key environment variable handling
-      - Verify rate limiting considerations are documented
-      - Check that all external_integrations.weather_api fields are used
-      - Log integration validation complete
-    max_retries: 2
-    if_stuck: Review external_integrations section for missing configuration
-
-  11:
-    name: comprehensive_validation
-    what: Run complete validation pipeline and fix any issues
-    steps:
-      - Run npm run flux:check weather for full pipeline validation
-      - Fix any TypeScript compilation errors
-      - Fix any linting issues following VoilaJSX patterns
-      - Fix any contract validation failures
-      - Fix any test failures or coverage issues
-      - Run npm run flux:compliance weather for final compliance check
-      - Ensure all reliability_thresholds are met
-      - Log comprehensive validation complete
-    max_retries: 5
-    validation_after: full
-    if_stuck: Run individual validation commands to isolate issues
-
-  12:
-    name: final_verification
-    what: Final verification and documentation update
-    steps:
-      - Verify all endpoints are properly implemented according to specification
-      - Check that all business_rules are correctly implemented
-      - Verify error handling covers all error_scenarios
-      - Confirm response formats match response_schemas exactly
-      - Validate security requirements are implemented
-      - Update file_structure in specification if needed
-      - Generate final compliance report
-      - Log weather feature implementation complete
-    max_retries: 2
-    approval_required: true
-    if_stuck: Review specification completeness and implementation coverage
-
-# ============================================================================
-# FAILURE HANDLING
-# ============================================================================
-
-failure_handling:
-  validation_failure:
-    action: retry_with_fixes
-    escalate_after: 3_attempts
-  security_failure:
-    action: stop_and_review
-  git_failure:
-    action: rollback_and_retry
-    command: git reset --hard HEAD~1
-  parsing_confusion:
-    action: ask_human_for_clarification
-
-# ============================================================================
-# COMPLETION CRITERIA
-# ============================================================================
-
-completion_criteria:
-  all_tasks_complete: Check weather.actions.log for all task completion entries
-  all_validations_pass: npm run flux:check weather returns success
-  deployment_ready: npm run flux:compliance weather shows 90%+ reliability
-  git_clean: git status shows clean working directory
-
-final_log_entry: 'WEATHER_FEATURE_COMPLETE: Successfully implemented weather API with OpenWeatherMap integration, 2 endpoints, comprehensive security, and 95%+ test coverage'
+      - 'Log: TASK_2.4_START validate_main_endpoint'
+      - 'Print: Running complete validation pipeline on main endpoint'
+      - 'Run: npm run flux:manifest weather/main'
+      - 'Condition: IF FAILS - STOP and ask human to review errors'
+      - 'Condition: IF PASSES - Log: TASK_2.4_COMPLETE MAIN_ENDPOINT_COMPLETE production_ready=true'
+      - 'Wait: Main endpoint complete and validated. Type exit to finish.'

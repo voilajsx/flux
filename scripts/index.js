@@ -7,7 +7,7 @@
  *
  * @llm-rule WHEN: Routing FLUX Framework validation commands to specific handlers
  * @llm-rule AVOID: Running unknown commands - always validate command exists before execution
- * @llm-rule NOTE: Enhanced with schema command and feature-specific targeting support
+ * @llm-rule NOTE: Enhanced with schema command, git operations, and file-path syntax support
  */
 
 import { fileURLToPath } from 'url';
@@ -21,24 +21,28 @@ const __dirname = dirname(__filename);
  * Available FLUX Framework validation commands with descriptions
  * @llm-rule WHEN: Defining available commands for help display and validation
  * @llm-rule AVOID: Adding commands without corresponding implementation files
- * @llm-rule NOTE: Schema command supports colon syntax for feature-specific validation
+ * @llm-rule NOTE: Includes git operations and unified file-path syntax
  */
 const COMMANDS = {
   check:
     'Runs complete validation pipeline (types, lint, contract, test, compliance)',
-  schema: 'Schema validation for requirements/instructions/specification files',
+  schema:
+    'Schema validation for requirements/instructions/specification/contract files',
+  skim: 'Quick validation for development (schema + types + lint for specific files)',
   types: 'TypeScript type checking and consistency validation',
   lint: 'Code standards and VoilaJSX pattern validation',
   contract: 'Contract validation and dependency checking',
   test: 'Endpoint functionality testing and coverage validation',
   compliance: 'Implementation validation and manifest generation',
+  manifest: 'Contract compliance validation and deployment readiness manifests',
+  git: 'Smart git operations with FLUX context awareness',
 };
 
 /**
- * Command usage examples for user guidance
+ * Command usage examples for user guidance - Updated with file-path syntax
  * @llm-rule WHEN: Showing specific usage patterns for each command type
  * @llm-rule AVOID: Generic examples - provide realistic usage scenarios
- * @llm-rule NOTE: Emphasizes feature-specific validation for development workflow
+ * @llm-rule NOTE: Demonstrates unified file-path syntax across all commands
  */
 const COMMAND_EXAMPLES = {
   check: [
@@ -49,34 +53,57 @@ const COMMAND_EXAMPLES = {
   schema: [
     'npm run flux:schema                   # All schemas for all features',
     'npm run flux:schema hello             # All schemas for hello feature',
-    'npm run flux:schema hello:requirements # Only hello.requirements.yml',
-    'npm run flux:schema hello:instructions # Only hello.instructions.yml',
-    'npm run flux:schema hello:specification # Only hello.specification.json',
+    'npm run flux:schema hello.requirements.yml # Only hello.requirements.yml',
+    'npm run flux:schema hello.instructions.yml # Only hello.instructions.yml',
+    'npm run flux:schema hello.specification.json # Only hello.specification.json',
+  ],
+  manifest: [
+    'npm run flux:manifest                 # Generate manifests for all features',
+    'npm run flux:manifest hello           # Generate manifests for hello feature',
+    'npm run flux:manifest hello/main      # Generate manifest for hello/main endpoint',
+  ],
+  skim: [
+    'npm run flux:skim                     # Quick validation for all features',
+    'npm run flux:skim hello               # Quick validation for hello feature',
+    'npm run flux:skim hello/main          # Quick validation for hello/main endpoint',
+    'npm run flux:skim hello/main.contract.ts # Validate specific file',
   ],
   types: [
-    'npm run flux:types                    # TypeScript check all features',
-    'npm run flux:types hello              # TypeScript check hello feature',
-    'npm run flux:types hello/main         # TypeScript check hello/main endpoint',
+    'npm run flux:types                    # All TypeScript files',
+    'npm run flux:types hello              # hello feature only',
+    'npm run flux:types hello/main         # hello/main endpoint only',
+    'npm run flux:types hello/main.contract.js # Specific contract file',
   ],
   lint: [
-    'npm run flux:lint                     # Code standards all features',
-    'npm run flux:lint hello               # Code standards hello feature',
-    'npm run flux:lint hello/main          # Code standards hello/main endpoint',
+    'npm run flux:lint                     # All files',
+    'npm run flux:lint hello               # hello feature only',
+    'npm run flux:lint hello/main          # hello/main endpoint only',
+    'npm run flux:lint hello/main.logic.js # Specific logic file',
   ],
   contract: [
-    'npm run flux:contract                 # Contract validation all features',
-    'npm run flux:contract hello           # Contract validation hello feature',
-    'npm run flux:contract hello/main      # Contract validation hello/main endpoint',
+    'npm run flux:contract                 # All contracts',
+    'npm run flux:contract hello           # hello feature contracts',
+    'npm run flux:contract hello/main      # hello/main contract only',
+    'npm run flux:contract hello/main.contract.js # Specific contract file',
   ],
   test: [
-    'npm run flux:test                     # Run tests all features',
-    'npm run flux:test hello               # Run tests hello feature',
-    'npm run flux:test hello/main          # Run tests hello/main endpoint',
+    'npm run flux:test                     # All tests',
+    'npm run flux:test hello               # hello feature tests',
+    'npm run flux:test hello/main          # hello/main tests only',
+    'npm run flux:test hello/main.test.js  # Specific test file',
   ],
   compliance: [
-    'npm run flux:compliance               # Implementation compliance all features',
-    'npm run flux:compliance hello         # Implementation compliance hello feature',
-    'npm run flux:compliance hello/main    # Implementation compliance hello/main endpoint',
+    'npm run flux:compliance               # Full compliance check',
+    'npm run flux:compliance hello         # hello feature compliance',
+    'npm run flux:compliance hello/main    # hello/main endpoint compliance',
+  ],
+  git: [
+    'npm run flux:git commit hello         # Smart commit with auto-detection',
+    'npm run flux:git commit hello/main    # Commit endpoint changes',
+    'npm run flux:git commit hello/main.contract.ts # Commit specific file + related',
+    'npm run flux:git save                 # Emergency checkpoint',
+    'npm run flux:git undo                 # Rollback last commit',
+    'npm run flux:git sync                 # Pull + validate + resolve',
   ],
 };
 
@@ -143,7 +170,6 @@ async function main() {
       process.exit(0);
     } else {
       console.log(`❌ FLUX: ${command} failed (${duration}ms)`);
-
       process.exit(1);
     }
   } catch (error) {
@@ -196,7 +222,7 @@ function showCommandStart(command, args) {
  * Determine command scope and provide helpful context
  * @llm-rule WHEN: Analyzing command arguments to understand validation scope
  * @llm-rule AVOID: Complex parsing - keep scope detection simple and reliable
- * @llm-rule NOTE: Provides user-friendly descriptions of what will be validated
+ * @llm-rule NOTE: Supports both legacy colon syntax and new file-path syntax
  */
 function determineScope(command, args) {
   const target = args[0];
@@ -204,143 +230,150 @@ function determineScope(command, args) {
   if (!target) {
     return {
       description: 'for all features',
-      target: null,
-      hint: null,
+      hint:
+        command === 'git'
+          ? 'This will handle git operations for the entire project'
+          : 'This will validate every feature in src/features/',
     };
   }
 
-  // Special handling for schema command with colon syntax
+  // Handle git command context
+  if (command === 'git') {
+    const subcommand = args[0];
+    const gitTarget = args[1];
+
+    if (subcommand === 'commit' && gitTarget) {
+      return {
+        description: `git commit for ${gitTarget}`,
+        target: gitTarget,
+        hint: `Smart commit with auto-detection of related files`,
+      };
+    }
+
+    return {
+      description: `git ${subcommand}`,
+      hint: 'Smart git operation with FLUX context awareness',
+    };
+  }
+
+  // Handle file-path syntax (hello.requirements.yml)
+  if (target.includes('.') && !target.includes('/')) {
+    const parts = target.split('.');
+    const feature = parts[0];
+    const type = parts[1];
+    const ext = parts[2];
+    return {
+      description: `for ${feature}.${type}.${ext}`,
+      target: target,
+      hint: `Validating specific ${type} file for ${feature} feature`,
+    };
+  }
+
+  // Handle legacy schema command colon syntax (hello:requirements) - backwards compatibility
   if (command === 'schema' && target.includes(':')) {
     const [feature, schemaType] = target.split(':');
     return {
-      description: `for ${feature} feature`,
-      target: `${feature}.${schemaType}.yml/json`,
-      hint: `Validating single schema file only`,
+      description: `for ${feature}.${schemaType}`,
+      target: `${feature}/${schemaType}`,
+      hint: `⚠️ Colon syntax deprecated. Use: flux:schema ${feature}.${schemaType}.yml`,
     };
   }
 
-  // Feature/endpoint detection
+  // Handle specific file with path (hello/main.contract.js)
+  if (target.includes('.') && target.includes('/')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+    return {
+      description: `for specific file ${filePart}`,
+      target: target,
+      hint: `Validating single file in ${pathPart}`,
+    };
+  }
+
+  // Handle feature/endpoint syntax (hello/main)
   if (target.includes('/')) {
     const [feature, endpoint] = target.split('/');
     return {
       description: `for ${feature}/${endpoint} endpoint`,
       target: target,
-      hint: `Endpoint-specific validation`,
+      hint: `Validating single endpoint in ${feature} feature`,
     };
   }
 
+  // Feature-only target (hello)
   return {
     description: `for ${target} feature`,
     target: target,
-    hint: `Feature-specific validation`,
+    hint: `Validating all endpoints in ${target} feature`,
   };
 }
 
 /**
- * Show failure guidance based on command type
- * @llm-rule WHEN: Command fails to provide actionable next steps for users
- * @llm-rule AVOID: Generic failure messages - provide command-specific guidance
- * @llm-rule NOTE: Helps users understand how to fix common validation failures
- */
-function showFailureGuidance(command) {
-  console.log('');
-  console.log('💡 Troubleshooting suggestions:');
-
-  switch (command) {
-    case 'schema':
-      console.log(
-        '   • Check if .requirements.yml, .instructions.yml, .specification.json files exist'
-      );
-      console.log('   • Verify YAML/JSON syntax is valid');
-      console.log('   • Ensure feature directory exists in src/features/');
-      break;
-    case 'types':
-      console.log('   • Fix TypeScript compilation errors shown above');
-      console.log('   • Check import paths and type definitions');
-      console.log('   • Run: npx tsc --noEmit for detailed error information');
-      break;
-    case 'lint':
-      console.log('   • Fix code standard violations shown above');
-      console.log('   • Follow FLUX Framework naming conventions');
-      console.log('   • Add required VoilaJSX documentation patterns');
-      break;
-    case 'contract':
-      console.log('   • Ensure contract.ts files export CONTRACT object');
-      console.log(
-        '   • Check that logic.ts files export all contract functions'
-      );
-      console.log('   • Verify import declarations match actual imports');
-      break;
-    case 'test':
-      console.log('   • Fix failing tests shown above');
-      console.log('   • Ensure test files follow {endpoint}.test.ts naming');
-      console.log('   • Check test coverage meets minimum requirements');
-      break;
-    case 'compliance':
-      console.log('   • Address reliability issues shown above');
-      console.log('   • Ensure all validation checks pass individually');
-      console.log('   • Check specification.json configuration');
-      break;
-    case 'check':
-      console.log('   • Fix the failing validation step shown above');
-      console.log('   • Run individual commands to isolate issues');
-      console.log('   • Use feature-specific targeting for faster debugging');
-      break;
-  }
-
-  console.log('   • Run with DEBUG=1 for detailed error information');
-  console.log('');
-}
-
-/**
- * Display help information with available commands and usage examples
- * @llm-rule WHEN: User requests help or provides invalid command
- * @llm-rule AVOID: Showing outdated command lists - keep in sync with COMMANDS object
- * @llm-rule NOTE: Examples use npm run flux:* format matching package.json scripts
+ * Display comprehensive help information
+ * @llm-rule WHEN: User requests help or provides invalid input
+ * @llm-rule AVOID: Overwhelming help text - organize by priority and frequency of use
+ * @llm-rule NOTE: Includes examples of new file-path syntax
  */
 function showHelp() {
-  console.log(`
-🤖 FLUX Framework Scripts
+  console.log('⚡ FLUX Framework - Development & Validation Pipeline\n');
 
-Usage: npm run flux:<command> [arguments]
-
-Available Commands:
-`);
-
-  Object.entries(COMMANDS).forEach(([cmd, desc]) => {
-    console.log(`  flux:${cmd.padEnd(12)} ${desc}`);
+  console.log('📋 Available Commands:');
+  Object.entries(COMMANDS).forEach(([cmd, description]) => {
+    console.log(`   ${cmd.padEnd(12)} ${description}`);
   });
 
-  console.log(`
-Command Examples:
-`);
+  console.log('\n💡 Usage Examples:');
 
-  // Show examples for key commands
-  ['check', 'schema', 'contract', 'test'].forEach((cmd) => {
-    if (COMMAND_EXAMPLES[cmd]) {
-      console.log(`  ${cmd}:`);
-      COMMAND_EXAMPLES[cmd].forEach((example) => {
-        console.log(`    ${example}`);
-      });
-      console.log('');
-    }
-  });
+  // Show most common examples first
+  console.log('\n🔥 Most Common:');
+  console.log(
+    '   npm run flux:check hello              # Validate entire feature'
+  );
+  console.log(
+    '   npm run flux:git commit hello/main    # Smart commit endpoint'
+  );
+  console.log(
+    '   npm run flux:schema hello.requirements.yml # Validate specific schema'
+  );
 
-  console.log(`
-Feature-Specific Validation:
-  Most commands support feature and endpoint targeting:
-  • npm run flux:<command>               # All features
-  • npm run flux:<command> hello         # Hello feature only  
-  • npm run flux:<command> hello/main    # Hello/main endpoint only
+  console.log('\n📝 New File-Path Syntax:');
+  console.log(
+    '   npm run flux:types hello/main.contract.js   # Specific contract file'
+  );
+  console.log(
+    '   npm run flux:lint hello/main.logic.js       # Specific logic file'
+  );
+  console.log(
+    '   npm run flux:test hello/main.test.js        # Specific test file'
+  );
 
-Schema Command Special Syntax:
-  • npm run flux:schema hello:requirements    # Single schema file
-  • npm run flux:schema hello:instructions    # Single schema file
-  • npm run flux:schema hello:specification   # Single schema file
+  console.log('\n🎯 Targeting Options:');
+  console.log('   npm run flux:<command>               # All features');
+  console.log('   npm run flux:<command> hello         # Hello feature only');
+  console.log(
+    '   npm run flux:<command> hello/main    # Hello/main endpoint only'
+  );
+  console.log(
+    '   npm run flux:<command> hello/main.contract.js # Specific file'
+  );
 
-For help: npm run flux:help
-Documentation: https://github.com/voilajsx/flux
-`);
+  console.log('\n🔧 Git Operations:');
+  console.log(
+    '   npm run flux:git commit hello         # Auto-detect and commit feature'
+  );
+  console.log(
+    '   npm run flux:git save                 # Emergency checkpoint'
+  );
+  console.log(
+    '   npm run flux:git undo                 # Rollback last commit'
+  );
+  console.log(
+    '   npm run flux:git sync                 # Pull + validate + resolve'
+  );
+
+  console.log('\n📚 For detailed examples: npm run flux:help <command>');
+  console.log('📖 Documentation: https://github.com/voilajsx/flux');
 }
 
 /**
@@ -352,13 +385,10 @@ Documentation: https://github.com/voilajsx/flux
 function showSuggestions(invalidCommand) {
   const availableCommands = Object.keys(COMMANDS);
 
-  // Simple similarity check for common typos
+  // Simple similarity detection based on string distance
   const suggestions = availableCommands.filter((cmd) => {
-    return (
-      cmd.includes(invalidCommand) ||
-      invalidCommand.includes(cmd) ||
-      levenshteinDistance(cmd, invalidCommand) <= 2
-    );
+    const distance = levenshteinDistance(invalidCommand.toLowerCase(), cmd);
+    return distance <= 2 && distance < cmd.length / 2;
   });
 
   if (suggestions.length > 0) {
@@ -367,20 +397,14 @@ function showSuggestions(invalidCommand) {
       console.log(`   npm run flux:${suggestion}`);
     });
     console.log('');
-  } else {
-    console.log('💡 Available commands:');
-    availableCommands.forEach((cmd) => {
-      console.log(`   npm run flux:${cmd}`);
-    });
-    console.log('');
   }
 }
 
 /**
- * Simple Levenshtein distance calculation for typo detection
- * @llm-rule WHEN: Detecting possible typos in command names
- * @llm-rule AVOID: Complex string matching algorithms - keep simple for performance
- * @llm-rule NOTE: Used only for providing helpful suggestions to users
+ * Simple Levenshtein distance calculation for command suggestions
+ * @llm-rule WHEN: Calculating similarity between user input and available commands
+ * @llm-rule AVOID: Complex algorithms - simple implementation for basic suggestion
+ * @llm-rule NOTE: Used to suggest corrections for typos in command names
  */
 function levenshteinDistance(str1, str2) {
   const matrix = [];
@@ -410,33 +434,5 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
-/**
- * Configure global error handlers for graceful script termination
- * @llm-rule WHEN: Setting up process-level error handling for CI/CD reliability
- * @llm-rule AVOID: Letting uncaught errors crash without proper exit codes
- * @llm-rule NOTE: Uses consistent error formatting for both development and CI environments
- */
-function setupErrorHandlers() {
-  process.on('uncaughtException', (error) => {
-    console.error('💥 FLUX: Uncaught exception:', error.message);
-    console.error(
-      '   💡 This indicates a serious issue in the validation code'
-    );
-    if (process.env.DEBUG) {
-      console.error(error.stack);
-    }
-    process.exit(1);
-  });
-
-  process.on('unhandledRejection', (reason) => {
-    console.error('💥 FLUX: Unhandled rejection:', reason);
-    console.error(
-      '   💡 Check for missing await keywords or unhandled promises'
-    );
-    process.exit(1);
-  });
-}
-
-// Initialize error handlers and run main function
-setupErrorHandlers();
+// Execute the main function
 main();

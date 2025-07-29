@@ -8,16 +8,16 @@
  */
 
 import { Request, Response } from 'express';
-import { utility } from '@voilajsx/appkit/utils';
-import { logger } from '@voilajsx/appkit/logging';
-import { error } from '@voilajsx/appkit/error';
-import { security } from '@voilajsx/appkit/security';
+import { utilClass } from '@voilajsx/appkit/util';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { errorClass } from '@voilajsx/appkit/error';
+import { securityClass } from '@voilajsx/appkit/security';
 
 // Initialize VoilaJSX AppKit modules (matches contract imports)
-const utils = utility.get();
-const log = logger.get('hello-name');
-const err = error.get();
-const secure = security.get();
+const utils = utilClass.get();
+const log = loggerClass.get('hello-name');
+const err = errorClass.get();
+const secure = securityClass.get();
 
 /**
  * Handles GET requests to display personalized hello message with name

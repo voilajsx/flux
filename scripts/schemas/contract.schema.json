@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FLUX Framework Contract Schema",
+  "description": "Schema for {endpoint}.contract.ts export CONTRACT object validation",
+  "type": "object",
+  "required": [
+    "feature",
+    "endpoint",
+    "routes",
+    "imports",
+    "publishes",
+    "subscribes",
+    "helpers",
+    "tests"
+  ],
+  "properties": {
+    "feature": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Feature name (must match directory name)"
+    },
+    "endpoint": {
+      "type": "string",
+      "pattern": "^[@a-z][a-z0-9-]*$",
+      "description": "Endpoint name (must match file prefix, may start with @)"
+    },
+    "routes": {
+      "type": "object",
+      "description": "HTTP routes mapping to handler function names",
+      "patternProperties": {
+        "^(GET|POST|PUT|DELETE|PATCH) /": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$",
+          "description": "Handler function name in logic file"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "imports": {
+      "type": "object",
+      "required": ["appkit", "external"],
+      "properties": {
+        "appkit": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "util",
+              "logger",
+              "error",
+              "security",
+              "auth",
+              "database",
+              "cache",
+              "storage",
+              "email",
+              "queue",
+              "event",
+              "config"
+            ]
+          },
+          "description": "VoilaJSX AppKit modules that logic file should import (empty array [] if none)"
+        },
+        "external": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z@][a-z0-9@/-]*$"
+          },
+          "description": "External npm packages that logic file should import (empty array [] if none)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "publishes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$"
+      },
+      "description": "Events this endpoint publishes (must be empty array [] if none)"
+    },
+    "subscribes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$"
+      },
+      "description": "Events this endpoint subscribes to (must be empty array [] if none)"
+    },
+    "helpers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*\\.helper$"
+      },
+      "description": "Helper files used by this endpoint (must be empty array [] if none)"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      },
+      "description": "Test descriptions for this endpoint (must be empty array [] if none)"
+    }
+  },
+  "additionalProperties": false
+}

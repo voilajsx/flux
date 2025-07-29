@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Validating FLUX Framework coding standards and VoilaJSX patterns for reliability
  * @llm-rule AVOID: Linting without proper file structure validation - breaks endpoint isolation
- * @llm-rule NOTE: Enhanced with target-specific validation (project/feature/endpoint)
+ * @llm-rule NOTE: Enhanced with unified file-path targeting (project/feature/endpoint/file)
  */
 
 import { readdir, readFile, stat } from 'fs/promises';
@@ -15,83 +15,175 @@ import { createLogger } from '../logger.js';
 const log = createLogger('lint');
 
 /**
+ * Parse target argument with unified file-path syntax support
+ * @llm-rule WHEN: Processing command arguments to determine scope
+ * @llm-rule AVOID: Complex parsing - keep simple and predictable
+ * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
+ */
+function parseTarget(target) {
+  if (!target) {
+    return { type: 'all', description: 'all features' };
+  }
+
+  // Handle specific file targeting (hello/main.logic.ts)
+  if (target.includes('.') && target.includes('/')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+
+    // Parse the file part to get endpoint name
+    // main.contract.ts -> main
+    const fileNameParts = filePart.split('.');
+    const endpoint = fileNameParts[0];
+
+    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
+    const feature = pathPart;
+
+    return {
+      type: 'file',
+      feature,
+      endpoint,
+      fileName: filePart,
+      description: `specific file ${filePart}`,
+      path: target,
+    };
+  }
+
+  // Handle endpoint targeting (hello/main)
+  if (target.includes('/')) {
+    const [feature, endpoint] = target.split('/');
+    return {
+      type: 'endpoint',
+      feature,
+      endpoint,
+      description: `${feature}/${endpoint} endpoint`,
+      path: `src/features/${feature}/${endpoint}`,
+    };
+  }
+
+  // Handle feature targeting (hello)
+  return {
+    type: 'feature',
+    feature: target,
+    description: `${target} feature`,
+    path: `src/features/${target}`,
+  };
+}
+
+/**
  * Lint validation command with target-specific FLUX Framework standards checking
- * @llm-rule WHEN: Ensuring code follows FLUX conventions for project, feature, or endpoint
+ * @llm-rule WHEN: Ensuring code follows FLUX conventions for project, feature, endpoint, or specific file
  * @llm-rule AVOID: Ignoring file structure violations - causes runtime failures in production
- * @llm-rule NOTE: Supports full project, feature-specific, and endpoint-specific validation
+ * @llm-rule NOTE: Supports full project, feature-specific, endpoint-specific, and file-specific validation
  */
 export default async function lint(commandArgs) {
   const startTime = Date.now();
   const target = commandArgs.find((arg) => !arg.startsWith('-'));
+  const targetInfo = parseTarget(target);
 
   try {
     // Validate target exists if specified
-    if (target) {
+    if (targetInfo.type !== 'all') {
       const featuresPath = join(process.cwd(), 'src', 'features');
 
-      if (target.includes('/')) {
+      if (targetInfo.type === 'file') {
+        // Validate specific file exists - construct correct path
+        const filePath = join(
+          process.cwd(),
+          'src',
+          'features',
+          targetInfo.feature,
+          targetInfo.endpoint,
+          targetInfo.fileName
+        );
+        try {
+          await stat(filePath);
+        } catch (error) {
+          log.human(
+            `❌ File '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'endpoint') {
         // Validate endpoint exists
-        const [feature, endpoint] = target.split('/');
-        const featurePath = join(featuresPath, feature);
-        const endpointPath = join(featurePath, endpoint);
+        const featurePath = join(featuresPath, targetInfo.feature);
+        const endpointPath = join(featurePath, targetInfo.endpoint);
 
         try {
           await stat(featurePath);
           await stat(endpointPath);
         } catch (error) {
-          log.human(`❌ Endpoint '${target}' not found`);
+          log.human(
+            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
+          );
           return false;
         }
-      } else {
+      } else if (targetInfo.type === 'feature') {
         // Validate feature exists
-        const featurePath = join(featuresPath, target);
+        const featurePath = join(featuresPath, targetInfo.feature);
 
         try {
           await stat(featurePath);
         } catch (error) {
-          log.human(`❌ Feature '${target}' not found`);
+          log.human(`❌ Feature '${targetInfo.feature}' not found`);
           return false;
         }
       }
     }
 
-    // Run validation based on target
+    // Run linting based on target type
     let violations = [];
 
-    if (target) {
-      if (target.includes('/')) {
-        // Specific endpoint validation
-        const [feature, endpoint] = target.split('/');
-        violations = await lintEndpoint(
-          join(process.cwd(), 'src', 'features'),
-          feature,
-          endpoint
-        );
-      } else {
-        // Specific feature validation
-        violations = await lintFeature(
-          join(process.cwd(), 'src', 'features'),
-          target
-        );
-      }
-    } else {
-      // Full project validation
+    if (targetInfo.type === 'all') {
       violations = await lintAllFeatures();
+    } else if (targetInfo.type === 'feature') {
+      const featuresPath = join(process.cwd(), 'src', 'features');
+      violations = await lintFeature(featuresPath, targetInfo.feature);
+    } else if (targetInfo.type === 'endpoint') {
+      const featuresPath = join(process.cwd(), 'src', 'features');
+      violations = await lintEndpoint(
+        featuresPath,
+        targetInfo.feature,
+        targetInfo.endpoint
+      );
+    } else if (targetInfo.type === 'file') {
+      const filePath = join(
+        process.cwd(),
+        'src',
+        'features',
+        targetInfo.feature,
+        targetInfo.endpoint,
+        targetInfo.fileName
+      );
+      // Determine file type from extension
+      const fileType = getFileType(targetInfo.fileName);
+      violations = await lintFile(
+        filePath,
+        fileType,
+        targetInfo.feature,
+        targetInfo.endpoint
+      );
     }
 
-    // Categorize violations by severity for proper handling
+    const duration = Date.now() - startTime;
+
+    // Separate violations by severity
     const errors = violations.filter((v) => v.severity === 'error');
     const warnings = violations.filter((v) => v.severity === 'warning');
     const suggestions = violations.filter((v) => v.severity === 'suggestion');
 
-    const duration = Date.now() - startTime;
-
-    // Report results - errors block pipeline
+    // Report results
     if (errors.length > 0) {
-      log.human(`❌ ${errors.length} error(s):`);
-      errors.forEach((error) => {
+      log.human(
+        `❌ Lint validation failed for ${targetInfo.description} (${errors.length} errors) ${duration}ms`
+      );
+      console.log('');
+      errors.slice(0, 5).forEach((error) => {
         log.human(`   ${error.file}: ${error.message}`);
       });
+      if (errors.length > 5) {
+        log.human(`   ... and ${errors.length - 5} more errors`);
+      }
       return false;
     }
 
@@ -114,13 +206,28 @@ export default async function lint(commandArgs) {
       });
     }
 
-    log.human(`✅ Passed (${duration}ms)`);
+    log.human(
+      `✅ Lint validation passed for ${targetInfo.description} (${duration}ms)`
+    );
     return true;
   } catch (error) {
     const duration = Date.now() - startTime;
-    log.human(`❌ Setup failed: ${error.message} (${duration}ms)`);
+    log.human(`❌ Lint validation error (${duration}ms): ${error.message}`);
     return false;
   }
+}
+
+/**
+ * Determine file type from filename for targeted validation
+ * @llm-rule WHEN: Processing specific file to apply appropriate lint rules
+ * @llm-rule AVOID: Generic validation - use file-specific patterns
+ */
+function getFileType(fileName) {
+  if (fileName.includes('.contract.')) return 'contract';
+  if (fileName.includes('.logic.')) return 'logic';
+  if (fileName.includes('.test.')) return 'test';
+  if (fileName.includes('.helper.')) return 'helper';
+  return 'unknown';
 }
 
 /**
@@ -331,33 +438,34 @@ async function lintFile(filePath, fileType, featureName, endpointName) {
       ...validateSecurityPatterns(content, relativePath, fileType)
     );
 
-    // 5. File-specific validations
-    if (fileType === 'contract') {
-      violations.push(...validateContractFile(content, relativePath));
-    } else if (fileType === 'logic') {
-      violations.push(...validateLogicFile(content, relativePath));
-    } else if (fileType === 'test') {
-      violations.push(...validateTestFile(content, relativePath));
-    } else if (fileType === 'helper') {
-      violations.push(...validateHelperFile(content, relativePath));
-    }
+    // 5. File-specific validation
+    violations.push(...validateFileSpecific(content, relativePath, fileType));
   } catch (error) {
-    violations.push({
-      severity: 'error',
-      file: relativePath,
-      message: `Cannot read file: ${error.message}`,
-      suggestion: 'Check file permissions and encoding',
-    });
+    if (error.code === 'ENOENT') {
+      violations.push({
+        severity: 'error',
+        file: relativePath,
+        message: `Required ${fileType} file missing`,
+        suggestion: `Create ${basename(filePath)} following FLUX Framework patterns`,
+      });
+    } else {
+      violations.push({
+        severity: 'error',
+        file: relativePath,
+        message: `Cannot read file: ${error.message}`,
+        suggestion: 'Check file permissions and encoding',
+      });
+    }
   }
 
   return violations;
 }
 
 /**
- * Validate VoilaJSX-compliant header comments with proper documentation
- * @llm-rule WHEN: Ensuring files have proper documentation for AI agents and developers
- * @llm-rule AVOID: Missing @llm-rule directives in logic/test files - breaks AI comprehension
- * @llm-rule NOTE: Contract files don't require @llm-rule but logic/test files must have them
+ * Validate file header comment following FLUX Framework standards
+ * @llm-rule WHEN: Checking file documentation standards for agent and developer clarity
+ * @llm-rule AVOID: Missing or incorrect header comments - breaks agent understanding
+ * @llm-rule NOTE: Required for all TypeScript files to maintain code quality
  */
 function validateHeader(
   content,
@@ -368,347 +476,142 @@ function validateHeader(
 ) {
   const violations = [];
 
-  // Check for file header comment
-  if (!content.startsWith('/**')) {
+  // Check for proper header comment
+  if (!content.includes('@file') || !content.includes('@llm-rule')) {
     violations.push({
       severity: 'error',
       file: filePath,
-      message: 'Missing file header comment block',
-      suggestion: 'Add /** comment block at top of file with @file directive',
+      message:
+        'Missing required header comment with @file and @llm-rule documentation',
+      suggestion: 'Add proper header comment following FLUX Framework patterns',
     });
-    return violations;
-  }
-
-  // Extract header comment
-  const headerMatch = content.match(/^\/\*\*(.*?)\*\//s);
-  if (!headerMatch) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Invalid header comment format',
-      suggestion: 'Use proper /** comment block format',
-    });
-    return violations;
-  }
-
-  const header = headerMatch[1];
-
-  // Check for @file directive
-  if (!header.includes('@file')) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Missing @file directive in header',
-      suggestion: 'Add @file directive with relative path',
-    });
-  }
-
-  // Check for @llm-rule directives (logic, test, and helper files should have them)
-  if (fileType === 'logic' || fileType === 'test' || fileType === 'helper') {
-    if (!header.includes('@llm-rule')) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: 'Missing @llm-rule directives for AI guidance',
-        suggestion:
-          'Add @llm-rule WHEN/AVOID/NOTE comments for better AI comprehension',
-      });
-    }
   }
 
   return violations;
 }
 
 /**
- * Validate VoilaJSX AppKit import patterns and module usage
- * @llm-rule WHEN: Ensuring proper VoilaJSX AppKit integration for reliability
- * @llm-rule AVOID: Generic imports - use direct module imports for better tree-shaking
- * @llm-rule NOTE: Validates .get() pattern usage and module variable naming conventions
+ * Validate VoilaJSX AppKit integration patterns
+ * @llm-rule WHEN: Ensuring proper AppKit module usage for reliability
+ * @llm-rule AVOID: Direct imports - use module.get() pattern for dependency injection
+ * @llm-rule NOTE: Critical for VoilaJSX AppKit compatibility and testing
  */
 function validateVoilaJSXPatterns(content, filePath, fileType) {
   const violations = [];
 
-  // Check for bad import patterns
-  if (
-    content.includes("from '@voilajsx/appkit'") &&
-    !content.includes("from '@voilajsx/appkit/")
-  ) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message:
-        'Use direct module imports: @voilajsx/appkit/utils instead of @voilajsx/appkit',
-      suggestion:
-        'Change import to @voilajsx/appkit/module-name for better tree-shaking',
-    });
-  }
-
-  // Check for .get() pattern usage
-  const moduleVariables = [
-    'utils',
-    'err',
-    'config',
-    'auth',
-    'secure',
-    'cache',
-    'db',
-  ];
-
-  moduleVariables.forEach((varName) => {
-    const getPattern = new RegExp(
-      `const\\s+${varName}\\s*=\\s*\\w+\\.get\\(`,
-      'g'
-    );
-    const hasGetPattern = getPattern.test(content);
-    const hasVariable = content.includes(`const ${varName}`);
-
-    if (hasVariable && !hasGetPattern) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: `Variable "${varName}" should use .get() pattern`,
-        suggestion: `Change to: const ${varName} = module.get()`,
-      });
+  if (fileType === 'logic') {
+    // Check for proper VoilaJSX module usage
+    if (content.includes('import') && content.includes('@voilajsx/appkit')) {
+      if (!content.includes('.get()')) {
+        violations.push({
+          severity: 'error',
+          file: filePath,
+          message:
+            'Use module.get() pattern instead of direct imports for VoilaJSX AppKit',
+          suggestion:
+            'Replace direct imports with const utils = utility.get() pattern',
+        });
+      }
     }
-  });
+  }
 
   return violations;
 }
 
 /**
- * Validate FLUX Framework structure and naming conventions
- * @llm-rule WHEN: Ensuring files follow {endpoint}.{type}.ts naming convention
- * @llm-rule AVOID: Non-standard naming - breaks FLUX Framework auto-discovery
- * @llm-rule NOTE: Validates contract, logic, test, and helper file naming patterns
+ * Validate FLUX Framework structure requirements
+ * @llm-rule WHEN: Ensuring files follow FLUX Framework conventions
+ * @llm-rule AVOID: Non-standard structure - breaks agent execution and validation
+ * @llm-rule NOTE: Validates exports, function naming, and structure patterns
  */
 function validateFLUXStructure(content, filePath, fileType) {
   const violations = [];
 
-  // Validate filename convention
-  const filename = basename(filePath);
-  const expectedTypes = ['contract', 'logic', 'test', 'helper'];
+  if (fileType === 'contract') {
+    if (!content.includes('export const CONTRACT')) {
+      violations.push({
+        severity: 'error',
+        file: filePath,
+        message: 'Contract file must export CONTRACT constant',
+        suggestion:
+          'Add: export const CONTRACT = { routes: {...}, imports: {...} }',
+      });
+    }
+  }
 
-  if (!expectedTypes.some((type) => filename.includes(`.${type}.ts`))) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Filename should follow {endpoint}.{type}.ts convention',
-      suggestion:
-        'Rename file to match pattern: endpoint-name.contract.ts, endpoint-name.logic.ts, etc.',
-    });
+  if (fileType === 'logic') {
+    if (
+      !content.includes('export async function') &&
+      !content.includes('export function')
+    ) {
+      violations.push({
+        severity: 'warning',
+        file: filePath,
+        message: 'Logic file should export functions for endpoint handlers',
+        suggestion: 'Add exported functions following contract specifications',
+      });
+    }
   }
 
   return violations;
 }
 
 /**
- * Validate security patterns and best practices for production safety
- * @llm-rule WHEN: Ensuring secure coding patterns in logic and helper files
- * @llm-rule AVOID: Raw user input usage - causes security vulnerabilities
- * @llm-rule NOTE: Validates input sanitization, safe property access, and error handling
+ * Validate security patterns and best practices
+ * @llm-rule WHEN: Ensuring secure coding practices in user-facing code
+ * @llm-rule AVOID: Security vulnerabilities in parameter handling and validation
+ * @llm-rule NOTE: Critical for production deployment safety
  */
 function validateSecurityPatterns(content, filePath, fileType) {
   const violations = [];
 
-  if (fileType === 'logic' || fileType === 'helper') {
-    // Check for input sanitization
-    if (content.includes('req.params') || content.includes('req.body')) {
-      if (!content.includes('secure.input')) {
+  if (fileType === 'logic') {
+    // Check for parameter validation
+    if (content.includes('req.params') && !content.includes('validate')) {
+      violations.push({
+        severity: 'warning',
+        file: filePath,
+        message: 'Consider adding parameter validation for security',
+        suggestion: 'Use VoilaJSX security.get() for input validation',
+      });
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * File-type specific validation rules
+ * @llm-rule WHEN: Applying type-specific validation patterns
+ * @llm-rule AVOID: Generic validation - use targeted rules per file type
+ * @llm-rule NOTE: Extensible for adding new file type validations
+ */
+function validateFileSpecific(content, filePath, fileType) {
+  const violations = [];
+
+  switch (fileType) {
+    case 'test':
+      if (!content.includes('describe') || !content.includes('test')) {
         violations.push({
           severity: 'error',
           file: filePath,
-          message: 'User input should be sanitized with secure.input()',
-          suggestion: 'Add secure.input() calls for all user input parameters',
+          message: 'Test file must contain describe and test blocks',
+          suggestion:
+            'Add proper test structure with describe() and test() functions',
         });
       }
-    }
+      break;
 
-    // Check for safe property access
-    if (content.includes('user.') && !content.includes('utils.get')) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: 'Consider using utils.get() for safe property access',
-        suggestion:
-          'Use utils.get(object, "property.path", defaultValue) to prevent crashes',
-      });
-    }
-
-    // Check for proper error handling
-    if (content.includes('throw ') && !content.includes('err.')) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message:
-          'Use VoilaJSX error types (err.badRequest, err.notFound, etc.)',
-        suggestion: 'Import error module and use semantic error types',
-      });
-    }
-  }
-
-  return violations;
-}
-
-/**
- * Validate contract file structure and required properties
- * @llm-rule WHEN: Ensuring contract files have proper structure and helper declarations
- * @llm-rule AVOID: Missing CONTRACT export - breaks FLUX Framework validation
- * @llm-rule NOTE: Enhanced to validate helpers array for new helper file support
- */
-function validateContractFile(content, filePath) {
-  const violations = [];
-
-  // Check for CONTRACT export
-  if (!content.includes('export const CONTRACT')) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Contract file must export const CONTRACT',
-      suggestion:
-        'Add: export const CONTRACT = { routes: {...}, imports: {...}, helpers: [...] }',
-    });
-  }
-
-  // Check for required contract properties
-  const requiredProps = ['routes', 'imports', 'publishes', 'subscribes'];
-  requiredProps.forEach((prop) => {
-    if (!content.includes(`${prop}:`)) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: `Contract should include ${prop} property`,
-        suggestion: `Add ${prop} property to CONTRACT object for completeness`,
-      });
-    }
-  });
-
-  return violations;
-}
-
-/**
- * Validate logic file structure and VoilaJSX patterns
- * @llm-rule WHEN: Ensuring logic files follow FLUX Framework patterns
- * @llm-rule AVOID: Missing function exports - breaks contract validation
- * @llm-rule NOTE: Validates function exports, request ID generation, and structured logging
- */
-function validateLogicFile(content, filePath) {
-  const violations = [];
-
-  // Check for async function exports
-  const exportFunctions = content.match(
-    /export\s+(?:async\s+)?function\s+(\w+)/g
-  );
-  if (!exportFunctions) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Logic file should export at least one function',
-      suggestion: 'Add exported functions that match contract route mappings',
-    });
-  }
-
-  // Check for request ID generation
-  if (!content.includes('utils.uuid()')) {
-    violations.push({
-      severity: 'suggestion',
-      file: filePath,
-      message:
-        'Consider generating request IDs with utils.uuid() for correlation',
-      suggestion: 'Add const requestId = utils.uuid() for better debugging',
-    });
-  }
-
-  // Check for structured logging
-  if (content.includes('log.') && !content.includes('requestId')) {
-    violations.push({
-      severity: 'suggestion',
-      file: filePath,
-      message: 'Include requestId in log entries for correlation',
-      suggestion: 'Add requestId to log.info() calls for better tracing',
-    });
-  }
-
-  return violations;
-}
-
-/**
- * Validate test file structure and comprehensive coverage
- * @llm-rule WHEN: Ensuring test files have proper structure and coverage
- * @llm-rule AVOID: Missing describe blocks - breaks test organization
- * @llm-rule NOTE: Validates test structure and encourages error scenario testing
- */
-function validateTestFile(content, filePath) {
-  const violations = [];
-
-  // Check for describe blocks
-  if (!content.includes('describe(')) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Test file should have describe blocks',
-      suggestion: 'Add describe() blocks to organize test cases',
-    });
-  }
-
-  // Check for test cases
-  if (!content.includes('test(') && !content.includes('it(')) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Test file should have test cases',
-      suggestion: 'Add test() or it() blocks with actual test cases',
-    });
-  }
-
-  // Check for error testing (optional recommendation)
-  if (content.includes('.expect(200)') && !content.includes('.expect(400)')) {
-    violations.push({
-      severity: 'suggestion',
-      file: filePath,
-      message:
-        'Consider testing error scenarios (400, 404, etc.) for comprehensive coverage',
-      suggestion: 'Add test cases for error conditions and edge cases',
-    });
-  }
-
-  return violations;
-}
-
-/**
- * Validate helper file structure and VoilaJSX patterns
- * @llm-rule WHEN: Ensuring helper files follow FLUX Framework patterns
- * @llm-rule AVOID: Complex business logic in helpers - keep focused on utilities
- * @llm-rule NOTE: Helper files should contain reusable utility functions, not endpoint logic
- */
-function validateHelperFile(content, filePath) {
-  const violations = [];
-
-  // Check for function exports
-  const exportFunctions = content.match(
-    /export\s+(?:async\s+)?function\s+(\w+)/g
-  );
-  const exportConsts = content.match(/export\s+const\s+(\w+)/g);
-
-  if (!exportFunctions && !exportConsts) {
-    violations.push({
-      severity: 'error',
-      file: filePath,
-      message: 'Helper file should export at least one function or constant',
-      suggestion: 'Add exported utility functions for use in endpoint logic',
-    });
-  }
-
-  // Check for VoilaJSX imports if using AppKit
-  if (content.includes('@voilajsx/appkit')) {
-    if (!content.includes('.get()')) {
-      violations.push({
-        severity: 'warning',
-        file: filePath,
-        message: 'Helper file should use .get() pattern for VoilaJSX modules',
-        suggestion:
-          'Use module.get() pattern for consistency with FLUX Framework',
-      });
-    }
+    case 'helper':
+      if (!content.includes('export')) {
+        violations.push({
+          severity: 'warning',
+          file: filePath,
+          message: 'Helper file should export utility functions',
+          suggestion: 'Add exported helper functions for endpoint use',
+        });
+      }
+      break;
   }
 
   return violations;

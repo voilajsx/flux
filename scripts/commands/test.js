@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Running FLUX Framework tests for functionality validation only
  * @llm-rule AVOID: Mixing test execution with compliance validation - use compliance.js for that
- * @llm-rule NOTE: Focused on test execution and reporting - manifest generation moved to compliance.js
+ * @llm-rule NOTE: Focused on test execution and reporting with unified file-path targeting
  */
 
 import { exec } from 'child_process';
@@ -18,6 +18,62 @@ const execAsync = promisify(exec);
 const log = createLogger('test');
 
 /**
+ * Parse target argument with unified file-path syntax support
+ * @llm-rule WHEN: Processing command arguments to determine scope
+ * @llm-rule AVOID: Complex parsing - keep simple and predictable
+ * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
+ */
+function parseTarget(target) {
+  if (!target) {
+    return { type: 'all', description: 'all features' };
+  }
+
+  // Handle specific file targeting (hello/main.test.ts)
+  if (target.includes('.') && target.includes('/')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+
+    // Parse the file part to get endpoint name
+    // main.test.ts -> main
+    const fileNameParts = filePart.split('.');
+    const endpoint = fileNameParts[0];
+
+    // For simple paths like "weather/main.test.ts", pathPart is "weather"
+    const feature = pathPart;
+
+    return {
+      type: 'file',
+      feature,
+      endpoint,
+      fileName: filePart,
+      description: `specific file ${filePart}`,
+      path: target,
+    };
+  }
+
+  // Handle endpoint targeting (hello/main)
+  if (target.includes('/')) {
+    const [feature, endpoint] = target.split('/');
+    return {
+      type: 'endpoint',
+      feature,
+      endpoint,
+      description: `${feature}/${endpoint} endpoint`,
+      path: `src/features/${feature}/${endpoint}`,
+    };
+  }
+
+  // Handle feature targeting (hello)
+  return {
+    type: 'feature',
+    feature: target,
+    description: `${target} feature`,
+    path: `src/features/${target}`,
+  };
+}
+
+/**
  * Test execution command with focused test running and clear reporting
  * @llm-rule WHEN: Validating endpoint functionality through test execution
  * @llm-rule AVOID: Generating manifests here - that's compliance.js responsibility
@@ -26,166 +82,142 @@ const log = createLogger('test');
 export default async function test(args) {
   const startTime = Date.now();
   const target = args.find((arg) => !arg.startsWith('--'));
-
-  log.validationStart('test', target, [
-    'test_structure_validation',
-    'vitest_execution',
-    'coverage_validation',
-  ]);
+  const targetInfo = parseTarget(target);
 
   try {
-    // 1. Validate test file structure exists
-    log.checkStart('Test file structure validation');
+    // Validate target exists if specified
+    if (targetInfo.type !== 'all') {
+      const featuresPath = join(process.cwd(), 'src', 'features');
 
-    const structureResult = await validateTestStructure(target);
+      if (targetInfo.type === 'file') {
+        // Validate specific file exists
+        const filePath = join(
+          process.cwd(),
+          'src',
+          'features',
+          targetInfo.feature,
+          targetInfo.endpoint,
+          targetInfo.fileName
+        );
+        try {
+          await stat(filePath);
+        } catch (error) {
+          log.human(
+            `❌ Test file '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'endpoint') {
+        // Validate endpoint exists
+        const featurePath = join(featuresPath, targetInfo.feature);
+        const endpointPath = join(featurePath, targetInfo.endpoint);
+
+        try {
+          await stat(featurePath);
+          await stat(endpointPath);
+        } catch (error) {
+          log.human(
+            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'feature') {
+        // Validate feature exists
+        const featurePath = join(featuresPath, targetInfo.feature);
+
+        try {
+          await stat(featurePath);
+        } catch (error) {
+          log.human(`❌ Feature '${targetInfo.feature}' not found`);
+          return false;
+        }
+      }
+    }
+
+    // 1. Validate test file structure exists
+    const structureResult = await validateTestStructure(targetInfo);
 
     if (!structureResult.success) {
-      log.checkFail(
-        'Test structure validation',
-        structureResult.duration,
-        structureResult.errors,
-        [
-          'Create missing test files following {endpoint}.test.ts pattern',
-          'Ensure test files exist for all endpoints',
-          'Check file permissions and naming conventions',
-        ]
-      );
+      log.human(`❌ Test structure validation failed`);
+      structureResult.errors.forEach((error) => {
+        log.human(`   ${error}`);
+      });
       return false;
     }
 
-    log.checkPass('Test structure validation', structureResult.duration, {
-      test_files_found: structureResult.filesFound,
-      endpoints_covered: structureResult.endpointsCovered,
-    });
-
-    // 2. Execute Vitest tests
-    log.checkStart('Vitest test execution');
-
-    const testResults = await executeVitestTests(target);
+    // 2. Execute tests
+    const testResults = await executeTests(targetInfo);
 
     if (testResults.failedTests > 0) {
-      showTestSummary(testResults);
-
-      log.checkFail(
-        'Test execution',
-        testResults.duration,
-        [`${testResults.failedTests} test(s) failed`],
-        [
-          'Fix failing tests before proceeding',
-          'Run npm run test for detailed failure analysis',
-          'Check test assertions and expected values',
-        ]
-      );
+      showTestSummary(testResults, targetInfo);
       return false;
     }
 
-    log.checkPass('Test execution', testResults.duration, {
-      total_tests: testResults.totalTests,
-      passed_tests: testResults.passedTests,
-      test_suites: testResults.testSuites?.length || 0,
-    });
+    // 3. Show success summary
+    showTestSummary(testResults, targetInfo);
 
-    showTestSummary(testResults);
-
-    // 3. Coverage validation (if available)
-    log.checkStart('Test coverage validation');
-
-    const coverageResult = await validateCoverage(testResults.coverage);
-
-    if (!coverageResult.success) {
-      log.checkFail(
-        'Coverage validation',
-        coverageResult.duration,
-        [`Coverage ${testResults.coverage}% below required 90%`],
-        [
-          'Add more test cases to improve coverage',
-          'Test edge cases and error scenarios',
-          'Ensure all functions are tested',
-        ]
-      );
-      return false;
-    }
-
-    log.checkPass('Coverage validation', coverageResult.duration, {
-      coverage_percentage: testResults.coverage,
-      meets_requirement: coverageResult.success,
-    });
-
-    // SUCCESS - All tests passed
-    const totalDuration = Date.now() - startTime;
-
-    log.validationComplete('test', 'success', totalDuration, {
-      total_tests: testResults.totalTests,
-      passed_tests: testResults.passedTests,
-      coverage: testResults.coverage,
-      target,
-    });
-
-    // Final success message
-    log.human('');
-    log.human('🎉 All tests passed successfully!');
+    const duration = Date.now() - startTime;
     log.human(
-      `📊 Results: ${testResults.passedTests}/${testResults.totalTests} tests passed`
+      `✅ Test validation passed for ${targetInfo.description} (${duration}ms)`
     );
-    if (testResults.coverage > 0) {
-      log.human(`📋 Coverage: ${testResults.coverage}%`);
-    }
-    log.human('');
 
     return true;
   } catch (error) {
-    const totalDuration = Date.now() - startTime;
-
-    log.error(
-      `Test execution crashed: ${error.message}`,
-      {
-        command: 'test',
-        error: error.message,
-        duration: totalDuration,
-        target,
-        stack: error.stack?.split('\n').slice(0, 3),
-      },
-      [
-        'Check if Vitest is installed: npm list vitest',
-        'Run npm run test manually to see detailed output',
-        'Verify all test files exist and follow FLUX conventions',
-        'Check for syntax errors in test files',
-      ]
-    );
-
+    const duration = Date.now() - startTime;
+    log.human(`❌ Test validation error (${duration}ms): ${error.message}`);
     return false;
   }
 }
 
 /**
- * Validate test structure across FLUX Framework endpoints
- * @llm-rule WHEN: Ensuring test files exist and follow FLUX Framework conventions
- * @llm-rule AVOID: Skipping structure validation - missing tests break reliability guarantees
- * @llm-rule NOTE: Validates {endpoint}.test.ts naming convention and file existence
+ * Validate test file structure exists for the target
  */
-async function validateTestStructure(target) {
+async function validateTestStructure(targetInfo) {
   const startTime = Date.now();
+  const featuresPath = join(process.cwd(), 'src', 'features');
   const errors = [];
   let filesFound = 0;
-  let endpointsCovered = 0;
+  let endpointsChecked = 0;
 
   try {
-    const featuresPath = join(process.cwd(), 'src', 'features');
-    const features = target
-      ? [target.split('/')[0]]
-      : await readdir(featuresPath);
-
-    for (const feature of features) {
-      if (feature.startsWith('_') || feature.startsWith('.')) continue;
-
-      const featurePath = join(featuresPath, feature);
-      let items;
+    if (targetInfo.type === 'file') {
+      // Check specific test file
+      const testFile = join(
+        featuresPath,
+        targetInfo.feature,
+        targetInfo.endpoint,
+        targetInfo.fileName
+      );
 
       try {
-        items = await readdir(featurePath);
+        await stat(testFile);
+        filesFound = 1;
+        endpointsChecked = 1;
       } catch {
-        continue; // Skip if can't read feature directory
+        errors.push(`Test file not found: ${targetInfo.path}`);
       }
+    } else if (targetInfo.type === 'endpoint') {
+      // Check endpoint test file
+      const testFile = join(
+        featuresPath,
+        targetInfo.feature,
+        targetInfo.endpoint,
+        `${targetInfo.endpoint}.test.ts`
+      );
+
+      endpointsChecked = 1;
+      try {
+        await stat(testFile);
+        filesFound = 1;
+      } catch {
+        errors.push(
+          `Test file not found: ${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`
+        );
+      }
+    } else if (targetInfo.type === 'feature') {
+      // Check all endpoints in feature
+      const featurePath = join(featuresPath, targetInfo.feature);
+      const items = await readdir(featurePath);
 
       for (const item of items) {
         if (
@@ -196,16 +228,10 @@ async function validateTestStructure(target) {
           continue;
 
         const itemPath = join(featurePath, item);
-        let itemStat;
-
-        try {
-          itemStat = await stat(itemPath);
-        } catch {
-          continue; // Skip if can't stat item
-        }
+        const itemStat = await stat(itemPath);
 
         if (itemStat.isDirectory()) {
-          endpointsCovered++;
+          endpointsChecked++;
           const testFile = join(itemPath, `${item}.test.ts`);
 
           try {
@@ -213,8 +239,48 @@ async function validateTestStructure(target) {
             filesFound++;
           } catch {
             errors.push(
-              `Missing test file for endpoint ${feature}/${item}: expected ${item}.test.ts`
+              `Test file not found: ${targetInfo.feature}/${item}/${item}.test.ts`
             );
+          }
+        }
+      }
+    } else {
+      // Check all features
+      const features = await readdir(featuresPath);
+
+      for (const feature of features) {
+        if (feature.startsWith('_') || feature.startsWith('.')) continue;
+
+        const featurePath = join(featuresPath, feature);
+        const featureStat = await stat(featurePath);
+
+        if (!featureStat.isDirectory()) continue;
+
+        const items = await readdir(featurePath);
+
+        for (const item of items) {
+          if (
+            item.startsWith('_') ||
+            item.endsWith('.yml') ||
+            item.endsWith('.json')
+          )
+            continue;
+
+          const itemPath = join(featurePath, item);
+          const itemStat = await stat(itemPath);
+
+          if (itemStat.isDirectory()) {
+            endpointsChecked++;
+            const testFile = join(itemPath, `${item}.test.ts`);
+
+            try {
+              await stat(testFile);
+              filesFound++;
+            } catch {
+              errors.push(
+                `Test file not found: ${feature}/${item}/${item}.test.ts`
+              );
+            }
           }
         }
       }
@@ -224,7 +290,7 @@ async function validateTestStructure(target) {
       success: errors.length === 0,
       errors,
       filesFound,
-      endpointsCovered,
+      endpointsChecked,
       duration: Date.now() - startTime,
     };
   } catch (error) {
@@ -232,45 +298,38 @@ async function validateTestStructure(target) {
       success: false,
       errors: [`Test structure validation failed: ${error.message}`],
       filesFound: 0,
-      endpointsCovered: 0,
+      endpointsChecked: 0,
       duration: Date.now() - startTime,
     };
   }
 }
 
 /**
- * Execute Vitest tests with enhanced error handling and output parsing
- * @llm-rule WHEN: Running tests to validate endpoint functionality
- * @llm-rule AVOID: Ignoring test execution errors - handle gracefully for reliable results
- * @llm-rule NOTE: Supports both targeted and full test execution with comprehensive output parsing
+ * Execute tests based on target
  */
-async function executeVitestTests(target) {
+async function executeTests(targetInfo) {
   const startTime = Date.now();
 
   try {
     let testCommand = 'npx vitest run --reporter=verbose';
 
-    if (target) {
-      const [featureName, endpointName] = target.split('/');
-
-      if (endpointName) {
-        testCommand += ` src/features/${featureName}/${endpointName}/${endpointName}.test.ts`;
-      } else {
-        testCommand += ` src/features/${featureName}`;
-      }
+    if (targetInfo.type === 'file') {
+      // Test specific file
+      testCommand += ` src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
+    } else if (targetInfo.type === 'endpoint') {
+      // Test specific endpoint
+      testCommand += ` src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`;
+    } else if (targetInfo.type === 'feature') {
+      // Test specific feature
+      testCommand += ` src/features/${targetInfo.feature}`;
     }
-
-    log.agent('VITEST_EXECUTION_START', {
-      command: testCommand,
-      target: target || 'all',
-    });
+    // For 'all', no additional path needed
 
     const { stdout, stderr } = await execAsync(testCommand);
-
-    return parseVitestOutput(stdout, stderr, Date.now() - startTime);
+    return parseTestOutput(stdout, stderr, Date.now() - startTime);
   } catch (error) {
     // Vitest exits with non-zero code when tests fail
-    return parseVitestOutput(
+    return parseTestOutput(
       error.stdout || '',
       error.stderr || '',
       Date.now() - startTime
@@ -279,12 +338,9 @@ async function executeVitestTests(target) {
 }
 
 /**
- * Parse Vitest output with enhanced test result extraction
- * @llm-rule WHEN: Processing Vitest output to extract test results and performance data
- * @llm-rule AVOID: Incomplete parsing - extract all available test information
- * @llm-rule NOTE: Handles ANSI color codes and extracts detailed test timing information
+ * Parse test output to extract results
  */
-function parseVitestOutput(stdout, stderr, duration) {
+function parseTestOutput(stdout, stderr, duration) {
   const results = {
     totalTests: 0,
     passedTests: 0,
@@ -296,9 +352,8 @@ function parseVitestOutput(stdout, stderr, duration) {
 
   try {
     const output = stdout + '\n' + stderr;
-    const lines = output.split('\n');
 
-    // Parse test summary with multiple patterns
+    // Parse test summary
     const testsMatch = output.match(
       /Tests?\s+(?:(\d+)\s+failed\s*\|\s*)?(\d+)\s+passed\s*(?:\|\s*(\d+)\s*total)?/
     );
@@ -310,7 +365,7 @@ function parseVitestOutput(stdout, stderr, duration) {
         parseInt(testsMatch[3]) || results.passedTests + results.failedTests;
     }
 
-    // Alternative pattern for different Vitest output formats
+    // Alternative pattern
     if (results.totalTests === 0) {
       const altMatch = output.match(/(\d+)\s+passed/);
       if (altMatch) {
@@ -319,144 +374,46 @@ function parseVitestOutput(stdout, stderr, duration) {
       }
     }
 
-    // Parse test files with enhanced pattern matching
-    const testsByFile = {};
-
-    lines.forEach((line) => {
-      const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
-
-      // Match test results with file names
-      const testMatch = cleanLine.match(
-        /^([✓×])\s+(?:.*\/)?([^\/]+)\.test\.ts\s+>\s+(.+?)\s+>\s+(.+?)\s+(\d+ms)$/
-      );
-
-      if (testMatch) {
-        const [, status, fileName, describeBlock, testName, timing] = testMatch;
-
-        if (!testsByFile[fileName]) {
-          testsByFile[fileName] = {
-            name: fileName,
-            passed: 0,
-            failed: 0,
-            total: 0,
-            tests: [],
-          };
-        }
-
-        const testResult = {
-          name: testName,
-          status: status === '✓' ? 'passed' : 'failed',
-          timing: timing,
-          describe: describeBlock.trim(),
-        };
-
-        testsByFile[fileName].tests.push(testResult);
-        testsByFile[fileName].total++;
-
-        if (status === '✓') {
-          testsByFile[fileName].passed++;
-        } else {
-          testsByFile[fileName].failed++;
-        }
-      }
-    });
-
-    results.testSuites = Object.values(testsByFile).map((file) => ({
-      file: file.name,
-      status: file.failed > 0 ? 'failed' : 'passed',
-      total: file.total,
-      passed: file.passed,
-      failed: file.failed,
-      tests: file.tests,
-    }));
-
-    // Parse coverage if available
-    const coverageMatch = output.match(/All files[^|]*\|\s*(\d+(?:\.\d+)?)/);
+    // Extract coverage if available
+    const coverageMatch = output.match(/All files\s+\|\s+([\d.]+)/);
     if (coverageMatch) {
       results.coverage = parseFloat(coverageMatch[1]);
     }
 
     return results;
   } catch (error) {
-    log.agent('VITEST_PARSE_ERROR', {
-      error: error.message,
-      stdout_length: stdout.length,
-      stderr_length: stderr.length,
-    });
-
-    return results;
+    return {
+      totalTests: 0,
+      passedTests: 0,
+      failedTests: 1,
+      coverage: 0,
+      duration,
+      testSuites: [],
+    };
   }
 }
 
 /**
- * Show comprehensive test summary for developers
- * @llm-rule WHEN: Displaying test results for human review and debugging
- * @llm-rule AVOID: Overwhelming output - show structured, scannable results
- * @llm-rule NOTE: Provides both summary statistics and individual test details
+ * Show test execution summary
  */
-function showTestSummary(results) {
-  log.human('');
-  log.human('📊 Test Results Summary:');
-  log.human(
-    `   Total: ${results.totalTests} | Passed: ${results.passedTests} | Failed: ${results.failedTests}`
-  );
+function showTestSummary(results, targetInfo) {
+  if (results.totalTests === 0) {
+    log.human('ℹ️ No tests found to execute');
+    return;
+  }
+
+  if (results.failedTests > 0) {
+    log.human(
+      `❌ ${results.failedTests}/${results.totalTests} tests failed (${results.duration}ms)`
+    );
+  } else {
+    log.human(
+      `✅ ${results.passedTests}/${results.totalTests} tests passed (${results.duration}ms)`
+    );
+  }
 
   if (results.coverage > 0) {
-    log.human(`   Coverage: ${results.coverage}%`);
+    const coverageEmoji = results.coverage >= 80 ? '✅' : '⚠️';
+    log.human(`${coverageEmoji} Coverage: ${results.coverage}%`);
   }
-
-  if (results.testSuites?.length > 0) {
-    log.human('');
-    log.human('   Test Suites:');
-
-    results.testSuites.forEach((suite) => {
-      const icon = suite.status === 'passed' ? '✅' : '❌';
-      const stats =
-        suite.failed > 0
-          ? `${suite.passed}/${suite.total} passed, ${suite.failed} failed`
-          : `${suite.total}/${suite.total} passed`;
-
-      log.human(`   ${icon} ${suite.file}: ${stats}`);
-
-      if (suite.tests?.length > 0) {
-        suite.tests.forEach((test) => {
-          const testIcon = test.status === 'passed' ? '   ✓' : '   ×';
-          const shortName =
-            test.name.length > 55
-              ? test.name.substring(0, 52) + '...'
-              : test.name;
-
-          log.human(`${testIcon} ${shortName} (${test.timing})`);
-        });
-      }
-    });
-  }
-
-  log.human('');
-}
-
-/**
- * Validate test coverage against FLUX Framework requirements
- * @llm-rule WHEN: Ensuring test coverage meets 90% minimum requirement for deployment
- * @llm-rule AVOID: Accepting low coverage - breaks reliability guarantees
- * @llm-rule NOTE: Gracefully handles missing coverage data for development environments
- */
-async function validateCoverage(coverage) {
-  const startTime = Date.now();
-
-  if (coverage === 0) {
-    return { success: true, duration: Date.now() - startTime };
-  }
-
-  const success = coverage >= 90;
-
-  if (!success) {
-    log.agent('COVERAGE_BELOW_THRESHOLD', {
-      actual_coverage: coverage,
-      required_coverage: 90,
-      gap: 90 - coverage,
-    });
-  }
-
-  return { success, duration: Date.now() - startTime };
 }

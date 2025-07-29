@@ -1,0 +1,364 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FLUX Framework Manifest Schema",
+  "description": "Schema for {endpoint}.manifest.json files - contract compliance and deployment readiness validation",
+  "type": "object",
+  "required": [
+    "endpoint",
+    "feature",
+    "route",
+    "status",
+    "generated_at",
+    "contract_compliance",
+    "specification_requirements",
+    "test_coverage",
+    "blocking_issues",
+    "developer_gate",
+    "quick_status",
+    "compliance_data"
+  ],
+  "properties": {
+    "endpoint": {
+      "type": "string",
+      "pattern": "^[@a-z][a-z0-9-]*$",
+      "description": "Endpoint name (must match specification endpoint key)"
+    },
+    "feature": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Feature name (must match specification feature)"
+    },
+    "route": {
+      "type": "string",
+      "pattern": "^(GET|POST|PUT|DELETE|PATCH) /",
+      "description": "HTTP route (must match specification route)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["✅ READY", "⚠️ PARTIAL", "❌ BLOCKED"],
+      "description": "Overall endpoint deployment status"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Manifest generation timestamp"
+    },
+
+    "contract_compliance": {
+      "type": "object",
+      "required": [
+        "routes_match",
+        "functions_match",
+        "imports_complete",
+        "score"
+      ],
+      "properties": {
+        "routes_match": {
+          "type": "string",
+          "pattern": "^(✅|⚠️|❌) \\d+/\\d+$",
+          "description": "Contract routes vs implemented routes"
+        },
+        "functions_match": {
+          "type": "string",
+          "pattern": "^(✅|⚠️|❌) \\d+/\\d+$",
+          "description": "Contract functions vs logic exports"
+        },
+        "imports_complete": {
+          "type": "string",
+          "enum": ["✅ ALL", "⚠️ PARTIAL", "❌ MISSING"],
+          "description": "AppKit and external imports validation"
+        },
+        "helpers_declared": {
+          "type": "string",
+          "pattern": "^(✅|⚠️|❌) \\d+/\\d+$",
+          "description": "Helper files declared vs used (optional)"
+        },
+        "tests_declared": {
+          "type": "string",
+          "pattern": "^(✅|⚠️|❌) \\d+/\\d+$",
+          "description": "Contract test descriptions vs implemented tests (optional)"
+        },
+        "score": {
+          "type": "string",
+          "pattern": "^\\d{1,3}%$",
+          "description": "Overall contract compliance percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "specification_requirements": {
+      "type": "object",
+      "required": ["business_logic", "score"],
+      "properties": {
+        "business_logic": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string",
+              "enum": ["✅ IMPLEMENTED", "⚠️ PARTIAL", "❌ MISSING"],
+              "description": "Business logic requirement implementation status"
+            }
+          },
+          "description": "Business logic requirements from specification"
+        },
+        "external_integration": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string",
+              "enum": [
+                "✅ IMPLEMENTED",
+                "⚠️ PARTIAL",
+                "⚠️ MISSING_RETRY",
+                "⚠️ MISSING_TIMEOUT",
+                "⚠️ STATUS_MISMATCH",
+                "❌ MISSING"
+              ],
+              "description": "External API integration status"
+            }
+          },
+          "description": "External integration requirements (optional)"
+        },
+        "response_schema": {
+          "type": "string",
+          "enum": ["✅ MATCHES", "⚠️ PARTIAL", "❌ MISMATCH"],
+          "description": "Response format compliance (optional)"
+        },
+        "environment_requirements": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Z_]+$": {
+              "type": "string",
+              "enum": [
+                "✅ VALIDATED",
+                "✅ WITH_FALLBACK",
+                "⚠️ OPTIONAL",
+                "❌ MISSING"
+              ],
+              "description": "Environment variable validation status"
+            }
+          },
+          "description": "Environment variable requirements (optional)"
+        },
+        "security_requirements": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string",
+              "enum": ["✅ IMPLEMENTED", "⚠️ PARTIAL", "❌ MISSING"],
+              "description": "Security requirement implementation status"
+            }
+          },
+          "description": "Security requirements (optional)"
+        },
+        "performance_requirements": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string",
+              "enum": ["✅ MEETS_TARGET", "⚠️ BELOW_TARGET", "❌ FAILS"],
+              "description": "Performance requirement status"
+            }
+          },
+          "description": "Performance requirements (optional)"
+        },
+        "database_requirements": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {
+              "type": "string",
+              "enum": ["✅ IMPLEMENTED", "⚠️ PARTIAL", "❌ MISSING"],
+              "description": "Database requirement implementation status"
+            }
+          },
+          "description": "Database requirements (optional)"
+        },
+        "score": {
+          "type": "string",
+          "pattern": "^\\d{1,3}%$",
+          "description": "Overall specification compliance percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "test_coverage": {
+      "type": "object",
+      "required": ["test_case_mapping", "score"],
+      "properties": {
+        "test_case_mapping": {
+          "type": "object",
+          "patternProperties": {
+            "^.+$": {
+              "type": "string",
+              "enum": [
+                "✅ IMPLEMENTED",
+                "⚠️ PARTIAL",
+                "⚠️ STATUS_MISMATCH",
+                "⚠️ MISSING_VALIDATION",
+                "❌ MISSING"
+              ],
+              "description": "Individual test case implementation status"
+            }
+          },
+          "description": "Test case name to implementation status mapping"
+        },
+        "critical_patterns_covered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of critical test patterns covered (optional)"
+        },
+        "security_patterns_covered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of security test patterns covered (optional)"
+        },
+        "edge_cases_covered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of edge case patterns covered (optional)"
+        },
+        "score": {
+          "type": "string",
+          "pattern": "^\\d{1,3}%$",
+          "description": "Overall test coverage percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "blocking_issues": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 10,
+        "description": "Specific issue description with context"
+      },
+      "description": "Issues that prevent deployment (empty array if none)"
+    },
+
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "description": "Non-blocking issues that should be addressed"
+      },
+      "description": "Non-blocking warnings (optional, empty array if none)"
+    },
+
+    "developer_gate": {
+      "type": "object",
+      "required": ["can_deploy", "can_merge", "blocking_count"],
+      "properties": {
+        "can_deploy": {
+          "type": "boolean",
+          "description": "Whether endpoint is ready for production deployment"
+        },
+        "can_merge": {
+          "type": "boolean",
+          "description": "Whether code can be merged to main branch"
+        },
+        "can_commit": {
+          "type": "boolean",
+          "description": "Whether code can be committed (optional)"
+        },
+        "blocking_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of blocking issues"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "quick_status": {
+      "type": "object",
+      "required": ["contract", "spec", "tests", "deployment", "overall"],
+      "properties": {
+        "contract": {
+          "type": "string",
+          "enum": ["✅ PASS", "⚠️ PARTIAL", "❌ FAIL"],
+          "description": "Contract compliance quick status"
+        },
+        "spec": {
+          "type": "string",
+          "enum": ["✅ PASS", "⚠️ PARTIAL", "❌ FAIL"],
+          "description": "Specification requirements quick status"
+        },
+        "tests": {
+          "type": "string",
+          "enum": ["✅ PASS", "⚠️ PARTIAL", "⚠️ MISMATCH", "❌ FAIL"],
+          "description": "Test coverage quick status"
+        },
+        "security": {
+          "type": "string",
+          "enum": ["✅ PASS", "⚠️ PARTIAL", "❌ FAIL"],
+          "description": "Security requirements quick status (optional)"
+        },
+        "performance": {
+          "type": "string",
+          "enum": ["✅ PASS", "⚠️ BELOW_TARGET", "❌ FAIL"],
+          "description": "Performance requirements quick status (optional)"
+        },
+        "deployment": {
+          "type": "string",
+          "enum": ["✅ READY", "⚠️ WARNINGS", "❌ BLOCKED"],
+          "description": "Deployment readiness quick status"
+        },
+        "overall": {
+          "type": "string",
+          "pattern": "^\\d{1,3}%$",
+          "description": "Overall endpoint health percentage"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "compliance_data": {
+      "type": "object",
+      "required": ["endpoint_id", "scores", "blocking_count", "last_validated"],
+      "properties": {
+        "endpoint_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*\\.[a-z@][a-z0-9-]*$",
+          "description": "Unique endpoint identifier (feature.endpoint)"
+        },
+        "scores": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "minItems": 4,
+          "maxItems": 8,
+          "description": "Numeric scores array [contract, spec, tests, deployment, security?, performance?, database?, events?]"
+        },
+        "blocking_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of blocking issues for aggregation"
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of warning issues for aggregation (optional)"
+        },
+        "spec_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Specification version used for validation (optional)"
+        },
+        "last_validated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last validation timestamp"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -10,11 +10,11 @@
 
 import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
-import { logger } from '@voilajsx/appkit/logging';
-import { utility } from '@voilajsx/appkit/utils';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const log = logger.get('contract-validator');
-const utils = utility.get();
+const logger = loggerClass.get('contract-validator');
+const util = utilClass.get();
 
 /**
  * Contract validation result with detailed error reporting
@@ -67,7 +67,7 @@ interface FeatureEndpoint {
  */
 export async function validateAllContracts(): Promise<boolean> {
   try {
-    log.info('🔍 Starting FLUX Framework contract validation');
+    logger.info('🔍 Starting FLUX Framework contract validation');
 
     const featuresPath = join(process.cwd(), 'src', 'features');
     const validationResults: ContractValidationResult[] = [];
@@ -76,7 +76,7 @@ export async function validateAllContracts(): Promise<boolean> {
     const features = await discoverFeatures(featuresPath);
     
     if (features.length === 0) {
-      log.warn('⚠️ No features found for validation');
+      logger.warn('⚠️ No features found for validation');
       return true;
     }
 
@@ -90,18 +90,18 @@ export async function validateAllContracts(): Promise<boolean> {
     const allValid = reportValidationResults(validationResults);
 
     if (allValid) {
-      log.info('✅ All contracts validated successfully', {
+      logger.info('✅ All contracts validated successfully', {
         features: validationResults.length,
         totalRoutes: validationResults.reduce((sum, r) => sum + r.routeCount, 0)
       });
     } else {
-      log.error('❌ Contract validation failed - server startup blocked');
+      logger.error('❌ Contract validation failed - server startup blocked');
     }
 
     return allValid;
 
   } catch (error) {
-    log.error('💥 Contract validation system error', {
+    logger.error('💥 Contract validation system error', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
@@ -186,7 +186,7 @@ async function discoverFeatures(featuresPath: string): Promise<FeatureEndpoint[]
             logicFile
           });
 
-          log.debug('📋 Feature endpoint discovered', {
+          logger.debug('📋 Feature endpoint discovered', {
             feature: featureDir,
             endpoint: endpointDir,
             contractFile,
@@ -194,7 +194,7 @@ async function discoverFeatures(featuresPath: string): Promise<FeatureEndpoint[]
           });
 
         } catch {
-          log.warn('⚠️ Incomplete feature endpoint', {
+          logger.warn('⚠️ Incomplete feature endpoint', {
             feature: featureDir,
             endpoint: endpointDir,
             missing: `${contractFile} or ${logicFile}`,
@@ -204,7 +204,7 @@ async function discoverFeatures(featuresPath: string): Promise<FeatureEndpoint[]
       }
     }
 
-    log.info('🔍 Feature discovery completed', {
+    logger.info('🔍 Feature discovery completed', {
       totalFeatures: features.length,
       features: features.map(f => `${f.feature}/${f.endpoint}`)
     });
@@ -212,7 +212,7 @@ async function discoverFeatures(featuresPath: string): Promise<FeatureEndpoint[]
     return features;
 
   } catch (error) {
-    log.error('❌ Feature discovery failed', {
+    logger.error('❌ Feature discovery failed', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
@@ -237,7 +237,7 @@ async function validateFeatureContract(feature: FeatureEndpoint): Promise<Contra
   };
 
   try {
-    log.debug('🔍 Validating feature contract', {
+    logger.debug('🔍 Validating feature contract', {
       feature: feature.feature,
       endpoint: feature.endpoint,
       contractFile: feature.contractFile,
@@ -278,13 +278,13 @@ async function validateFeatureContract(feature: FeatureEndpoint): Promise<Contra
     result.valid = result.errors.length === 0;
 
     if (result.valid) {
-      log.debug('✅ Feature contract valid', {
+      logger.debug('✅ Feature contract valid', {
         feature: feature.feature,
         endpoint: feature.endpoint,
         files: `${feature.contractFile} + ${feature.logicFile}`
       });
     } else {
-      log.warn('❌ Feature contract invalid', {
+      logger.warn('❌ Feature contract invalid', {
         feature: feature.feature,
         endpoint: feature.endpoint,
         errors: result.errors.length
@@ -310,19 +310,19 @@ async function loadContract(contractPath: string): Promise<AtomContract | null> 
     // Convert .ts to .js for import
     const importPath = contractPath.replace(/\.ts$/, '.js');
     
-    log.debug('🔍 Importing contract from:', { path: importPath });
+    logger.debug('🔍 Importing contract from:', { path: importPath });
     
     // Dynamic import the contract module
     const contractModule = await import(importPath);
     
     if (!contractModule.CONTRACT) {
-      log.error('❌ CONTRACT export not found in contract file', { path: contractPath });
+      logger.error('❌ CONTRACT export not found in contract file', { path: contractPath });
       return null;
     }
 
     const contract = contractModule.CONTRACT;
     
-    log.debug('✅ Imported contract successfully', {
+    logger.debug('✅ Imported contract successfully', {
       path: contractPath,
       routes: Object.keys(contract.routes || {}).length
     });
@@ -335,7 +335,7 @@ async function loadContract(contractPath: string): Promise<AtomContract | null> 
     };
 
   } catch (error) {
-    log.error('❌ Contract file import failed', {
+    logger.error('❌ Contract file import failed', {
       path: contractPath,
       error: error instanceof Error ? error.message : 'Import error'
     });

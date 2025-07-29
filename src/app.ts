@@ -10,19 +10,19 @@
 
 import express from 'express';
 import { join } from 'path';
-import { configure } from '@voilajsx/appkit/config';
-import { logger } from '@voilajsx/appkit/logging';
-import { error } from '@voilajsx/appkit/error';
-import { security } from '@voilajsx/appkit/security';
-import { utility } from '@voilajsx/appkit/utils';
+import { configClass } from '@voilajsx/appkit/config';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { errorClass } from '@voilajsx/appkit/error';
+import { securityClass } from '@voilajsx/appkit/security';
+import { utilClass } from '@voilajsx/appkit/util';
 import { validateAllContracts } from './contract.js'; // 🔒 CONTRACT VALIDATION
 
 // Initialize VoilaJSX AppKit modules following standard patterns
-const config = configure.get();
-const log = logger.get('app');
-const err = error.get();
-const secure = security.get();
-const utils = utility.get();
+const config = configClass.get();
+const logger = loggerClass.get('app');
+const error = errorClass.get();
+const security = securityClass.get();
+const util = utilClass.get();
 
 // Create Express application
 export const app = express();
@@ -87,17 +87,17 @@ function setupMiddleware(): void {
     const windowMs = config.get('rate.limit.window.ms', 900000); // 15 minutes
     const maxRequests = config.get('rate.limit.max', 100);
     
-    const rateLimitMiddleware = secure.requests(maxRequests, windowMs);
+    const rateLimitMiddleware = security.requests(maxRequests, windowMs);
     app.use('/api', rateLimitMiddleware as express.RequestHandler);
     
-    log.info('✅ Rate limiting enabled', { maxRequests, windowMs });
+    logger.info('✅ Rate limiting enabled', { maxRequests, windowMs });
   }
 
   // 4. Request logging and correlation IDs
   app.use((req, res, next) => {
-    req.requestId = utils.uuid();
+    req.requestId = util.uuid();
     
-    req.log = log.child({
+    req.log = logger.child({
       requestId: req.requestId,
       method: req.method,
       url: req.url,
@@ -122,7 +122,7 @@ function setupMiddleware(): void {
     next();
   });
 
-  log.info('✅ Express middleware configured', {
+  logger.info('✅ Express middleware configured', {
     json: true,
     cors: corsOrigin,
     rateLimiting: rateLimitEnabled
@@ -146,7 +146,7 @@ function setupDefaultRoutes(): void {
     });
   });
 
-  log.info('✅ Default routes configured');
+  logger.info('✅ Default routes configured');
 }
 
 /**
@@ -160,14 +160,14 @@ async function setupFeatureRouting(): Promise<void> {
     const featuresPath = join(process.cwd(), 'src', 'features');
     const { readdir, stat } = await import('fs/promises');
     
-    log.info('🔍 Starting contract-based feature routing with {endpoint}.{type}.ts naming', { featuresPath });
+    logger.info('🔍 Starting contract-based feature routing with {endpoint}.{type}.ts naming', { featuresPath });
     
     // Check if features directory exists
     try {
       await stat(featuresPath);
-      log.info('✅ Features directory found', { path: featuresPath });
+      logger.info('✅ Features directory found', { path: featuresPath });
     } catch {
-      log.warn('📁 Features directory not found, skipping feature routing', { path: featuresPath });
+      logger.warn('📁 Features directory not found, skipping feature routing', { path: featuresPath });
       return;
     }
 
@@ -178,7 +178,7 @@ async function setupFeatureRouting(): Promise<void> {
     
     for (const item of featureDirs) {
       if (item.startsWith('.')) {
-        log.debug(`⏭️ Skipping hidden file: ${item}`);
+        logger.debug(`⏭️ Skipping hidden file: ${item}`);
         continue;
       }
       
@@ -188,14 +188,14 @@ async function setupFeatureRouting(): Promise<void> {
         if (stats.isDirectory()) {
           validItems.push(item);
         } else {
-          log.debug(`📄 Skipping non-directory item: ${item}`);
+          logger.debug(`📄 Skipping non-directory item: ${item}`);
         }
       } catch {
-        log.debug(`⚠️ Could not stat item: ${item}`);
+        logger.debug(`⚠️ Could not stat item: ${item}`);
       }
     }
     
-    log.info(`📁 Found ${validItems.length} valid feature directories: [${validItems.join(', ')}]`);
+    logger.info(`📁 Found ${validItems.length} valid feature directories: [${validItems.join(', ')}]`);
     
     const enabledFeatures: string[] = [];
     const disabledFeatures: string[] = [];
@@ -203,25 +203,25 @@ async function setupFeatureRouting(): Promise<void> {
     for (const dir of validItems) {
       if (dir.startsWith('_')) {
         disabledFeatures.push(dir);
-        log.info(`⏭️ Disabled feature: ${dir}`);
+        logger.info(`⏭️ Disabled feature: ${dir}`);
       } else {
         enabledFeatures.push(dir);
-        log.info(`✅ Enabled feature: ${dir}`);
+        logger.info(`✅ Enabled feature: ${dir}`);
       }
     }
 
-    log.info(`📁 Feature discovery completed - ${enabledFeatures.length} enabled [${enabledFeatures.join(', ')}], ${disabledFeatures.length} disabled [${disabledFeatures.join(', ')}]`);
+    logger.info(`📁 Feature discovery completed - ${enabledFeatures.length} enabled [${enabledFeatures.join(', ')}], ${disabledFeatures.length} disabled [${disabledFeatures.join(', ')}]`);
 
     // Register enabled features using contract-based routing
     for (const featureName of enabledFeatures) {
-      log.info('🔄 Processing contract-validated feature', { feature: featureName });
+      logger.info('🔄 Processing contract-validated feature', { feature: featureName });
       await registerContractBasedFeatureRoutes(featureName);
     }
 
-    log.info(`🚀 Contract-based feature routing completed - processed ${enabledFeatures.length} features: [${enabledFeatures.join(', ')}]`);
+    logger.info(`🚀 Contract-based feature routing completed - processed ${enabledFeatures.length} features: [${enabledFeatures.join(', ')}]`);
 
   } catch (error) {
-    log.error('❌ Feature routing setup failed', {
+    logger.error('❌ Feature routing setup failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
       suggestion: 'Check src/features/ directory structure and contract validation'
     });
@@ -244,7 +244,7 @@ async function registerContractBasedFeatureRoutes(featureName: string): Promise<
     try {
       await stat(featurePath);
     } catch {
-      log.warn('⚠️ Feature directory not found', { feature: featureName, path: featurePath });
+      logger.warn('⚠️ Feature directory not found', { feature: featureName, path: featurePath });
       return;
     }
 
@@ -252,7 +252,7 @@ async function registerContractBasedFeatureRoutes(featureName: string): Promise<
     const items = await readdir(featurePath);
     let routesFound = 0;
     
-    log.debug('🔍 Scanning contract-validated feature for endpoint folders', { 
+    logger.debug('🔍 Scanning contract-validated feature for endpoint folders', { 
       feature: featureName, 
       items: items 
     });
@@ -268,7 +268,7 @@ async function registerContractBasedFeatureRoutes(featureName: string): Promise<
       }
       
       if (stats.isDirectory()) {
-        log.info(`📁 Found endpoint directory: ${featureName}/${item}`);
+        logger.info(`📁 Found endpoint directory: ${featureName}/${item}`);
         
         // Look for {endpoint}.logic.ts files using new naming convention
         const endpointName = item;
@@ -283,25 +283,25 @@ async function registerContractBasedFeatureRoutes(featureName: string): Promise<
           await stat(logicPath);
           await stat(contractPath);
           
-          log.info(`🔍 Found complete endpoint: ${featureName}/${item} with ${contractFile} + ${logicFile}`);
+          logger.info(`🔍 Found complete endpoint: ${featureName}/${item} with ${contractFile} + ${logicFile}`);
           
           await registerContractBasedEndpointRoute(featureName, endpointName, logicPath, contractPath, itemPath);
           routesFound++;
           
         } catch {
-          log.warn(`⚠️ Incomplete endpoint ${featureName}/${item} - missing ${contractFile} or ${logicFile}`);
+          logger.warn(`⚠️ Incomplete endpoint ${featureName}/${item} - missing ${contractFile} or ${logicFile}`);
         }
       }
     }
 
     if (routesFound === 0) {
-      log.info(`📝 No complete endpoints found in feature ${featureName} - create {endpoint}.contract.ts and {endpoint}.logic.ts files`);
+      logger.info(`📝 No complete endpoints found in feature ${featureName} - create {endpoint}.contract.ts and {endpoint}.logic.ts files`);
     } else {
-      log.info(`✅ Feature ${featureName} registered ${routesFound} contract-based routes`);
+      logger.info(`✅ Feature ${featureName} registered ${routesFound} contract-based routes`);
     }
 
   } catch (error) {
-    log.warn('⚠️ Contract-based feature registration failed', {
+    logger.warn('⚠️ Contract-based feature registration failed', {
       feature: featureName,
       error: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -331,7 +331,7 @@ async function registerContractBasedEndpointRoute(
       contractModule = await import(contractImportPath);
       contract = contractModule.CONTRACT;
     } catch (contractError) {
-      log.error(`❌ Contract import failed for ${featureName}/${endpointName}`, {
+      logger.error(`❌ Contract import failed for ${featureName}/${endpointName}`, {
         contractPath: contractImportPath,
         error: contractError instanceof Error ? contractError.message : 'Unknown error'
       });
@@ -344,7 +344,7 @@ async function registerContractBasedEndpointRoute(
     try {
       logicModule = await import(logicImportPath);
     } catch (logicError) {
-      log.error(`❌ Logic import failed for ${featureName}/${endpointName}`, {
+      logger.error(`❌ Logic import failed for ${featureName}/${endpointName}`, {
         logicPath: logicImportPath,
         error: logicError instanceof Error ? logicError.message : 'Unknown error'
       });
@@ -362,7 +362,7 @@ async function registerContractBasedEndpointRoute(
         const [method, contractPath] = route.split(' ', 2); // "GET /hello" → ["GET", "/hello"]
         
         if (!method || !contractPath) {
-          log.warn(`⚠️ Invalid route format '${route}' - expected 'METHOD /path'`);
+          logger.warn(`⚠️ Invalid route format '${route}' - expected 'METHOD /path'`);
           continue;
         }
         
@@ -372,22 +372,22 @@ async function registerContractBasedEndpointRoute(
         try {
           switch (method.toLowerCase()) {
             case 'get':
-              app.get(expressPath, err.asyncRoute(handler));
+              app.get(expressPath, error.asyncRoute(handler));
               break;
             case 'post':
-              app.post(expressPath, err.asyncRoute(handler));
+              app.post(expressPath, error.asyncRoute(handler));
               break;
             case 'put':
-              app.put(expressPath, err.asyncRoute(handler));
+              app.put(expressPath, error.asyncRoute(handler));
               break;
             case 'delete':
-              app.delete(expressPath, err.asyncRoute(handler));
+              app.delete(expressPath, error.asyncRoute(handler));
               break;
             case 'patch':
-              app.patch(expressPath, err.asyncRoute(handler));
+              app.patch(expressPath, error.asyncRoute(handler));
               break;
             default:
-              log.warn(`⚠️ Unsupported HTTP method '${method}' in route '${route}'`);
+              logger.warn(`⚠️ Unsupported HTTP method '${method}' in route '${route}'`);
               continue;
           }
           
@@ -397,7 +397,7 @@ async function registerContractBasedEndpointRoute(
           const isStandardAction = actionName in STANDARD_ACTIONS;
           const actionType = isStandardAction ? '✅' : '⚠️';
           
-          log.info(`📍 Contract route registered: ${actionType} ${route} → ${actionName}() at ${expressPath}`, {
+          logger.info(`📍 Contract route registered: ${actionType} ${route} → ${actionName}() at ${expressPath}`, {
             feature: featureName,
             endpoint: endpointName,
             action: actionName,
@@ -405,32 +405,32 @@ async function registerContractBasedEndpointRoute(
           });
           
           if (!isStandardAction) {
-            log.warn(`⚠️ Custom action '${actionName}' - consider standard actions: ${Object.keys(STANDARD_ACTIONS).join(', ')}`);
+            logger.warn(`⚠️ Custom action '${actionName}' - consider standard actions: ${Object.keys(STANDARD_ACTIONS).join(', ')}`);
           }
           
         } catch (routeError) {
-          log.error(`❌ Route registration failed for ${route}`, {
+          logger.error(`❌ Route registration failed for ${route}`, {
             error: routeError instanceof Error ? routeError.message : 'Unknown error'
           });
         }
       } else {
-        log.error(`❌ Action function '${actionName}' not found or not a function in ${featureName}/${endpointName}/logic`);
+        logger.error(`❌ Action function '${actionName}' not found or not a function in ${featureName}/${endpointName}/logic`);
       }
     }
     
     if (handlersRegistered === 0) {
       const availableExports = Object.keys(logicModule).join(', ');
       const contractActions = Object.values(contract.routes || {}).join(', ');
-      log.warn(`⚠️ No handlers registered for ${featureName}/${endpointName}`, {
+      logger.warn(`⚠️ No handlers registered for ${featureName}/${endpointName}`, {
         available: `[${availableExports}]`,
         expected: `[${contractActions}]`
       });
     } else {
-      log.info(`✅ Registered ${handlersRegistered} contract-based handlers for ${featureName}/${endpointName}`);
+      logger.info(`✅ Registered ${handlersRegistered} contract-based handlers for ${featureName}/${endpointName}`);
     }
 
   } catch (error) {
-    log.error('❌ Contract-based endpoint registration failed', {
+    logger.error('❌ Contract-based endpoint registration failed', {
       feature: featureName,
       endpoint: endpointName,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -470,7 +470,7 @@ function setupSystemRoutes(): void {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: configure.getEnvironment(),
+      environment: process.env.NODE_ENV || 'development',
       version: process.env.npm_package_version || '1.0.0',
       requestId: req.requestId,
       contractValidation: 'passed',
@@ -484,7 +484,7 @@ function setupSystemRoutes(): void {
     res.status(204).end(); // No content
   });
 
-  log.info('✅ System routes configured', {
+  logger.info('✅ System routes configured', {
     health: '/health',
     actionBased: true,
     namingConvention: '{endpoint}.{type}.ts'
@@ -499,14 +499,14 @@ function setupSystemRoutes(): void {
 function setupErrorHandling(): void {
   // 404 handler for unmatched routes
   app.use('*', (req, res, next) => {
-    const error = err.notFound(`Route not found: ${req.method} ${req.originalUrl}`);
-    next(error);
+    const err = error.notFound(`Route not found: ${req.method} ${req.originalUrl}`);
+    next(err);
   });
 
   // Global error handler (must be last)
-  app.use(err.handleErrors());
+  app.use(error.handleErrors());
 
-  log.info('✅ Error handling configured');
+  logger.info('✅ Error handling configured');
 }
 
 /**
@@ -517,7 +517,7 @@ function setupErrorHandling(): void {
  */
 async function initializeApp(): Promise<void> {
   try {
-    log.info('🚀 Initializing FLUX Framework application with contract validation and action-based routing', {
+    logger.info('🚀 Initializing FLUX Framework application with contract validation and action-based routing', {
       framework: 'FLUX',
       appkit: 'VoilaJSX',
       server: 'Express',
@@ -527,15 +527,15 @@ async function initializeApp(): Promise<void> {
     });
 
     // 🔒 STEP 1: CONTRACT VALIDATION (CRITICAL - BLOCKS STARTUP)
-    log.info('🔍 Starting contract validation...');
+    logger.info('🔍 Starting contract validation...');
     const contractsValid = await validateAllContracts();
     
     if (!contractsValid) {
-      log.error('💥 Contract validation failed - application startup BLOCKED');
+      logger.error('💥 Contract validation failed - application startup BLOCKED');
       throw new Error('Contract validation failed - see errors above');
     }
     
-    log.info('✅ Contract validation passed - proceeding with action-based routing initialization');
+    logger.info('✅ Contract validation passed - proceeding with action-based routing initialization');
 
     // STEP 2: Initialize application components in strict order
     setupMiddleware();              // 1. Basic Express + VoilaJSX middleware
@@ -544,7 +544,7 @@ async function initializeApp(): Promise<void> {
     setupSystemRoutes();            // 4. Health and API info endpoints
     setupErrorHandling();           // 5. Global error handling (MUST BE LAST)
 
-    log.info('✅ FLUX Framework application ready', {
+    logger.info('✅ FLUX Framework application ready', {
       contractValidation: 'passed',
       middleware: 'configured',
       features: 'contract-action-based',
@@ -555,7 +555,7 @@ async function initializeApp(): Promise<void> {
     });
 
   } catch (error) {
-    log.error('💥 Application initialization failed', {
+    logger.error('💥 Application initialization failed', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
     throw error; // Let server.ts handle the exit

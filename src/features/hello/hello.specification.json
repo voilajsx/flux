@@ -2,7 +2,36 @@
   "feature": "hello",
   "version": "1.0.0",
   "generated_at": "2025-01-22T16:30:00Z",
-  "source_blueprint": "hello.requirements.yml",
+  "last_updated": "2025-01-23T10:30:00Z",
+  "source_requirements": "hello.requirements.yml",
+
+  "business_logic": {
+    "calculations": [],
+    "validations": [
+      "Name parameter must be 1-50 characters",
+      "Name parameter must be sanitized for XSS prevention",
+      "Empty names must be rejected with 400 status",
+      "Special characters in names must be handled safely"
+    ],
+    "workflows": [
+      "Basic endpoint: Generate unique request ID → Return welcome message with timestamp",
+      "Name endpoint: Validate input → Sanitize name → Generate personalized greeting → Return response"
+    ],
+    "permissions": [],
+    "edge_cases": [
+      "Unicode characters in names",
+      "Names with apostrophes and hyphens",
+      "URL-encoded input parameters",
+      "Very long name inputs exceeding limits"
+    ],
+    "error_scenarios": [
+      "Empty name parameter returns 400 with error message",
+      "Names exceeding 50 characters return 400 with length error",
+      "Server errors return 500 with generic error message"
+    ]
+  },
+
+  "external_integrations": {},
 
   "agent_context_notes": {
     "blueprint_mapping": {
@@ -172,6 +201,12 @@
           "import { logger } from '@voilajsx/appkit/logging'",
           "import { error } from '@voilajsx/appkit/error'"
         ],
+        "business_rules": [
+          "Generate unique request ID for each request",
+          "Return consistent response format with success flag",
+          "Include timestamp for request tracking",
+          "Log all requests for monitoring and debugging"
+        ],
         "functions": {
           "list": {
             "params": ["req: Request", "res: Response"],
@@ -300,6 +335,14 @@
           "import { error } from '@voilajsx/appkit/error'",
           "import { security } from '@voilajsx/appkit/security'"
         ],
+        "business_rules": [
+          "Sanitize name parameter to prevent XSS attacks",
+          "Reject names shorter than 1 character with 400 status",
+          "Reject names longer than 50 characters with 400 status",
+          "Handle URL-encoded names properly",
+          "Generate unique request ID for each request",
+          "Log all requests with sanitized name for security monitoring"
+        ],
         "functions": {
           "get": {
             "params": ["req: Request", "res: Response"],
@@ -363,6 +406,51 @@
             "path": "/api/hello/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "expected_status": 400,
             "validation": "name_too_long_rejected"
+          },
+          {
+            "name": "should return consistent FLUX response format",
+            "http_method": "GET",
+            "path": "/api/hello/TestUser",
+            "expected_status": 200,
+            "expected_schema": {
+              "success": "boolean",
+              "data": "object"
+            }
+          },
+          {
+            "name": "should generate unique request IDs",
+            "http_method": "GET",
+            "path": "/api/hello/TestUser",
+            "expected_status": 200,
+            "validation": "two_requests_different_ids"
+          },
+          {
+            "name": "should handle names with apostrophes and hyphens",
+            "http_method": "GET",
+            "path": "/api/hello/Mary-Jane",
+            "expected_status": 200,
+            "expected_properties": ["success", "data.name"]
+          },
+          {
+            "name": "should handle Unicode names correctly",
+            "http_method": "GET",
+            "path": "/api/hello/José",
+            "expected_status": 200,
+            "expected_properties": ["success", "data.name"]
+          },
+          {
+            "name": "should handle numeric names",
+            "http_method": "GET",
+            "path": "/api/hello/User123",
+            "expected_status": 200,
+            "expected_properties": ["success", "data.name"]
+          },
+          {
+            "name": "should include endpoint identifier in response",
+            "http_method": "GET",
+            "path": "/api/hello/TestUser",
+            "expected_status": 200,
+            "expected_properties": ["data.endpoint"]
           }
         ],
         "coverage_target": 100,

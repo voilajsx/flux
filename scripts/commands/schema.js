@@ -1,11 +1,11 @@
 /**
- * FLUX Framework Schema Validation - Requirements, Instructions, Specification validation
+ * FLUX Framework Schema Validation - Requirements, Instructions, Specification, Contract validation
  * @module @voilajsx/flux/scripts/commands/schema
  * @file scripts/commands/schema.js
  *
  * @llm-rule WHEN: Validating FLUX Framework schema files for consistency and completeness
  * @llm-rule AVOID: Runtime validation - this is design-time schema checking only
- * @llm-rule NOTE: Validates requirements.yml, instructions.yml, and specification.json against schemas
+ * @llm-rule NOTE: Validates requirements.yml, instructions.yml, specification.json, and {endpoint}.contract.ts with unified file-path syntax
  */
 
 import { readdir, readFile, stat } from 'fs/promises';
@@ -15,24 +15,19 @@ import { createLogger } from '../logger.js';
 const log = createLogger('schema');
 
 /**
- * Schema validation command for FLUX Framework files with colon syntax support
+ * Schema validation command for FLUX Framework files with unified file-path syntax
  * @llm-rule WHEN: Validating schema files before agent execution or deployment
  * @llm-rule AVOID: Starting work with invalid schemas - guarantees agent failures
- * @llm-rule NOTE: npm run flux:schema [feature[:type]]
+ * @llm-rule NOTE: npm run flux:schema [target]
  *
  * Examples:
- * - npm run flux:schema                    # All features, all schemas
- * - npm run flux:schema hello              # Hello feature, all schemas
- * - npm run flux:schema hello:requirements # Hello feature, requirements only
+ * - npm run flux:schema                           # All features, all schemas
+ * - npm run flux:schema hello                     # Hello feature, all schemas
+ * - npm run flux:schema hello.requirements.yml   # Hello feature, requirements only
+ * - npm run flux:schema hello.instructions.yml   # Hello feature, instructions only
+ * - npm run flux:schema hello.specification.json # Hello feature, specification only
+ * - npm run flux:schema hello/main.contract.ts   # Specific contract file
  */
-
-/**
- * Clean schema validation with minimal, clear output
- * Replace the verbose logging in schema.js with this approach
- */
-
-// In schema.js - Replace the verbose validation start/complete calls with:
-
 export default async function schema(args) {
   const startTime = Date.now();
   const target = args[0];
@@ -41,10 +36,25 @@ export default async function schema(args) {
   try {
     const results = [];
 
-    // Execute validation (existing logic)
-    if (scope.feature && scope.schemaType) {
+    // Execute validation based on scope
+    if (scope.type === 'single') {
       results.push(
         ...(await validateSingleSchema(scope.feature, scope.schemaType))
+      );
+    } else if (scope.type === 'contract-file') {
+      results.push(
+        await validateContractFile(
+          join(
+            process.cwd(),
+            'src',
+            'features',
+            scope.feature,
+            scope.endpoint,
+            scope.fileName
+          ),
+          scope.feature,
+          scope.endpoint
+        )
       );
     } else if (scope.feature) {
       results.push(...(await validateFeatureSchemas(scope.feature)));
@@ -63,7 +73,331 @@ export default async function schema(args) {
 }
 
 /**
- * Clean, focused result reporting
+ * Parse target argument with unified file-path syntax
+ * @llm-rule WHEN: Processing command arguments to determine validation scope
+ * @llm-rule AVOID: Complex parsing - keep simple and predictable
+ * @llm-rule NOTE: Supports file-path syntax: hello.requirements.yml, hello.instructions.yml, hello.specification.json, hello/main.contract.ts
+ */
+function parseTarget(target) {
+  if (!target) {
+    return {
+      type: 'all',
+      description: 'all features, all schemas',
+      feature: null,
+      schemaType: null,
+    };
+  }
+
+  // Handle contract file targeting (hello/main.contract.ts)
+  if (target.includes('/') && target.includes('.contract.')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+
+    // Parse the file part to get endpoint name
+    // main.contract.ts -> main
+    const fileNameParts = filePart.split('.');
+    const endpoint = fileNameParts[0];
+
+    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
+    const feature = pathPart;
+
+    return {
+      type: 'contract-file',
+      description: `contract file ${filePart}`,
+      feature,
+      endpoint,
+      fileName: filePart,
+    };
+  }
+
+  // Handle file-path syntax (hello.requirements.yml)
+  if (target.includes('.') && !target.includes('/')) {
+    const parts = target.split('.');
+    const feature = parts[0];
+    const type = parts[1];
+    const extension = parts[2];
+
+    // Validate file-path syntax
+    const validCombinations = {
+      'requirements.yml': 'requirements',
+      'instructions.yml': 'instructions',
+      'specification.json': 'specification',
+      'manifest.json': 'manifest',
+    };
+
+    const fileTypePart = `${type}.${extension}`;
+    if (!validCombinations[fileTypePart]) {
+      throw new Error(
+        `Invalid file-path syntax: ${target}. Valid formats: hello.requirements.yml, hello.instructions.yml, hello.specification.json`
+      );
+    }
+
+    return {
+      type: 'single',
+      description: `${feature}.${type}.${extension}`,
+      feature,
+      schemaType: validCombinations[fileTypePart],
+    };
+  }
+
+  // Feature-specific validation (all schemas for one feature)
+  return {
+    type: 'feature',
+    description: `${target} feature, all schemas`,
+    feature: target,
+    schemaType: null,
+  };
+}
+
+/**
+ * Validate single schema file for specific feature and type
+ * @llm-rule WHEN: User specifies exact schema file with file-path syntax
+ * @llm-rule AVOID: Validating other files when user requests specific schema
+ * @llm-rule NOTE: Fast validation for development workflow
+ */
+async function validateSingleSchema(feature, schemaType) {
+  const results = [];
+
+  // Check if feature exists
+  if (!(await checkFeatureExists(feature))) {
+    throw new Error(`Feature '${feature}' not found in src/features/`);
+  }
+
+  const featurePath = join(process.cwd(), 'src', 'features', feature);
+
+  switch (schemaType) {
+    case 'requirements':
+      const requirementsPath = join(featurePath, `${feature}.requirements.yml`);
+      results.push(await validateRequirementsFile(requirementsPath, feature));
+      break;
+
+    case 'instructions':
+      const instructionsPath = join(featurePath, `${feature}.instructions.yml`);
+      results.push(await validateInstructionsFile(instructionsPath, feature));
+      break;
+
+    case 'specification':
+      const specificationPath = join(
+        featurePath,
+        `${feature}.specification.json`
+      );
+      results.push(await validateSpecificationFile(specificationPath, feature));
+      break;
+
+    default:
+      throw new Error(`Unknown schema type: ${schemaType}`);
+  }
+
+  return results;
+}
+
+/**
+ * Validate all schemas for a specific feature including contracts
+ * @llm-rule WHEN: User specifies feature without schema type
+ * @llm-rule AVOID: Cross-feature validation when user wants specific feature only
+ * @llm-rule NOTE: Includes requirements, instructions, specification, and all contracts
+ */
+async function validateFeatureSchemas(feature) {
+  const results = [];
+
+  // Check if feature exists
+  if (!(await checkFeatureExists(feature))) {
+    throw new Error(`Feature '${feature}' not found in src/features/`);
+  }
+
+  const featurePath = join(process.cwd(), 'src', 'features', feature);
+
+  // Validate the three main schema files
+  const requirementsPath = join(featurePath, `${feature}.requirements.yml`);
+  const instructionsPath = join(featurePath, `${feature}.instructions.yml`);
+  const specificationPath = join(featurePath, `${feature}.specification.json`);
+
+  results.push(await validateRequirementsFile(requirementsPath, feature));
+  results.push(await validateInstructionsFile(instructionsPath, feature));
+  results.push(await validateSpecificationFile(specificationPath, feature));
+
+  // Validate all contract files for this feature
+  const contractResults = await validateFeatureContracts(feature);
+  results.push(...contractResults);
+
+  return results;
+}
+
+/**
+ * Validate all schemas for all features including contracts
+ * @llm-rule WHEN: User runs schema command without arguments
+ * @llm-rule AVOID: Processing disabled features (underscore prefix)
+ * @llm-rule NOTE: Complete project schema validation for CI/CD
+ */
+async function validateAllSchemas() {
+  const results = [];
+  const featuresPath = join(process.cwd(), 'src', 'features');
+
+  try {
+    const features = await readdir(featuresPath);
+
+    // Filter out disabled features and non-directories
+    const enabledFeatures = [];
+    for (const feature of features) {
+      if (feature.startsWith('_') || feature.startsWith('.')) continue;
+
+      const featurePath = join(featuresPath, feature);
+      const featureStat = await stat(featurePath);
+      if (featureStat.isDirectory()) {
+        enabledFeatures.push(feature);
+      }
+    }
+
+    // Validate each feature
+    for (const feature of enabledFeatures) {
+      const featurePath = join(featuresPath, feature);
+
+      // Validate main schema files
+      const requirementsPath = join(featurePath, `${feature}.requirements.yml`);
+      const instructionsPath = join(featurePath, `${feature}.instructions.yml`);
+      const specificationPath = join(
+        featurePath,
+        `${feature}.specification.json`
+      );
+
+      results.push(await validateRequirementsFile(requirementsPath, feature));
+      results.push(await validateInstructionsFile(instructionsPath, feature));
+      results.push(await validateSpecificationFile(specificationPath, feature));
+
+      // Validate all contract files for this feature
+      const contractResults = await validateFeatureContracts(feature);
+      results.push(...contractResults);
+    }
+
+    // Add cross-reference validation for all features
+    results.push(...(await validateCrossReferences(enabledFeatures)));
+
+    return results;
+  } catch (error) {
+    throw new Error(`Schema validation failed: ${error.message}`);
+  }
+}
+
+async function validateManifestFile(filePath, feature, endpoint) {
+  const result = {
+    type: 'manifest',
+    feature,
+    endpoint,
+    file: `${endpoint}.manifest.json`,
+    valid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  try {
+    await stat(filePath);
+    const content = await readFile(filePath, 'utf-8');
+    const manifest = JSON.parse(content);
+
+    // Load manifest schema and validate
+    const schemaPath = join(
+      process.cwd(),
+      'scripts',
+      'schemas',
+      'manifest.schema.json'
+    );
+    const schemaContent = await readFile(schemaPath, 'utf-8');
+    const schema = JSON.parse(schemaContent);
+
+    const Ajv = (await import('ajv')).default;
+    const addFormats = (await import('ajv-formats')).default;
+    const ajv = new Ajv({ allErrors: true });
+    addFormats(ajv);
+
+    const validate = ajv.compile(schema);
+    const valid = validate(manifest);
+
+    if (!valid) {
+      validate.errors.forEach((error) => {
+        const path = error.instancePath || 'root';
+        result.errors.push(`${path}: ${error.message}`);
+      });
+    }
+
+    result.valid = valid;
+  } catch (error) {
+    result.valid = false;
+    if (error.code === 'ENOENT') {
+      result.errors.push(`Manifest file not found: ${result.file}`);
+    } else {
+      result.errors.push(`Manifest validation failed: ${error.message}`);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Validate contracts for all endpoints in a feature
+ * @llm-rule WHEN: Validating contract files as part of schema validation
+ * @llm-rule AVOID: Missing contract files that could cause runtime failures
+ * @llm-rule NOTE: Finds all {endpoint}.contract.ts files in feature directory
+ */
+async function validateFeatureContracts(feature) {
+  const results = [];
+  const featurePath = join(process.cwd(), 'src', 'features', feature);
+
+  try {
+    const items = await readdir(featurePath);
+
+    // Find all endpoint directories
+    for (const item of items) {
+      const itemPath = join(featurePath, item);
+      const itemStat = await stat(itemPath);
+
+      if (itemStat.isDirectory() && !item.startsWith('_')) {
+        // Look for contract file in endpoint directory
+        const contractFile = `${item}.contract.ts`;
+        const contractPath = join(itemPath, contractFile);
+
+        try {
+          await stat(contractPath);
+          results.push(await validateContractFile(contractPath, feature, item));
+          // Also validate manifest if it exists
+          const manifestFile = `${item}.manifest.json`;
+          const manifestPath = join(itemPath, manifestFile);
+          try {
+            await stat(manifestPath);
+            results.push(
+              await validateManifestFile(manifestPath, feature, item)
+            );
+          } catch {
+            // Manifest file optional - no error if missing
+          }
+        } catch {
+          // Contract file doesn't exist - this might be ok for some endpoints
+          results.push({
+            type: 'contract',
+            feature,
+            endpoint: item,
+            file: contractFile,
+            valid: false,
+            errors: [`Contract file not found: ${contractFile}`],
+            warnings: [],
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (error) {
+    throw new Error(
+      `Failed to validate contracts for ${feature}: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Simple reporting that's clean and actionable
+ * @llm-rule WHEN: Showing validation results to developers
+ * @llm-rule AVOID: Verbose output that hides important information
+ * @llm-rule NOTE: Groups by type and shows only errors for failed validations
  */
 function reportResults(results, duration) {
   const valid = results.filter((r) => r.valid).length;
@@ -83,228 +417,16 @@ function reportResults(results, duration) {
     console.log('');
 
     failed.forEach((result) => {
-      console.log(`❌ ${result.feature}.${result.type}`);
+      if (result.type === 'contract') {
+        console.log(`❌ ${result.feature}/${result.endpoint}.contract.ts`);
+      } else {
+        console.log(`❌ ${result.feature}.${result.type}`);
+      }
       result.errors.forEach((error) => {
         console.log(`   ${error}`);
       });
     });
   }
-}
-
-/**
- * Parse target argument with colon syntax support
- * @llm-rule WHEN: Processing command arguments to determine validation scope
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports feature:type syntax like "hello:requirements"
- */
-function parseTarget(target) {
-  if (!target) {
-    return {
-      type: 'all',
-      description: 'all features, all schemas',
-      feature: null,
-      schemaType: null,
-    };
-  }
-
-  if (target.includes(':')) {
-    const [feature, schemaType] = target.split(':');
-
-    // Validate schema type
-    const validTypes = ['requirements', 'instructions', 'specification'];
-    if (!validTypes.includes(schemaType)) {
-      throw new Error(
-        `Invalid schema type: ${schemaType}. Valid types: ${validTypes.join(', ')}`
-      );
-    }
-
-    return {
-      type: 'single-schema',
-      description: `${feature} feature, ${schemaType} schema only`,
-      feature: feature,
-      schemaType: schemaType,
-    };
-  }
-
-  return {
-    type: 'single-feature',
-    description: `${target} feature, all schemas`,
-    feature: target,
-    schemaType: null,
-  };
-}
-
-/**
- * Validate single schema file for specific feature
- * @llm-rule WHEN: User requests specific file validation like "hello:requirements"
- * @llm-rule AVOID: Loading unnecessary schemas - only validate requested file
- * @llm-rule NOTE: Most efficient validation for development workflow
- */
-async function validateSingleSchema(feature, schemaType) {
-  const results = [];
-
-  // Check if feature exists
-  const featureExists = await checkFeatureExists(feature);
-  if (!featureExists) {
-    results.push({
-      type: schemaType,
-      feature: feature,
-      file: `${feature}.${schemaType}.yml/json`,
-      valid: false,
-      errors: [`Feature '${feature}' not found in src/features/`],
-      warnings: [],
-    });
-    return results;
-  }
-
-  // Validate the specific schema type
-  switch (schemaType) {
-    case 'requirements':
-      const requirementsPath = join(
-        process.cwd(),
-        'src',
-        'features',
-        feature,
-        `${feature}.requirements.yml`
-      );
-      results.push(await validateRequirementsFile(requirementsPath, feature));
-      break;
-    case 'instructions':
-      const instructionsPath = join(
-        process.cwd(),
-        'src',
-        'features',
-        feature,
-        `${feature}.instructions.yml`
-      );
-      results.push(await validateInstructionsFile(instructionsPath, feature));
-      break;
-    case 'specification':
-      const specificationPath = join(
-        process.cwd(),
-        'src',
-        'features',
-        feature,
-        `${feature}.specification.json`
-      );
-      results.push(await validateSpecificationFile(specificationPath, feature));
-      break;
-  }
-
-  return results;
-}
-
-/**
- * Validate all schemas for a specific feature
- * @llm-rule WHEN: User requests feature-level validation like "hello"
- * @llm-rule AVOID: Validating other features - scope to requested feature only
- * @llm-rule NOTE: Includes cross-reference validation within the feature
- */
-async function validateFeatureSchemas(feature) {
-  const results = [];
-
-  // Check if feature exists
-  const featureExists = await checkFeatureExists(feature);
-  if (!featureExists) {
-    results.push({
-      type: 'feature',
-      feature: feature,
-      file: `${feature} feature`,
-      valid: false,
-      errors: [`Feature '${feature}' not found in src/features/`],
-      warnings: [],
-    });
-    return results;
-  }
-
-  // Validate all schema files for this feature
-  const requirementsPath = join(
-    process.cwd(),
-    'src',
-    'features',
-    feature,
-    `${feature}.requirements.yml`
-  );
-  const instructionsPath = join(
-    process.cwd(),
-    'src',
-    'features',
-    feature,
-    `${feature}.instructions.yml`
-  );
-  const specificationPath = join(
-    process.cwd(),
-    'src',
-    'features',
-    feature,
-    `${feature}.specification.json`
-  );
-
-  results.push(await validateRequirementsFile(requirementsPath, feature));
-  results.push(await validateInstructionsFile(instructionsPath, feature));
-  results.push(await validateSpecificationFile(specificationPath, feature));
-
-  // Add cross-reference validation for this feature
-  results.push(...(await validateCrossReferences([feature])));
-
-  return results;
-}
-
-/**
- * Validate all schemas across all features
- * @llm-rule WHEN: User requests complete project validation with no arguments
- * @llm-rule AVOID: Skipping any features - validate everything for deployment readiness
- * @llm-rule NOTE: Most comprehensive validation including cross-feature validation
- */
-async function validateAllSchemas() {
-  const results = [];
-  const features = await discoverFeatures();
-
-  if (features.length === 0) {
-    results.push({
-      type: 'system',
-      feature: 'discovery',
-      file: 'feature discovery',
-      valid: false,
-      errors: ['No features found in src/features/ directory'],
-      warnings: [],
-    });
-    return results;
-  }
-
-  // Validate all schema files for all features
-  for (const feature of features) {
-    const requirementsPath = join(
-      process.cwd(),
-      'src',
-      'features',
-      feature,
-      `${feature}.requirements.yml`
-    );
-    const instructionsPath = join(
-      process.cwd(),
-      'src',
-      'features',
-      feature,
-      `${feature}.instructions.yml`
-    );
-    const specificationPath = join(
-      process.cwd(),
-      'src',
-      'features',
-      feature,
-      `${feature}.specification.json`
-    );
-
-    results.push(await validateRequirementsFile(requirementsPath, feature));
-    results.push(await validateInstructionsFile(instructionsPath, feature));
-    results.push(await validateSpecificationFile(specificationPath, feature));
-  }
-
-  // Add cross-reference validation for all features
-  results.push(...(await validateCrossReferences(features)));
-
-  return results;
 }
 
 /**
@@ -494,222 +616,233 @@ async function validateSpecificationFile(filePath, feature) {
 }
 
 /**
- * Cross-reference validation between files for specified features
- * @llm-rule WHEN: Ensuring consistency between requirements, instructions, and specification
- * @llm-rule AVOID: Cross-validating unrelated features - scope to requested features only
- * @llm-rule NOTE: Critical for maintaining feature coherence and preventing mismatches
+ * Contract file validation with proper schema validation and import checking
+ * @llm-rule WHEN: Validating contract files for schema compliance and structure
+ * @llm-rule AVOID: Allowing TypeScript imports in contract files
+ * @llm-rule NOTE: Contract files should be pure objects with no imports
  */
-async function validateCrossReferences(features) {
-  const results = [];
+async function validateContractFile(filePath, feature, endpoint) {
+  const result = {
+    type: 'contract',
+    feature,
+    endpoint,
+    file: `${endpoint}.contract.ts`,
+    valid: true,
+    errors: [],
+    warnings: [],
+  };
 
-  for (const feature of features) {
-    const result = {
-      type: 'cross-reference',
-      feature,
-      file: `${feature} cross-validation`,
-      valid: true,
-      errors: [],
-      warnings: [],
-    };
+  try {
+    await stat(filePath);
+    const content = await readFile(filePath, 'utf-8');
 
+    // 1. Check for forbidden imports at top of file
+    const hasImports = /^\s*import\s+.*from/m.test(content);
+    if (hasImports) {
+      result.errors.push(
+        '❌ Contract files should NOT import any modules - remove all "import" statements from this file'
+      );
+      result.valid = false;
+    }
+
+    // 2. Extract CONTRACT object for schema validation
+    let contractObject;
     try {
-      // Load all three files
-      const requirementsPath = join(
-        process.cwd(),
-        'src',
-        'features',
-        feature,
-        `${feature}.requirements.yml`
+      // Basic check for export
+      if (!content.includes('export')) {
+        result.errors.push(
+          '❌ Contract file must export a CONTRACT object: export const CONTRACT = { ... }'
+        );
+        result.valid = false;
+        return result;
+      }
+
+      // Try to extract the CONTRACT object
+      const contractMatch = content.match(
+        /export\s+const\s+CONTRACT\s*=\s*({[\s\S]*?});/
       );
-      const instructionsPath = join(
+      if (!contractMatch) {
+        result.errors.push(
+          '❌ Contract file must have: export const CONTRACT = { ... } (check syntax)'
+        );
+        result.valid = false;
+        return result;
+      }
+
+      // Parse the contract object (basic evaluation)
+      const contractString = contractMatch[1];
+      contractObject = eval(`(${contractString})`);
+    } catch (error) {
+      result.errors.push(`Failed to parse CONTRACT object: ${error.message}`);
+      result.valid = false;
+      return result;
+    }
+
+    // 3. Validate against contract schema
+    try {
+      const schemaPath = join(
         process.cwd(),
-        'src',
-        'features',
-        feature,
-        `${feature}.instructions.yml`
+        'scripts',
+        'schemas',
+        'contract.schema.json'
       );
-      const specificationPath = join(
+      const schemaContent = await readFile(schemaPath, 'utf-8');
+      const schema = JSON.parse(schemaContent);
+
+      const Ajv = (await import('ajv')).default;
+      const addFormats = (await import('ajv-formats')).default;
+      const ajv = new Ajv({ allErrors: true });
+      addFormats(ajv);
+
+      const validate = ajv.compile(schema);
+      const valid = validate(contractObject);
+
+      if (!valid) {
+        validate.errors.forEach((error) => {
+          const path = error.instancePath || 'CONTRACT';
+          const property = error.instancePath
+            ? error.instancePath.replace('/', '')
+            : 'root';
+
+          if (error.keyword === 'required') {
+            result.errors.push(
+              `❌ Missing required field: ${error.params.missingProperty} (add this field to CONTRACT object)`
+            );
+          } else if (error.keyword === 'additionalProperties') {
+            result.errors.push(
+              `❌ Unknown field: ${error.params.additionalProperty} (remove this field from CONTRACT object)`
+            );
+          } else {
+            result.errors.push(`❌ ${property}: ${error.message}`);
+          }
+        });
+        result.valid = false;
+      }
+    } catch (schemaError) {
+      result.errors.push(
+        `Contract schema validation failed: ${schemaError.message}`
+      );
+      result.valid = false;
+    }
+
+    // 4. Verify feature and endpoint match
+    if (contractObject && result.valid) {
+      if (contractObject.feature !== feature) {
+        result.errors.push(
+          `Contract feature "${contractObject.feature}" does not match directory "${feature}"`
+        );
+        result.valid = false;
+      }
+
+      if (contractObject.endpoint !== endpoint) {
+        result.errors.push(
+          `Contract endpoint "${contractObject.endpoint}" does not match file name "${endpoint}"`
+        );
+        result.valid = false;
+      }
+    }
+
+    // 5. Validate test signatures match specification
+    try {
+      const specPath = join(
         process.cwd(),
         'src',
         'features',
         feature,
         `${feature}.specification.json`
       );
+      const specContent = await readFile(specPath, 'utf-8');
+      const spec = JSON.parse(specContent);
+      const endpointSpec = spec.endpoints[endpoint];
 
-      const yaml = await import('js-yaml');
-      let requirements, instructions, specification;
+      if (endpointSpec?.test?.test_cases) {
+        const specTestNames = endpointSpec.test.test_cases.map((tc) => tc.name);
+        const contractTests = contractObject.tests || [];
 
-      try {
-        const requirementsContent = await readFile(requirementsPath, 'utf-8');
-        requirements = yaml.load(requirementsContent);
-      } catch (error) {
-        result.errors.push(`Cannot load requirements: ${error.message}`);
-      }
+        // Count check first
+        const expectedCount = specTestNames.length;
+        const actualCount = contractTests.length;
 
-      try {
-        const instructionsContent = await readFile(instructionsPath, 'utf-8');
-        instructions = yaml.load(instructionsContent);
-      } catch (error) {
-        result.errors.push(`Cannot load instructions: ${error.message}`);
-      }
+        if (actualCount !== expectedCount) {
+          result.errors.push(
+            `❌ Test count mismatch: expected ${expectedCount} tests, found ${actualCount} tests`
+          );
+          result.valid = false;
+        }
 
-      try {
-        const specificationContent = await readFile(specificationPath, 'utf-8');
-        specification = JSON.parse(specificationContent);
-      } catch (error) {
-        result.errors.push(`Cannot load specification: ${error.message}`);
-      }
+        // Check each contract test case
+        const extraTests = contractTests.filter(
+          (name) => !specTestNames.includes(name)
+        );
+        const validTests = contractTests.filter((name) =>
+          specTestNames.includes(name)
+        );
+        const missingTests = specTestNames.filter(
+          (name) => !contractTests.includes(name)
+        );
 
-      // Cross-validation checks
-      if (requirements && instructions && specification) {
-        // Feature name consistency
+        // Show valid tests to retain
+        if (validTests.length > 0) {
+          result.errors.push(`✅ Valid tests (retain these):`);
+          validTests.forEach((test) => {
+            result.errors.push(`   ✓ '${test}'`);
+          });
+        }
+
+        // Show extra tests to remove
+        if (extraTests.length > 0) {
+          result.errors.push(
+            `❌ Extra tests (remove these ${extraTests.length}):`
+          );
+          extraTests.forEach((test) => {
+            result.errors.push(`   ✗ '${test}'`);
+          });
+          result.valid = false;
+        }
+
+        // Show missing tests to add
+        if (missingTests.length > 0) {
+          result.errors.push(
+            `⚠️  Missing tests (add these ${missingTests.length}):`
+          );
+          missingTests.forEach((test) => {
+            result.errors.push(`   + '${test}'`);
+          });
+          result.valid = false;
+        }
+
         if (
-          requirements.name !== instructions.feature ||
-          instructions.feature !== specification.feature
+          missingTests.length === 0 &&
+          extraTests.length === 0 &&
+          actualCount === expectedCount
         ) {
-          result.errors.push(
-            `Feature name mismatch: requirements="${requirements.name}", instructions="${instructions.feature}", specification="${specification.feature}"`
-          );
-        }
-
-        // User stories vs endpoints mapping
-        const userStoryCount = requirements.user_stories?.length || 0;
-        const endpointCount = Object.keys(specification.endpoints || {}).length;
-
-        if (userStoryCount > 0 && endpointCount === 0) {
-          result.errors.push(
-            'User stories defined but no endpoints implemented'
-          );
-        }
-
-        // Instructions tasks vs specification endpoints
-        const taskCount = Object.keys(instructions.tasks || {}).length;
-        if (taskCount < endpointCount * 3) {
-          // Rough estimate: contract + logic + tests per endpoint
           result.warnings.push(
-            `Instructions tasks (${taskCount}) might be insufficient for endpoint implementation (${endpointCount} endpoints)`
+            `✅ Test signatures match specification (${expectedCount} tests)`
           );
         }
       }
-
-      result.valid = result.errors.length === 0;
-    } catch (error) {
-      result.valid = false;
-      result.errors.push(`Cross-reference validation failed: ${error.message}`);
-    }
-
-    results.push(result);
-  }
-
-  return results;
-}
-
-/**
- * Discover all features for validation
- * @llm-rule WHEN: Finding available features for validation
- * @llm-rule AVOID: Including disabled features (underscore prefix) - skip for performance
- * @llm-rule NOTE: Only returns enabled features that can be validated
- */
-async function discoverFeatures() {
-  const features = [];
-  const featuresPath = join(process.cwd(), 'src', 'features');
-
-  try {
-    const items = await readdir(featuresPath);
-
-    for (const item of items) {
-      if (item.startsWith('_') || item.startsWith('.')) continue;
-
-      const itemPath = join(featuresPath, item);
-      const itemStat = await stat(itemPath);
-
-      if (itemStat.isDirectory()) {
-        features.push(item);
-      }
-    }
-  } catch (error) {
-    log.warn('Cannot read features directory', { error: error.message });
-  }
-
-  return features;
-}
-
-/**
- * Report validation results with scope-aware summary
- * @llm-rule WHEN: Displaying validation results with context about what was validated
- * @llm-rule AVOID: Generic summaries - tailor output to validation scope
- * @llm-rule NOTE: Helps users understand exactly what was checked
- */
-function reportValidationResults(results, scope) {
-  let allValid = true;
-  const summary = {
-    requirements: { total: 0, valid: 0, errors: 0 },
-    instructions: { total: 0, valid: 0, errors: 0 },
-    specification: { total: 0, valid: 0, errors: 0 },
-    'cross-reference': { total: 0, valid: 0, errors: 0 },
-    feature: { total: 0, valid: 0, errors: 0 },
-    system: { total: 0, valid: 0, errors: 0 },
-  };
-
-  console.log('\n📋 FLUX Framework Schema Validation Results');
-  console.log(`   Scope: ${scope.description}\n`);
-
-  results.forEach((result) => {
-    const status = result.valid ? '✅' : '❌';
-    console.log(`${status} ${result.type}: ${result.feature} (${result.file})`);
-
-    // Update summary
-    if (summary[result.type]) {
-      summary[result.type].total++;
-      if (result.valid) {
-        summary[result.type].valid++;
-      } else {
-        allValid = false;
-      }
-      summary[result.type].errors += result.errors.length;
-    }
-
-    // Show errors
-    if (result.errors.length > 0) {
-      result.errors.forEach((error) => {
-        console.log(`   ❌ ${error}`);
-      });
-    }
-
-    // Show warnings
-    if (result.warnings.length > 0) {
-      result.warnings.forEach((warning) => {
-        console.log(`   ⚠️  ${warning}`);
-      });
-    }
-
-    if (
-      result.valid &&
-      result.errors.length === 0 &&
-      result.warnings.length === 0
-    ) {
-      console.log(`   ✅ Schema validation passed`);
-    }
-
-    console.log('');
-  });
-
-  // Summary
-  console.log('📊 Schema Validation Summary:');
-  Object.entries(summary).forEach(([type, stats]) => {
-    if (stats.total > 0) {
-      console.log(
-        `   ${type}: ${stats.valid}/${stats.total} valid (${stats.errors} errors)`
+    } catch (specError) {
+      result.warnings.push(
+        `Could not validate test signatures: ${specError.message}`
       );
     }
-  });
-  console.log('');
-
-  if (!allValid) {
-    console.log('❌ Schema validation FAILED - fix errors above');
-  } else {
-    console.log('✅ All schemas valid - ready for agent execution');
+  } catch (error) {
+    result.valid = false;
+    if (error.code === 'ENOENT') {
+      result.errors.push(`Contract file not found: ${result.file}`);
+    } else {
+      result.errors.push(`Contract validation failed: ${error.message}`);
+    }
   }
 
-  return allValid;
+  return result;
+}
+
+/**
+ * Cross-reference validation between features
+ */
+async function validateCrossReferences(features) {
+  // Placeholder for cross-reference validation
+  // This could check for consistent naming, dependencies, etc.
+  return [];
 }

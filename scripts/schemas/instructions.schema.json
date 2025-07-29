@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FLUX Framework Instructions Schema",
-  "description": "Schema for {feature}.instructions.yml files",
+  "description": "Schema for {feature}.instructions.yml files with step command keywords",
   "type": "object",
   "required": [
     "feature",
@@ -43,7 +43,7 @@
     "agent_instructions": {
       "type": "string",
       "minLength": 50,
-      "description": "Multi-line instructions for agent execution"
+      "description": "Multi-line instructions for agent execution with step keywords"
     },
     "config": {
       "type": "object",
@@ -65,16 +65,33 @@
           "maximum": 10,
           "description": "Maximum retries per task"
         },
-        "rollback_command": {
+        "validation_timeout": {
+          "type": "integer",
+          "description": "Validation timeout in milliseconds"
+        },
+        "git_branch": {
           "type": "string",
-          "description": "Command for rollback"
+          "description": "Git branch for feature development"
         }
       }
     },
     "validation_commands": {
       "type": "object",
-      "required": ["contract", "types", "lint", "test", "full", "compliance"],
+      "required": [
+        "schema",
+        "contract",
+        "types",
+        "lint",
+        "test",
+        "compliance",
+        "full",
+        "skim"
+      ],
       "properties": {
+        "schema": {
+          "type": "string",
+          "description": "Schema validation command"
+        },
         "contract": {
           "type": "string",
           "description": "Contract validation command"
@@ -91,13 +108,17 @@
           "type": "string",
           "description": "Test execution command"
         },
+        "compliance": {
+          "type": "string",
+          "description": "Compliance check command"
+        },
         "full": {
           "type": "string",
           "description": "Full validation pipeline"
         },
-        "compliance": {
+        "skim": {
           "type": "string",
-          "description": "Compliance check command"
+          "description": "Quick validation command with placeholders"
         }
       }
     },
@@ -105,78 +126,51 @@
       "type": "object",
       "minProperties": 1,
       "patternProperties": {
-        "^[0-9]+$": {
+        "^[0-9]+\\.[0-9]+$": {
           "type": "object",
           "required": ["name", "what", "steps"],
           "properties": {
             "name": {
               "type": "string",
               "pattern": "^[a-z_]+$",
-              "description": "Task identifier (snake_case)"
+              "description": "Task name (snake_case)"
             },
             "what": {
               "type": "string",
               "minLength": 10,
-              "description": "Task description"
+              "description": "What this task accomplishes"
             },
             "steps": {
               "type": "array",
               "minItems": 1,
               "items": {
-                "oneOf": [{ "type": "string" }, { "type": "object" }]
-              },
-              "description": "Execution steps (strings or YAML objects)"
+                "type": "string",
+                "pattern": "^(Log:|Read:|Create:|Run:|Print:|Condition:|Wait:)\\s",
+                "description": "Step must start with command keyword"
+              }
             },
             "max_retries": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 5,
-              "description": "Retry limit for this task"
+              "maximum": 10,
+              "description": "Maximum retries for this task"
+            },
+            "validation_after": {
+              "type": "string",
+              "description": "Validation to run after task completion"
             },
             "if_stuck": {
               "type": "string",
-              "description": "Escalation action when stuck"
-            },
-            "commit": {
-              "oneOf": [{ "type": "boolean" }, { "type": "string" }],
-              "description": "Commit strategy for this task"
-            },
-            "human_checkpoint": {
-              "type": "boolean",
-              "description": "Requires human approval"
-            },
-            "if_condition": {
-              "type": "string",
-              "description": "Condition to check before proceeding"
-            },
-            "else_action": {
-              "type": "string",
-              "description": "What to do if condition fails"
+              "description": "Action when task gets stuck"
             },
             "git_branch": {
               "type": "string",
               "description": "Git branch name for this task"
             },
-            "approval_required": {
-              "type": "boolean",
-              "description": "Halt and wait for developer approval"
-            },
-            "notify": {
-              "type": "object",
-              "description": "Notification configuration (for future use)"
-            },
             "depends_on": {
               "type": "array",
               "items": { "type": "string" },
               "description": "Task IDs that must complete first"
-            },
-            "outputs": {
-              "type": "object",
-              "description": "Variables this task produces for other tasks"
-            },
-            "skip_if": {
-              "type": "string",
-              "description": "Condition to skip this task"
             }
           }
         }
@@ -221,6 +215,24 @@
             "command": {
               "type": "string",
               "description": "Rollback command"
+            }
+          }
+        },
+        "api_error": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action on API error"
+            }
+          }
+        },
+        "file_creation_error": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Action on file creation error"
             }
           }
         },

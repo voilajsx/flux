@@ -9,14 +9,14 @@
  */
 
 import { Request, Response } from 'express';
-import { utility } from '@voilajsx/appkit/utils';
-import { logger } from '@voilajsx/appkit/logging';
-import { error } from '@voilajsx/appkit/error';
+import { utilClass } from '@voilajsx/appkit/util';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { errorClass } from '@voilajsx/appkit/error';
 
 // Initialize VoilaJSX AppKit modules (matches contract imports)
-const utils = utility.get();
-const log = logger.get('hello-main');
-const err = error.get();
+const util = utilClass.get();
+const log = loggerClass.get('hello-main');
+const err = errorClass.get();
 
 /**
  * Handles GET requests to return hello world message
@@ -25,7 +25,7 @@ const err = error.get();
  * @llm-rule NOTE: Uses VoilaJSX utility for UUID generation and structured logging
  */
 export async function list(req: Request, res: Response): Promise<void> {
-  const requestId = utils.uuid();
+  const requestId = util.uuid();
   
   try {
     log.info('Hello GET request started', {

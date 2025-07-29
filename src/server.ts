@@ -5,15 +5,15 @@
  */
 
 import 'dotenv/config'; // Load environment variables first
-import { configure } from '@voilajsx/appkit/config';
-import { logger } from '@voilajsx/appkit/logging';
-import { utility } from '@voilajsx/appkit/utils';
+import { configClass } from '@voilajsx/appkit/config';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { utilClass } from '@voilajsx/appkit/util';
 import { app } from './app.js';
 
 // Initialize core modules following VoilaJSX AppKit patterns
-const config = configure.get();
-const log = logger.get('server');
-const utils = utility.get();
+const config = configClass.get();
+const logger = loggerClass.get('server');
+const util = utilClass.get();
 
 /**
  * Validates required environment configuration before server startup
@@ -42,17 +42,17 @@ function validateEnvironment(): void {
 
     // Warn if using defaults in any environment
     if (authSecret.includes('development')) {
-      log.warn('⚠️ Using default auth secret - change in production!');
+      logger.warn('⚠️ Using default auth secret - change in production!');
     }
     if (csrfSecret.includes('development')) {
-      log.warn('⚠️ Using default CSRF secret - change in production!');
+      logger.warn('⚠️ Using default CSRF secret - change in production!');
     }
     if (encryptionKey.includes('development')) {
-      log.warn('⚠️ Using default encryption key - change in production!');
+      logger.warn('⚠️ Using default encryption key - change in production!');
     }
 
     // Production-specific validation
-    if (configure.isProduction()) {
+    if (configClass.isProduction()) {
       // In production, require actual secrets
       if (authSecret.includes('development') || authSecret.length < 32) {
         throw new Error('Production requires secure VOILA_AUTH_SECRET (32+ characters)');
@@ -69,17 +69,17 @@ function validateEnvironment(): void {
       const emailKey = config.get('email.api.key');
       
       if (!redisUrl) {
-        log.warn('Production deployment without Redis - performance may be limited');
+        logger.warn('Production deployment without Redis - performance may be limited');
       }
       
       if (!emailKey) {
-        log.warn('Production deployment without email service - notifications disabled');
+        logger.warn('Production deployment without email service - notifications disabled');
       }
     }
 
-    log.info('✅ Environment validation passed', {
-      environment: configure.getEnvironment(),
-      production: configure.isProduction(),
+    logger.info('✅ Environment validation passed', {
+      environment: configClass.getEnvironment(),
+      production: configClass.isProduction(),
       nodeVersion: process.version,
       authConfigured: !!authSecret,
       csrfConfigured: !!csrfSecret,
@@ -87,7 +87,7 @@ function validateEnvironment(): void {
     });
 
   } catch (error) {
-    log.error('❌ Environment validation failed', { 
+    logger.error('❌ Environment validation failed', { 
       error: error instanceof Error ? error.message : 'Unknown error',
       suggestion: 'Create .env file with VOILA_AUTH_SECRET, VOILA_SECURITY_CSRF_SECRET, VOILA_SECURITY_ENCRYPTION_KEY'
     });
@@ -103,10 +103,10 @@ async function initializePlatform(): Promise<void> {
   try {
    
 
-    log.info('✅ Platform initialization completed');
+    logger.info('✅ Platform initialization completed');
 
   } catch (error) {
-    log.error('💥 Platform initialization failed', {
+    logger.error('💥 Platform initialization failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
       suggestion: 'Platform services are optional - this should not prevent startup'
     });
@@ -124,10 +124,10 @@ function startServer(): void {
   const server = app.listen(port, host, () => {
     const startupTime = Date.now() - startTime;
     
-    log.info('🌟 FLUX Framework server ready', {
+    logger.info('🌟 FLUX Framework server ready', {
       port,
       host,
-      environment: configure.getEnvironment(),
+      environment: configClass.getEnvironment(),
       startupTime: `${startupTime}ms`,
       health: `http://localhost:${port}/health`,
       root: `http://localhost:${port}/`,
@@ -150,12 +150,12 @@ function startServer(): void {
   // Handle server startup errors
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      log.error('❌ Port already in use', { 
+      logger.error('❌ Port already in use', { 
         port, 
         suggestion: `Try: PORT=${Number(port) + 1} npm start` 
       });
     } else {
-      log.error('❌ Server startup failed', { 
+      logger.error('❌ Server startup failed', { 
         error: error.message,
         code: error.code 
       });
@@ -171,9 +171,9 @@ function startServer(): void {
  * Implements graceful shutdown for production deployments with proper cleanup
  */
 async function gracefulShutdown(signal: string): Promise<void> {
-  const shutdownId = utils.uuid();
+  const shutdownId = util.uuid();
   
-  log.info(`🔄 Graceful shutdown initiated`, { 
+  logger.info(`🔄 Graceful shutdown initiated`, { 
     signal, 
     shutdownId,
     uptime: process.uptime() 
@@ -184,7 +184,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     if (process.server) {
       await new Promise<void>((resolve) => {
         process.server.close(() => {
-          log.info('✅ HTTP server closed', { shutdownId });
+          logger.info('✅ HTTP server closed', { shutdownId });
           resolve();
         });
       });
@@ -192,14 +192,9 @@ async function gracefulShutdown(signal: string): Promise<void> {
 
     
 
-    // 3. Flush remaining logs
-    try {
-      await logger.clear();
-    } catch (error) {
-      // Ignore logger cleanup errors during shutdown
-    }
+    
 
-    log.info('✅ Graceful shutdown completed', { 
+    logger.info('✅ Graceful shutdown completed', { 
       shutdownId,
       totalTime: Date.now() - startTime 
     });
@@ -207,7 +202,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     process.exit(0);
 
   } catch (error) {
-    log.error('❌ Shutdown error', { 
+    logger.error('❌ Shutdown error', { 
       error: error instanceof Error ? error.message : 'Unknown error',
       shutdownId 
     });
@@ -223,7 +218,7 @@ function setupSignalHandlers(): void {
 
   const handleShutdown = (signal: string) => {
     if (shutdownInProgress) {
-      log.warn('⚠️ Shutdown already in progress', { signal });
+      logger.warn('⚠️ Shutdown already in progress', { signal });
       return;
     }
     shutdownInProgress = true;
@@ -237,7 +232,7 @@ function setupSignalHandlers(): void {
 
   // Handle uncaught errors
   process.on('uncaughtException', (error) => {
-    log.error('💥 Uncaught exception', { 
+    logger.error('💥 Uncaught exception', { 
       error: error.message,
       stack: error.stack 
     });
@@ -245,7 +240,7 @@ function setupSignalHandlers(): void {
   });
 
   process.on('unhandledRejection', (reason) => {
-    log.error('💥 Unhandled promise rejection', { 
+    logger.error('💥 Unhandled promise rejection', { 
       reason: reason instanceof Error ? reason.message : String(reason)
     });
     gracefulShutdown('UNHANDLED_REJECTION');
@@ -260,10 +255,10 @@ const startTime = Date.now();
  */
 async function main(): Promise<void> {
   try {
-    log.info('🚀 Starting FLUX Framework server', {
+    logger.info('🚀 Starting FLUX Framework server', {
       version: process.env.npm_package_version || '1.0.0',
       nodeVersion: process.version,
-      environment: configure.getEnvironment(),
+      environment: configClass.getEnvironment(),
       timestamp: new Date().toISOString()
     });
 
@@ -274,7 +269,7 @@ async function main(): Promise<void> {
     startServer();             // 4. Start HTTP server
 
   } catch (error) {
-    log.error('💥 Server startup failed', {
+    logger.error('💥 Server startup failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
       startupTime: Date.now() - startTime
     });

@@ -7,7 +7,8 @@ name: hello
 description: Simple greeting service for customer engagement
 version: 1.0.0
 owner: Product Team
-created: 2025-01-15
+created: 2025-01-15T00:00:00Z
+last_updated: 2025-01-23T10:30:00Z
 
 # ============================================================================
 # BUSINESS OVERVIEW

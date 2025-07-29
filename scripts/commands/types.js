@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Running TypeScript compilation check
  * @llm-rule AVOID: Complex validation - just run tsc and report errors
- * @llm-rule NOTE: Simple wrapper around TypeScript compiler with scope support
+ * @llm-rule NOTE: Simple wrapper around TypeScript compiler with unified file-path targeting
  */
 
 import { exec } from 'child_process';
@@ -43,38 +43,114 @@ function parseTypeScriptErrors(output) {
 }
 
 /**
+ * Parse target argument with unified file-path syntax support
+ * @llm-rule WHEN: Processing command arguments to determine scope
+ * @llm-rule AVOID: Complex parsing - keep simple and predictable
+ * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
+ */
+function parseTarget(target) {
+  if (!target) {
+    return { type: 'all', description: 'all features' };
+  }
+
+  // Handle specific file targeting (hello/main.contract.ts)
+  if (target.includes('.') && target.includes('/')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+
+    // Parse the file part to get endpoint name
+    // main.contract.ts -> main
+    const fileNameParts = filePart.split('.');
+    const endpoint = fileNameParts[0];
+
+    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
+    const feature = pathPart;
+
+    return {
+      type: 'file',
+      feature,
+      endpoint,
+      fileName: filePart,
+      description: `specific file ${filePart}`,
+      path: target,
+    };
+  }
+
+  // Handle endpoint targeting (hello/main)
+  if (target.includes('/')) {
+    const [feature, endpoint] = target.split('/');
+    return {
+      type: 'endpoint',
+      feature,
+      endpoint,
+      description: `${feature}/${endpoint} endpoint`,
+      path: `src/features/${feature}/${endpoint}`,
+    };
+  }
+
+  // Handle feature targeting (hello)
+  return {
+    type: 'feature',
+    feature: target,
+    description: `${target} feature`,
+    path: `src/features/${target}`,
+  };
+}
+
+/**
  * TypeScript compilation command - just runs tsc and reports results
  */
 export default async function types(commandArgs) {
   const startTime = Date.now();
   const target = commandArgs.find((arg) => !arg.startsWith('-'));
+  const targetInfo = parseTarget(target);
 
   try {
     // Validate target exists if specified
-    if (target) {
+    if (targetInfo.type !== 'all') {
       const featuresPath = join(process.cwd(), 'src', 'features');
 
-      if (target.includes('/')) {
+      if (targetInfo.type === 'file') {
+        // Validate specific file exists - construct correct path
+        const filePath = join(
+          process.cwd(),
+          'src',
+          'features',
+          targetInfo.feature,
+          targetInfo.endpoint,
+          targetInfo.fileName
+        );
+        try {
+          await stat(filePath);
+        } catch (error) {
+          log.human(
+            `❌ File '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'endpoint') {
         // Validate endpoint exists
-        const [feature, endpoint] = target.split('/');
-        const featurePath = join(featuresPath, feature);
-        const endpointPath = join(featurePath, endpoint);
+        const featurePath = join(featuresPath, targetInfo.feature);
+        const endpointPath = join(featurePath, targetInfo.endpoint);
 
         try {
           await stat(featurePath);
           await stat(endpointPath);
         } catch (error) {
-          log.human(`❌ Endpoint '${target}' not found`);
+          log.human(
+            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
+          );
           return false;
         }
-      } else {
+      } else if (targetInfo.type === 'feature') {
         // Validate feature exists
-        const featurePath = join(featuresPath, target);
+        const featurePath = join(featuresPath, targetInfo.feature);
 
         try {
           await stat(featurePath);
         } catch (error) {
-          log.human(`❌ Feature '${target}' not found`);
+          log.human(`❌ Feature '${targetInfo.feature}' not found`);
           return false;
         }
       }
@@ -102,54 +178,63 @@ export default async function types(commandArgs) {
       const allErrors = parseTypeScriptErrors(output);
 
       if (allErrors.length === 0) {
-        // No parseable errors found, show raw output
-        log.human(`❌ Compilation failed (${duration}ms):`);
-        log.human(output);
+        // Output indicates errors but we couldn't parse them - show raw output
+        log.human(`❌ TypeScript validation failed (${duration}ms)`);
+        console.log(output);
         return false;
       }
 
-      // Filter errors to target if specified
+      // Filter errors based on target if specified
       let relevantErrors = allErrors;
-      if (target) {
+      if (targetInfo.type !== 'all') {
         relevantErrors = allErrors.filter((error) => {
-          if (target.includes('/')) {
-            const [feature, endpoint] = target.split('/');
-            return error.includes(`src/features/${feature}/${endpoint}/`);
-          } else {
-            return error.includes(`src/features/${target}/`);
+          if (targetInfo.type === 'file') {
+            // For file targeting, check if error is in the specific file
+            const expectedPath = `src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
+            return error.includes(expectedPath);
+          } else if (targetInfo.type === 'endpoint') {
+            return error.includes(
+              `src/features/${targetInfo.feature}/${targetInfo.endpoint}`
+            );
+          } else if (targetInfo.type === 'feature') {
+            return error.includes(`src/features/${targetInfo.feature}/`);
           }
-        });
-
-        // If no relevant errors found but target was specified, target is clean
-        if (relevantErrors.length === 0) {
-          log.human(`✅ Passed (${duration}ms)`);
           return true;
-        }
+        });
       }
 
-      // Show the errors
-      log.human(`❌ ${relevantErrors.length} error(s):`);
-      relevantErrors.forEach((error) => {
-        log.human(`   ${error}`);
-      });
+      if (relevantErrors.length > 0) {
+        log.human(
+          `❌ TypeScript validation failed (${relevantErrors.length} errors) ${duration}ms`
+        );
+        console.log('');
+        relevantErrors.forEach((error) => console.log(`   ${error}`));
+        return false;
+      } else if (targetInfo.type !== 'all') {
+        // No relevant errors for the specified target
+        log.human(
+          `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
+        );
+        return true;
+      }
+    }
+
+    // No errors found or no relevant errors for target
+    if (hasErrors && targetInfo.type === 'all') {
+      // There were errors but not in our target scope
+      log.human(`❌ TypeScript validation failed (${duration}ms)`);
       return false;
     }
 
-    // No errors found or no output
-    if (!hasErrors || !output) {
-      log.human(`✅ Passed (${duration}ms)`);
-      return true;
-    }
-
-    // Has errors but couldn't parse them
-    log.human(`❌ Compilation failed (${duration}ms)`);
-    if (output) {
-      log.human(`   Output: ${output.substring(0, 200)}...`);
-    }
-    return false;
+    log.human(
+      `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
+    );
+    return true;
   } catch (error) {
     const duration = Date.now() - startTime;
-    log.human(`❌ Setup failed: ${error.message} (${duration}ms)`);
+    log.human(
+      `❌ TypeScript validation error (${duration}ms): ${error.message}`
+    );
     return false;
   }
 }

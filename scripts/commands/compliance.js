@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Validating generated code against specification.json with configurable patterns and thresholds
  * @llm-rule AVOID: Hardcoding validation patterns - always read from specification.json for flexibility
- * @llm-rule NOTE: Fully generic, works with any VoilaJSX AppKit modules and configurable validation rules
+ * @llm-rule NOTE: Fully generic, works with any VoilaJSX AppKit modules and configurable validation rules with unified file-path syntax
  */
 
 import { readdir, readFile, stat } from 'fs/promises';
@@ -20,6 +20,80 @@ import {
 const log = createLogger('compliance');
 
 /**
+ * Parse target argument with unified file-path syntax support
+ * @llm-rule WHEN: Processing command arguments to determine scope
+ * @llm-rule AVOID: Complex parsing - keep simple and predictable
+ * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
+ */
+function parseTarget(target) {
+  if (!target) {
+    return { type: 'all', description: 'all features' };
+  }
+
+  // Handle specific file targeting (hello/main.logic.ts)
+  if (target.includes('.') && target.includes('/')) {
+    const lastSlash = target.lastIndexOf('/');
+    const pathPart = target.slice(0, lastSlash);
+    const filePart = target.slice(lastSlash + 1);
+
+    // Parse the file part to get endpoint name
+    // main.logic.ts -> main
+    const fileNameParts = filePart.split('.');
+    const endpoint = fileNameParts[0];
+
+    // For simple paths like "weather/main.logic.ts", pathPart is "weather"
+    const feature = pathPart;
+
+    return {
+      type: 'file',
+      feature,
+      endpoint,
+      fileName: filePart,
+      description: `specific file ${filePart}`,
+      path: target,
+      generateReports: false,
+    };
+  }
+
+  // Handle feature specification files (hello.specification.json)
+  if (target.includes('.') && !target.includes('/')) {
+    const [feature, fileType, extension] = target.split('.');
+
+    return {
+      type: 'feature-file',
+      feature,
+      fileType,
+      extension,
+      description: `feature specification ${target}`,
+      path: target,
+      generateReports: false,
+    };
+  }
+
+  // Handle endpoint targeting (hello/main)
+  if (target.includes('/')) {
+    const [feature, endpoint] = target.split('/');
+    return {
+      type: 'endpoint',
+      feature,
+      endpoint,
+      description: `${feature}/${endpoint} endpoint`,
+      path: `src/features/${feature}/${endpoint}`,
+      generateReports: false,
+    };
+  }
+
+  // Handle feature targeting (hello)
+  return {
+    type: 'feature',
+    feature: target,
+    description: `${target} feature`,
+    path: `src/features/${target}`,
+    generateReports: true,
+  };
+}
+
+/**
  * Generic compliance validation command driven by specification.json specifications
  * @llm-rule WHEN: Ensuring generated code matches implementation specifications with configurable validation
  * @llm-rule AVOID: Fixed validation logic - adapt to any specification.json configuration
@@ -28,215 +102,158 @@ const log = createLogger('compliance');
 export default async function compliance(args) {
   const startTime = Date.now();
   const target = args[0];
-
-  // Determine validation scope
-  const validationScope = determineValidationScope(target);
-
-  log.validationStart('compliance', target, [
-    'implementation_loading',
-    'generic_reliability_validation',
-    'configurable_manifest_generation',
-    'feature_reporting_with_analysis',
-  ]);
+  const targetInfo = parseTarget(target);
 
   try {
-    // 1. Load implementation specifications
-    log.checkStart('Implementation specification loading');
+    // Validate target exists if specified
+    if (targetInfo.type !== 'all') {
+      const featuresPath = join(process.cwd(), 'src', 'features');
 
-    const implementationResult = await loadImplementationSpecs(target);
+      if (targetInfo.type === 'file') {
+        // Validate specific file exists
+        const filePath = join(
+          process.cwd(),
+          'src',
+          'features',
+          targetInfo.feature,
+          targetInfo.endpoint,
+          targetInfo.fileName
+        );
+        try {
+          await stat(filePath);
+        } catch (error) {
+          log.human(
+            `❌ File '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'feature-file') {
+        // Validate feature specification file exists
+        const filePath = join(
+          featuresPath,
+          targetInfo.feature,
+          `${targetInfo.feature}.${targetInfo.fileType}.${targetInfo.extension}`
+        );
+        try {
+          await stat(filePath);
+        } catch (error) {
+          log.human(`❌ Feature file '${targetInfo.path}' not found`);
+          return false;
+        }
+      } else if (targetInfo.type === 'endpoint') {
+        // Validate endpoint exists
+        const featurePath = join(featuresPath, targetInfo.feature);
+        const endpointPath = join(featurePath, targetInfo.endpoint);
+
+        try {
+          await stat(featurePath);
+          await stat(endpointPath);
+        } catch (error) {
+          log.human(
+            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
+          );
+          return false;
+        }
+      } else if (targetInfo.type === 'feature') {
+        // Validate feature exists
+        const featurePath = join(featuresPath, targetInfo.feature);
+
+        try {
+          await stat(featurePath);
+        } catch (error) {
+          log.human(`❌ Feature '${targetInfo.feature}' not found`);
+          return false;
+        }
+      }
+    }
+
+    // 1. Load implementation specifications
+    const implementationResult = await loadImplementationSpecs(
+      target,
+      targetInfo
+    );
 
     if (!implementationResult.success) {
-      log.checkFail(
-        'Implementation loading',
-        implementationResult.duration,
-        implementationResult.errors,
-        [
-          'Create {feature}.specification.json files',
-          'Ensure specification.json follows proper schema',
-          'Check file permissions and paths',
-        ]
-      );
+      log.human(`❌ Implementation loading failed`);
+      implementationResult.errors.forEach((error) => {
+        log.human(`   ${error}`);
+      });
       return false;
     }
 
-    log.checkPass('Implementation loading', implementationResult.duration, {
-      features_loaded: implementationResult.implementations.length,
-      total_endpoints: implementationResult.totalEndpoints,
-    });
-
     // 2. Generic reliability validation
-    log.checkStart('Configurable reliability validation');
-
     const reliabilityResult = await validateConfigurableReliability(
       implementationResult.implementations,
-      validationScope
+      targetInfo
     );
 
     if (!reliabilityResult.success) {
-      log.checkFail(
-        'Reliability validation',
-        reliabilityResult.duration,
-        reliabilityResult.errors,
-        [
-          'Fix contract compliance issues based on specification.json',
-          'Meet test coverage targets defined in validation_targets',
-          'Resolve TypeScript compilation errors',
-          'Address VoilaJSX pattern compliance issues',
-        ]
-      );
+      log.human(`❌ Reliability validation failed`);
+      reliabilityResult.errors.forEach((error) => {
+        log.human(`   ${error}`);
+      });
       return false;
     }
 
-    log.checkPass('Reliability validation', reliabilityResult.duration, {
-      endpoints_validated: reliabilityResult.endpointsValidated,
-      average_reliability: reliabilityResult.averageReliability,
-    });
-
     // 3. Generate configurable manifests
-    log.checkStart('Configurable manifest generation');
-
     const manifestResult = await generateConfigurableManifests(
       implementationResult.implementations,
       reliabilityResult.endpointReliability,
-      validationScope
+      targetInfo
     );
 
     if (!manifestResult.success) {
-      log.checkFail(
-        'Configurable manifest generation',
-        manifestResult.duration,
-        manifestResult.errors,
-        ['Check endpoint structure and reliability validation results']
-      );
+      log.human(`❌ Manifest generation failed`);
+      manifestResult.errors.forEach((error) => {
+        log.human(`   ${error}`);
+      });
       return false;
     }
 
-    log.checkPass('Configurable manifest generation', manifestResult.duration, {
-      manifests_generated: manifestResult.manifestsGenerated,
-      endpoints_documented: manifestResult.endpointsDocumented,
-    });
-
-    // 4. Generate enhanced feature reports
-    let reportResult = {
-      success: true,
-      reportsGenerated: 0,
-      featuresDocumented: 0,
-      reportPaths: [],
-      duration: 0,
-    };
-
-    if (validationScope.type !== 'endpoint') {
-      log.checkStart('Feature report generation with comprehensive analysis');
-
-      reportResult = await generateComprehensiveFeatureReports(
+    // 4. Feature reporting and comprehensive analysis
+    if (targetInfo.generateReports) {
+      const reportResult = await generateComprehensiveFeatureReports(
         implementationResult.implementations,
         reliabilityResult.endpointReliability,
-        manifestResult,
-        validationScope
+        targetInfo
       );
 
       if (!reportResult.success) {
-        log.checkFail(
-          'Feature report generation',
-          reportResult.duration,
-          reportResult.errors,
-          ['Check feature structure and reliability validation results']
-        );
+        log.human(`❌ Feature reporting failed`);
+        reportResult.errors.forEach((error) => {
+          log.human(`   ${error}`);
+        });
         return false;
       }
-
-      log.checkPass('Feature report generation', reportResult.duration, {
-        reports_generated: reportResult.reportsGenerated,
-        features_documented: reportResult.featuresDocumented,
-      });
-    } else {
-      log.human(
-        '⏭️  Skipping feature report generation for endpoint-level validation'
-      );
     }
 
-    // SUCCESS - All configurable compliance checks passed
-    const totalDuration = Date.now() - startTime;
-
-    log.validationComplete('compliance', 'success', totalDuration, {
-      total_features: implementationResult.implementations.length,
-      total_endpoints: implementationResult.totalEndpoints,
-      manifests: manifestResult.manifestsGenerated,
-      reports: reportResult.reportsGenerated,
-      scope: validationScope.type,
-    });
-
-    // Show comprehensive summary
-    showComprehensiveComplianceSummary(
-      implementationResult,
-      reliabilityResult,
-      manifestResult,
-      reportResult,
-      totalDuration,
-      validationScope
+    const duration = Date.now() - startTime;
+    log.human(
+      `✅ Compliance validation passed for ${targetInfo.description} (${duration}ms)`
     );
+
+    // Show summary
+    if (implementationResult.implementations.length > 0) {
+      log.human(
+        `📊 Validated ${implementationResult.totalEndpoints} endpoints across ${implementationResult.implementations.length} features`
+      );
+      log.human(
+        `📝 Generated ${manifestResult.manifestsGenerated || 0} manifests`
+      );
+
+      if (targetInfo.generateReports) {
+        log.human(`📋 Created comprehensive feature reports`);
+      }
+    }
 
     return true;
   } catch (error) {
-    const totalDuration = Date.now() - startTime;
-
-    log.error(
-      `Generic compliance validation crashed: ${error.message}`,
-      {
-        command: 'compliance',
-        error: error.message,
-        duration: totalDuration,
-        target,
-        scope: validationScope?.type,
-        stack: error.stack?.split('\n').slice(0, 3),
-      },
-      [
-        'Check if specification.json files exist and are valid',
-        'Verify generated code files are readable',
-        'Ensure specification.json follows expected schema',
-        'Check for missing validation_targets configuration',
-      ]
+    const duration = Date.now() - startTime;
+    log.human(
+      `❌ Compliance validation error (${duration}ms): ${error.message}`
     );
-
     return false;
   }
-}
-
-/**
- * Determine validation scope based on target argument
- * @llm-rule WHEN: Deciding between endpoint, feature, or full validation scope
- * @llm-rule AVOID: Wrong scope detection - causes over/under validation
- * @llm-rule NOTE: Endpoint: feature/endpoint, Feature: feature, Full: no target
- */
-function determineValidationScope(target) {
-  if (!target) {
-    return {
-      type: 'full',
-      description: 'complete project',
-      target: null,
-      generateReports: true,
-    };
-  }
-
-  if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
-    return {
-      type: 'endpoint',
-      description: 'endpoint-level',
-      target: target,
-      feature: feature,
-      endpoint: endpoint,
-      generateReports: false,
-    };
-  }
-
-  return {
-    type: 'feature',
-    description: 'feature-level',
-    target: target,
-    feature: target,
-    generateReports: true,
-  };
 }
 
 /**
@@ -245,7 +262,7 @@ function determineValidationScope(target) {
  * @llm-rule AVOID: Loading all implementations for endpoint-level validation
  * @llm-rule NOTE: Filters implementations based on validation scope for efficiency
  */
-async function loadImplementationSpecs(target) {
+async function loadImplementationSpecs(target, targetInfo) {
   const startTime = Date.now();
   const implementations = [];
   const errors = [];
@@ -260,37 +277,67 @@ async function loadImplementationSpecs(target) {
       // Full validation - load all features
       featuresToLoad = await readdir(featuresPath);
     } else {
-      // Feature or endpoint validation - load specific feature only
-      const featureName = target.split('/')[0];
+      // Feature, endpoint, or file validation - load specific feature only
+      const featureName = targetInfo.feature;
       featuresToLoad = [featureName];
     }
 
     for (const featureName of featuresToLoad) {
-      if (featureName.startsWith('_') || featureName.startsWith('.')) continue;
+      if (featureName.startsWith('_') || featureName.startsWith('.')) {
+        continue; // Skip system files and directories
+      }
 
-      const implementationFile = join(
-        featuresPath,
-        featureName,
-        `${featureName}.specification.json`
-      );
+      const featurePath = join(featuresPath, featureName);
 
       try {
-        await stat(implementationFile);
-        const content = await readFile(implementationFile, 'utf-8');
-        const implementation = JSON.parse(content);
+        const featureStat = await stat(featurePath);
+        if (!featureStat.isDirectory()) continue;
 
-        // Filter out _notes fields for validation
-        const validationData = filterNotesFields(implementation);
+        // Load feature specification
+        const specPath = join(featurePath, `${featureName}.specification.json`);
 
-        implementations.push({
-          feature: featureName,
-          spec: validationData,
-          filePath: implementationFile,
-        });
+        try {
+          const specContent = await readFile(specPath, 'utf-8');
+          const specification = JSON.parse(specContent);
 
-        totalEndpoints += Object.keys(validationData.endpoints || {}).length;
-      } catch (error) {
-        errors.push(`Feature '${featureName}': ${error.message}`);
+          // Validate specification has required structure
+          if (
+            !specification.implementation ||
+            !specification.implementation.endpoints
+          ) {
+            errors.push(
+              `${featureName}: specification.json missing implementation.endpoints`
+            );
+            continue;
+          }
+
+          // Filter endpoints based on validation scope if targeting specific endpoint or file
+          let endpointsToValidate = specification.implementation.endpoints;
+
+          if (targetInfo.type === 'endpoint' || targetInfo.type === 'file') {
+            endpointsToValidate = specification.implementation.endpoints.filter(
+              (endpoint) => endpoint.name === targetInfo.endpoint
+            );
+          }
+
+          const implementation = {
+            feature: featureName,
+            specification: specification,
+            endpoints: endpointsToValidate,
+            featurePath: featurePath,
+          };
+
+          implementations.push(implementation);
+          totalEndpoints += endpointsToValidate.length;
+        } catch (specError) {
+          errors.push(
+            `${featureName}: Failed to load specification.json - ${specError.message}`
+          );
+        }
+      } catch (featureError) {
+        errors.push(
+          `${featureName}: Failed to access feature directory - ${featureError.message}`
+        );
       }
     }
 
@@ -306,148 +353,8 @@ async function loadImplementationSpecs(target) {
       success: false,
       implementations: [],
       totalEndpoints: 0,
-      errors: [`Implementation loading failed: ${error.message}`],
+      errors: [`Failed to load features: ${error.message}`],
       duration: Date.now() - startTime,
     };
   }
-}
-
-/**
- * Filter out fields ending with _notes for pure validation data
- * @llm-rule WHEN: Preparing implementation data for validation checks
- * @llm-rule AVOID: Validating guidance fields - only validate concrete specifications
- * @llm-rule NOTE: Recursively removes all *_notes fields from nested objects
- */
-function filterNotesFields(obj) {
-  if (typeof obj !== 'object' || obj === null) return obj;
-
-  if (Array.isArray(obj)) {
-    return obj.map(filterNotesFields);
-  }
-
-  const filtered = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (!key.endsWith('_notes')) {
-      filtered[key] = filterNotesFields(value);
-    }
-  }
-
-  return filtered;
-}
-
-/**
- * Show comprehensive compliance summary with configuration details
- * @llm-rule WHEN: Displaying compliance results with configuration-driven insights
- * @llm-rule AVOID: Generic summaries - highlight configuration-driven validation
- * @llm-rule NOTE: Shows how specification.json drove the validation process
- */
-function showComprehensiveComplianceSummary(
-  implementationResult,
-  reliabilityResult,
-  manifestResult,
-  reportResult,
-  totalDuration,
-  validationScope
-) {
-  log.human('');
-  log.human('📊 Configurable Implementation Compliance Summary:');
-
-  if (validationScope.type === 'endpoint') {
-    log.human(
-      `   Scope: ${validationScope.description} (${validationScope.target})`
-    );
-    log.human(`   Endpoint validated: 1`);
-    log.human(`   Reliability score: ${reliabilityResult.averageReliability}%`);
-    log.human(
-      `   Configurable manifests: ${manifestResult.manifestsGenerated}`
-    );
-    log.human(`   Reports skipped: endpoint-level validation`);
-  } else {
-    log.human(`   Scope: ${validationScope.description}`);
-    log.human(
-      `   Features validated: ${implementationResult.implementations.length}`
-    );
-    log.human(`   Endpoints checked: ${implementationResult.totalEndpoints}`);
-    log.human(
-      `   Average reliability: ${reliabilityResult.averageReliability}%`
-    );
-    log.human(
-      `   Configurable manifests: ${manifestResult.manifestsGenerated}`
-    );
-    log.human(`   Comprehensive reports: ${reportResult.reportsGenerated}`);
-  }
-
-  log.human(`   Total time: ${totalDuration}ms`);
-  log.human(
-    `   Validation approach: Configuration-driven (specification.json)`
-  );
-
-  // Show reliability status
-  const allReliable = Array.from(
-    reliabilityResult.endpointReliability.values()
-  ).every((r) => r.overall_reliable);
-
-  if (allReliable) {
-    log.human('   Deployment status: ✅ READY FOR DEPLOYMENT');
-  } else {
-    log.human('   Deployment status: ❌ BLOCKED - Fix reliability issues');
-
-    // Show blocking issues
-    const blockingIssues = Array.from(
-      reliabilityResult.endpointReliability.values()
-    )
-      .flatMap((r) => r.blocking_issues)
-      .slice(0, 3);
-
-    if (blockingIssues.length > 0) {
-      log.human('   Blocking issues:');
-      blockingIssues.forEach((issue) => {
-        log.human(`     • ${issue}`);
-      });
-    }
-  }
-
-  log.human('');
-
-  // Show configuration-driven insights
-  log.human(' 🔧 Configuration-Driven Validation:');
-  log.human('   ✅ VoilaJSX patterns from specification.json');
-  log.human('   ✅ Reliability thresholds from validation_targets');
-  log.human('   ✅ Endpoint-specific requirements supported');
-  log.human('   ✅ Breaking change prevention configured');
-
-  log.human('');
-
-  // Show manifest paths
-  if (manifestResult.manifestPaths.length > 0) {
-    log.human(' 📄 Configurable manifests generated:');
-    manifestResult.manifestPaths.forEach((path) => {
-      const relativePath = path.replace(process.cwd() + '/', '');
-      log.human(`   └── ${relativePath}`);
-    });
-  }
-
-  // Show report paths
-  if (reportResult.reportPaths && reportResult.reportPaths.length > 0) {
-    log.human('');
-    log.human(' 📋 Comprehensive reports with configuration analysis:');
-    reportResult.reportPaths.forEach((path) => {
-      const relativePath = path.replace(process.cwd() + '/', '');
-      log.human(`   └── ${relativePath}`);
-    });
-  }
-
-  log.human('');
-
-  if (allReliable) {
-    log.human('✅ Configurable compliance validation completed successfully');
-    log.human(
-      '🚀 Code meets all specification.json requirements and is deployment-ready'
-    );
-  } else {
-    log.human('❌ Configurable compliance validation found reliability issues');
-    log.human('🔧 Fix blocking issues above before deployment');
-  }
-
-  log.human('');
 }
