@@ -96,8 +96,8 @@ When interpreting instruction steps, you'll encounter these action types. Each k
 ```yaml
 steps:
   - Log: 'TASK_1.1_START validate_schemas'
-  - Read: 'src/features/{feature}/{feature}.specification.json'
-  - Create: 'src/features/{feature}/main/main.contract.ts with VoilaJSX imports'
+  - Read: 'src/api/{feature}/{feature}.specification.json'
+  - Create: 'src/api/{feature}/main/main.contract.ts with VoilaJSX imports'
   - Run: 'npm run flux:contract {feature}/main'
   - Print: 'About to validate contract file using flux:contract command'
   - Condition: 'IF validation passes THEN continue, ELSE retry with fixes'
@@ -241,7 +241,7 @@ tasks:
     what: 'Create {feature} feature folder structure'
     steps:
       - Log: 'TASK_1_STARTED: Setting up folder structure'
-      - Create: 'src/features/{feature}/ directory'
+      - Create: 'src/api/{feature}/ directory'
       - Create: '{feature}.actions.log file'
       - Log: 'TASK_1_COMPLETE: Folder structure created'
     validation_after: 'none'

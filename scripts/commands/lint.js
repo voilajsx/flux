@@ -57,7 +57,7 @@ function parseTarget(target) {
       feature,
       endpoint,
       description: `${feature}/${endpoint} endpoint`,
-      path: `src/features/${feature}/${endpoint}`,
+      path: `src/api/${feature}/${endpoint}`,
     };
   }
 
@@ -66,7 +66,7 @@ function parseTarget(target) {
     type: 'feature',
     feature: target,
     description: `${target} feature`,
-    path: `src/features/${target}`,
+    path: `src/api/${target}`,
   };
 }
 
@@ -84,14 +84,14 @@ export default async function lint(commandArgs) {
   try {
     // Validate target exists if specified
     if (targetInfo.type !== 'all') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
+      const featuresPath = join(process.cwd(), 'src', 'api');
 
       if (targetInfo.type === 'file') {
         // Validate specific file exists - construct correct path
         const filePath = join(
           process.cwd(),
           'src',
-          'features',
+          'api',
           targetInfo.feature,
           targetInfo.endpoint,
           targetInfo.fileName
@@ -137,10 +137,10 @@ export default async function lint(commandArgs) {
     if (targetInfo.type === 'all') {
       violations = await lintAllFeatures();
     } else if (targetInfo.type === 'feature') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
+      const featuresPath = join(process.cwd(), 'src', 'api');
       violations = await lintFeature(featuresPath, targetInfo.feature);
     } else if (targetInfo.type === 'endpoint') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
+      const featuresPath = join(process.cwd(), 'src', 'api');
       violations = await lintEndpoint(
         featuresPath,
         targetInfo.feature,
@@ -150,7 +150,7 @@ export default async function lint(commandArgs) {
       const filePath = join(
         process.cwd(),
         'src',
-        'features',
+        'api',
         targetInfo.feature,
         targetInfo.endpoint,
         targetInfo.fileName
@@ -238,7 +238,7 @@ function getFileType(fileName) {
  */
 async function lintAllFeatures() {
   const violations = [];
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
     const features = await readdir(featuresPath);
@@ -297,7 +297,7 @@ async function lintFeature(featuresPath, featureName) {
   } catch (error) {
     violations.push({
       severity: 'error',
-      file: `src/features/${featureName}`,
+      file: `src/api/${featureName}`,
       message: `Cannot read feature directory: ${error.message}`,
       suggestion: 'Check directory permissions and structure',
     });
@@ -338,7 +338,7 @@ async function lintEndpoint(featuresPath, featureName, endpointName) {
   } catch (error) {
     violations.push({
       severity: 'error',
-      file: `src/features/${featureName}/${endpointName}`,
+      file: `src/api/${featureName}/${endpointName}`,
       message: `Cannot read endpoint directory: ${error.message}`,
       suggestion: 'Verify endpoint structure and file permissions',
     });

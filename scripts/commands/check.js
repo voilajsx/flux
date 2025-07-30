@@ -38,7 +38,11 @@ export default async function check(args) {
   }
   log.human('');
 
-  // Define validation sequence - order matters for dependency resolution
+  // Define validation sequence - reordered for optimal workflow:
+  // 1. types: Ensure compilation safety first
+  // 2. lint: Validate code standards and patterns
+  // 3. test: Verify functionality works
+  // 4. contract: Complete endpoint validation (contract-implementation consistency)
   const checks = [
     {
       name: 'types',
@@ -49,12 +53,12 @@ export default async function check(args) {
       description: 'Code standards and VoilaJSX patterns',
     },
     {
-      name: 'contract',
-      description: 'Contract compliance and helper validation',
-    },
-    {
       name: 'test',
       description: 'Functionality testing',
+    },
+    {
+      name: 'contract',
+      description: 'Complete endpoint validation and consistency',
     },
   ];
 
@@ -110,8 +114,6 @@ export default async function check(args) {
   }
 
   // All validation checks passed successfully
-  log.pipelineSuccess(Date.now() - totalStartTime, passedChecks, checks.length);
-
   printSuccessSummary(results, totalStartTime, validationScope);
   return true;
 }
@@ -182,32 +184,28 @@ function printSuccessSummary(results, totalStartTime, validationScope) {
   const totalDuration = Date.now() - totalStartTime;
 
   log.human('');
-  log.human('🎉 FLUX: All validation checks passed!');
-  log.human('');
 
-  // Validation scope summary
-  log.human(`📊 Validation Summary:`);
-  log.human(`   Scope: ${validationScope.scope}`);
-  log.human(`   Total Duration: ${totalDuration}ms`);
-  log.human(`   Checks Passed: ${results.length}/${results.length}`);
-  log.human('');
+  // Dynamic success message based on validation scope
+  let successMessage = '🎉 FLUX: ';
+  if (validationScope.type === 'endpoint') {
+    successMessage += `Endpoint ${validationScope.feature}/${validationScope.endpoint} validation completed!`;
+  } else if (validationScope.type === 'feature') {
+    successMessage += `Feature ${validationScope.feature} validation completed!`;
+  } else if (validationScope.type === 'file') {
+    successMessage += `File ${validationScope.target} validation completed!`;
+  } else {
+    successMessage += 'Complete application validation completed!';
+  }
 
-  // Per-check performance breakdown
-  log.human(`⚡ Performance Breakdown:`);
+  log.human(successMessage);
+
+  // Validation scope summary with performance breakdown
+  log.human(`📊 Summary: ${validationScope.scope} (${totalDuration}ms)`);
   results.forEach((result) => {
-    const emoji = result.status === 'passed' ? '✅' : '❌';
-    log.human(`   ${emoji} ${result.name}: ${result.duration}ms`);
+    log.human(`   ✅ ${result.name}: ${result.duration}ms`);
   });
 
   log.human('');
-  log.human('🚀 Ready for deployment or git operations!');
-
-  // Suggest next steps
-  if (validationScope.type !== 'full') {
-    log.human('💡 Run full validation with: npm run flux:check');
-  }
-
-  log.human('💡 Commit changes with: npm run flux:git commit');
 }
 
 /**
@@ -289,15 +287,15 @@ function showFailureHelp(command) {
       console.log('   • Ensure VoilaJSX .get() patterns are used');
       console.log('   • Check file naming conventions match FLUX standards');
       break;
-    case 'contract':
-      console.log('   • Ensure CONTRACT export exists in contract files');
-      console.log('   • Verify route handlers exist in logic files');
-      console.log('   • Check contract-implementation consistency');
-      break;
     case 'test':
       console.log('   • Fix failing tests shown above');
       console.log('   • Ensure test files exist for all endpoints');
       console.log('   • Check test coverage meets requirements');
+      break;
+    case 'contract':
+      console.log('   • Ensure CONTRACT export exists in contract files');
+      console.log('   • Verify route handlers exist in logic files');
+      console.log('   • Check contract-implementation consistency');
       break;
     case 'check':
       console.log('   • Fix the failing validation step shown above');

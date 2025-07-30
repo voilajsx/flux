@@ -36,6 +36,8 @@ const COMMANDS = {
   compliance: 'Implementation validation and manifest generation',
   manifest: 'Contract compliance validation and deployment readiness manifests',
   git: 'Smart git operations with FLUX context awareness',
+  docs: 'Generate API documentation (markdown + JSON for agents)',
+  uat: 'Run UAT tests against live endpoints with Playwright',
 };
 
 /**

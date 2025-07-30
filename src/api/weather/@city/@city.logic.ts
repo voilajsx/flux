@@ -43,7 +43,7 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
     // Extract city from URL parameter
     const city = req.params.city;
     
-    if (util.isEmpty(city)) {
+    if (util.isEmpty(city) || !city) {
       throw error.badRequest('City name is required');
     }
 
@@ -84,7 +84,7 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
     });
 
     const apiResponse = await axios.get(apiUrl, {
-      timeout: parseInt(process.env.API_TIMEOUT as string) || 5000,
+      timeout: parseInt(process.env.API_TIMEOUT || '5000'),
       headers: { 'User-Agent': 'WeatherApp/1.0' }
     });
 
@@ -97,7 +97,7 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
       wind_speed: apiResponse.data.wind.speed,
       requestId,
       timestamp: new Date().toISOString(),
-      source: 'OpenWeatherMap'
+      source: 'OpenWeatherMap' as const
     };
 
     // SUCCESS RESPONSE
@@ -118,14 +118,14 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
     // ERROR HANDLING - Map to specification error types
     logger.error('Request failed', {
       requestId,
-      error: err.message,
-      errorType: err.constructor.name,
+      error: err?.message || 'Unknown error',
+      errorType: err?.constructor?.name || 'Unknown',
       endpoint: 'weather/@city',
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined,
     });
 
     // Handle axios errors (API failures)
-    if (err.response) {
+    if (err?.response) {
       if (err.response.status === 404) {
         res.status(404).json({
           success: false,
@@ -150,7 +150,7 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
     }
 
     // Handle timeout errors
-    if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+    if (err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')) {
       res.status(504).json({
         success: false,
         error: 'Weather API timeout',
@@ -162,10 +162,10 @@ export async function getWeatherForCity(req: Request, res: Response): Promise<vo
     }
 
     // Handle VoilaJSX semantic errors (error.badRequest, error.notFound, etc.)
-    if (err.statusCode) {
+    if (err?.statusCode) {
       res.status(err.statusCode).json({
         success: false,
-        error: err.message,
+        error: err?.message || 'Request failed',
         requestId,
         timestamp: new Date().toISOString(),
       });

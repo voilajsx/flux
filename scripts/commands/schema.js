@@ -47,7 +47,7 @@ export default async function schema(args) {
           join(
             process.cwd(),
             'src',
-            'features',
+            'api',
             scope.feature,
             scope.endpoint,
             scope.fileName
@@ -161,10 +161,10 @@ async function validateSingleSchema(feature, schemaType) {
 
   // Check if feature exists
   if (!(await checkFeatureExists(feature))) {
-    throw new Error(`Feature '${feature}' not found in src/features/`);
+    throw new Error(`Feature '${feature}' not found in src/api/`);
   }
 
-  const featurePath = join(process.cwd(), 'src', 'features', feature);
+  const featurePath = join(process.cwd(), 'src', 'api', feature);
 
   switch (schemaType) {
     case 'requirements':
@@ -203,10 +203,10 @@ async function validateFeatureSchemas(feature) {
 
   // Check if feature exists
   if (!(await checkFeatureExists(feature))) {
-    throw new Error(`Feature '${feature}' not found in src/features/`);
+    throw new Error(`Feature '${feature}' not found in src/api/`);
   }
 
-  const featurePath = join(process.cwd(), 'src', 'features', feature);
+  const featurePath = join(process.cwd(), 'src', 'api', feature);
 
   // Validate the three main schema files
   const requirementsPath = join(featurePath, `${feature}.requirements.yml`);
@@ -232,7 +232,7 @@ async function validateFeatureSchemas(feature) {
  */
 async function validateAllSchemas() {
   const results = [];
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
     const features = await readdir(featuresPath);
@@ -341,7 +341,7 @@ async function validateManifestFile(filePath, feature, endpoint) {
  */
 async function validateFeatureContracts(feature) {
   const results = [];
-  const featurePath = join(process.cwd(), 'src', 'features', feature);
+  const featurePath = join(process.cwd(), 'src', 'api', feature);
 
   try {
     const items = await readdir(featurePath);
@@ -437,7 +437,7 @@ function reportResults(results, duration) {
  */
 async function checkFeatureExists(feature) {
   try {
-    const featurePath = join(process.cwd(), 'src', 'features', feature);
+    const featurePath = join(process.cwd(), 'src', 'api', feature);
     const featureStat = await stat(featurePath);
     return featureStat.isDirectory();
   } catch {
@@ -747,7 +747,7 @@ async function validateContractFile(filePath, feature, endpoint) {
       const specPath = join(
         process.cwd(),
         'src',
-        'features',
+        'api',
         feature,
         `${feature}.specification.json`
       );

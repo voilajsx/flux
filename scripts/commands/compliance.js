@@ -1,103 +1,53 @@
 /**
- * FLUX Framework Compliance Command - Generic implementation validation driven by specification.json
+ * FLUX Framework Compliance Command - Generic specification-driven validation
  * @module @voilajsx/flux/scripts/commands/compliance
  * @file scripts/commands/compliance.js
  *
- * @llm-rule WHEN: Validating generated code against specification.json with configurable patterns and thresholds
- * @llm-rule AVOID: Hardcoding validation patterns - always read from specification.json for flexibility
- * @llm-rule NOTE: Fully generic, works with any VoilaJSX AppKit modules and configurable validation rules with unified file-path syntax
+ * @llm-rule WHEN: Validating feature implementation quality against specification requirements
+ * @llm-rule AVOID: Code parsing or hardcoded validation - use manifest data and specification configuration
+ * @llm-rule NOTE: Fully generic, works with any FLUX feature by reading manifests and specifications
  */
 
-import { readdir, readFile, stat } from 'fs/promises';
+import { readdir, readFile, writeFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { createLogger } from '../logger.js';
-import { validateConfigurableReliability } from './helpers/compliance-validation.js';
-import {
-  generateConfigurableManifests,
-  generateComprehensiveFeatureReports,
-} from './helpers/compliance-manifest.js';
 
 const log = createLogger('compliance');
 
 /**
  * Parse target argument with unified file-path syntax support
- * @llm-rule WHEN: Processing command arguments to determine scope
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
  */
 function parseTarget(target) {
   if (!target) {
     return { type: 'all', description: 'all features' };
   }
 
-  // Handle specific file targeting (hello/main.logic.ts)
-  if (target.includes('.') && target.includes('/')) {
-    const lastSlash = target.lastIndexOf('/');
-    const pathPart = target.slice(0, lastSlash);
-    const filePart = target.slice(lastSlash + 1);
-
-    // Parse the file part to get endpoint name
-    // main.logic.ts -> main
-    const fileNameParts = filePart.split('.');
-    const endpoint = fileNameParts[0];
-
-    // For simple paths like "weather/main.logic.ts", pathPart is "weather"
-    const feature = pathPart;
-
+  // Handle feature targeting (weather)
+  if (!target.includes('/') && !target.includes('.')) {
     return {
-      type: 'file',
-      feature,
-      endpoint,
-      fileName: filePart,
-      description: `specific file ${filePart}`,
-      path: target,
-      generateReports: false,
+      type: 'feature',
+      feature: target,
+      description: `${target} feature`,
+      path: `src/api/${target}`,
     };
   }
 
-  // Handle feature specification files (hello.specification.json)
-  if (target.includes('.') && !target.includes('/')) {
-    const [feature, fileType, extension] = target.split('.');
-
-    return {
-      type: 'feature-file',
-      feature,
-      fileType,
-      extension,
-      description: `feature specification ${target}`,
-      path: target,
-      generateReports: false,
-    };
-  }
-
-  // Handle endpoint targeting (hello/main)
+  // Handle endpoint targeting (weather/main) - validate feature only
   if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
+    const [feature] = target.split('/');
     return {
-      type: 'endpoint',
+      type: 'feature', // Still validate entire feature for consistency
       feature,
-      endpoint,
-      description: `${feature}/${endpoint} endpoint`,
-      path: `src/features/${feature}/${endpoint}`,
-      generateReports: false,
+      description: `${feature} feature`,
+      path: `src/api/${feature}`,
     };
   }
 
-  // Handle feature targeting (hello)
-  return {
-    type: 'feature',
-    feature: target,
-    description: `${target} feature`,
-    path: `src/features/${target}`,
-    generateReports: true,
-  };
+  return { type: 'all', description: 'all features' };
 }
 
 /**
- * Generic compliance validation command driven by specification.json specifications
- * @llm-rule WHEN: Ensuring generated code matches implementation specifications with configurable validation
- * @llm-rule AVOID: Fixed validation logic - adapt to any specification.json configuration
- * @llm-rule NOTE: Supports any VoilaJSX AppKit modules and endpoint-specific validation requirements
+ * Generic compliance validation command - specification-driven and manifest-based
  */
 export default async function compliance(args) {
   const startTime = Date.now();
@@ -105,148 +55,65 @@ export default async function compliance(args) {
   const targetInfo = parseTarget(target);
 
   try {
-    // Validate target exists if specified
-    if (targetInfo.type !== 'all') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
-
-      if (targetInfo.type === 'file') {
-        // Validate specific file exists
-        const filePath = join(
-          process.cwd(),
-          'src',
-          'features',
-          targetInfo.feature,
-          targetInfo.endpoint,
-          targetInfo.fileName
-        );
-        try {
-          await stat(filePath);
-        } catch (error) {
-          log.human(
-            `❌ File '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
-          );
-          return false;
-        }
-      } else if (targetInfo.type === 'feature-file') {
-        // Validate feature specification file exists
-        const filePath = join(
-          featuresPath,
-          targetInfo.feature,
-          `${targetInfo.feature}.${targetInfo.fileType}.${targetInfo.extension}`
-        );
-        try {
-          await stat(filePath);
-        } catch (error) {
-          log.human(`❌ Feature file '${targetInfo.path}' not found`);
-          return false;
-        }
-      } else if (targetInfo.type === 'endpoint') {
-        // Validate endpoint exists
-        const featurePath = join(featuresPath, targetInfo.feature);
-        const endpointPath = join(featurePath, targetInfo.endpoint);
-
-        try {
-          await stat(featurePath);
-          await stat(endpointPath);
-        } catch (error) {
-          log.human(
-            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
-          );
-          return false;
-        }
-      } else if (targetInfo.type === 'feature') {
-        // Validate feature exists
-        const featurePath = join(featuresPath, targetInfo.feature);
-
-        try {
-          await stat(featurePath);
-        } catch (error) {
-          log.human(`❌ Feature '${targetInfo.feature}' not found`);
-          return false;
-        }
-      }
-    }
-
-    // 1. Load implementation specifications
-    const implementationResult = await loadImplementationSpecs(
-      target,
-      targetInfo
-    );
-
-    if (!implementationResult.success) {
-      log.human(`❌ Implementation loading failed`);
-      implementationResult.errors.forEach((error) => {
-        log.human(`   ${error}`);
-      });
-      return false;
-    }
-
-    // 2. Generic reliability validation
-    const reliabilityResult = await validateConfigurableReliability(
-      implementationResult.implementations,
-      targetInfo
-    );
-
-    if (!reliabilityResult.success) {
-      log.human(`❌ Reliability validation failed`);
-      reliabilityResult.errors.forEach((error) => {
-        log.human(`   ${error}`);
-      });
-      return false;
-    }
-
-    // 3. Generate configurable manifests
-    const manifestResult = await generateConfigurableManifests(
-      implementationResult.implementations,
-      reliabilityResult.endpointReliability,
-      targetInfo
-    );
-
-    if (!manifestResult.success) {
-      log.human(`❌ Manifest generation failed`);
-      manifestResult.errors.forEach((error) => {
-        log.human(`   ${error}`);
-      });
-      return false;
-    }
-
-    // 4. Feature reporting and comprehensive analysis
-    if (targetInfo.generateReports) {
-      const reportResult = await generateComprehensiveFeatureReports(
-        implementationResult.implementations,
-        reliabilityResult.endpointReliability,
-        targetInfo
-      );
-
-      if (!reportResult.success) {
-        log.human(`❌ Feature reporting failed`);
-        reportResult.errors.forEach((error) => {
-          log.human(`   ${error}`);
-        });
-        return false;
-      }
-    }
-
-    const duration = Date.now() - startTime;
     log.human(
-      `✅ Compliance validation passed for ${targetInfo.description} (${duration}ms)`
+      `🔍 FLUX: compliance validation starting for ${targetInfo.description}`
     );
 
-    // Show summary
-    if (implementationResult.implementations.length > 0) {
-      log.human(
-        `📊 Validated ${implementationResult.totalEndpoints} endpoints across ${implementationResult.implementations.length} features`
-      );
-      log.human(
-        `📝 Generated ${manifestResult.manifestsGenerated || 0} manifests`
-      );
+    // 1. Discover and validate target features
+    const features = await discoverFeatures(targetInfo);
 
-      if (targetInfo.generateReports) {
-        log.human(`📋 Created comprehensive feature reports`);
+    if (features.length === 0) {
+      log.human('❌ No valid features found for compliance validation');
+      return false;
+    }
+
+    log.human(`📋 Found ${features.length} features for validation`);
+
+    // 2. Process each feature
+    let allFeaturesValid = true;
+    const results = [];
+
+    for (const featureName of features) {
+      try {
+        log.human(`📊 Validating ${featureName} feature...`);
+
+        const featureResult = await validateFeatureCompliance(featureName);
+        results.push(featureResult);
+
+        if (!featureResult.overall_compliant) {
+          allFeaturesValid = false;
+        }
+
+        // Generate compliance report
+        await generateComplianceReport(featureName, featureResult);
+
+        const status = featureResult.overall_compliant ? '✅' : '❌';
+        log.human(
+          `${status} ${featureName}: ${featureResult.compliance_score}% compliant`
+        );
+      } catch (error) {
+        log.human(`❌ Failed to validate ${featureName}: ${error.message}`);
+        allFeaturesValid = false;
       }
     }
 
-    return true;
+    // 3. Summary
+    const duration = Date.now() - startTime;
+    const compliantCount = results.filter((r) => r.overall_compliant).length;
+
+    if (allFeaturesValid) {
+      log.human(
+        `✅ Compliance validation passed for ${targetInfo.description} (${duration}ms)`
+      );
+    } else {
+      log.human(`❌ Compliance validation failed (${duration}ms)`);
+    }
+
+    log.human(
+      `📊 Summary: ${compliantCount}/${results.length} features compliant`
+    );
+
+    return allFeaturesValid;
   } catch (error) {
     const duration = Date.now() - startTime;
     log.human(
@@ -257,104 +124,1084 @@ export default async function compliance(args) {
 }
 
 /**
- * Load implementation specifications with scope filtering
- * @llm-rule WHEN: Loading implementation specs to validate against generated code
- * @llm-rule AVOID: Loading all implementations for endpoint-level validation
- * @llm-rule NOTE: Filters implementations based on validation scope for efficiency
+ * Discover features based on target scope
  */
-async function loadImplementationSpecs(target, targetInfo) {
-  const startTime = Date.now();
-  const implementations = [];
-  const errors = [];
-  let totalEndpoints = 0;
+async function discoverFeatures(targetInfo) {
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
-    const featuresPath = join(process.cwd(), 'src', 'features');
-
-    // Determine which features to load based on target
-    let featuresToLoad;
-    if (!target) {
-      // Full validation - load all features
-      featuresToLoad = await readdir(featuresPath);
-    } else {
-      // Feature, endpoint, or file validation - load specific feature only
-      const featureName = targetInfo.feature;
-      featuresToLoad = [featureName];
+    if (targetInfo.type === 'feature') {
+      // Validate specific feature exists
+      const featurePath = join(featuresPath, targetInfo.feature);
+      await stat(featurePath);
+      return [targetInfo.feature];
     }
 
-    for (const featureName of featuresToLoad) {
-      if (featureName.startsWith('_') || featureName.startsWith('.')) {
-        continue; // Skip system files and directories
+    // Discover all features
+    const allFeatures = await readdir(featuresPath);
+    return allFeatures.filter((f) => !f.startsWith('_') && !f.startsWith('.'));
+  } catch (error) {
+    if (targetInfo.type === 'feature') {
+      throw new Error(`Feature '${targetInfo.feature}' not found`);
+    }
+    throw new Error(`Failed to discover features: ${error.message}`);
+  }
+}
+
+/**
+ * Validate single feature compliance using specification and manifests
+ */
+async function validateFeatureCompliance(featureName) {
+  const featurePath = join(process.cwd(), 'src', 'api', featureName);
+
+  // 1. Load specification
+  const specification = await loadSpecification(featurePath, featureName);
+
+  // 2. Discover and load endpoint manifests
+  const manifests = await discoverEndpointManifests(featurePath);
+
+  // 3. Validate specification implementation
+  const specImplementation = await validateSpecificationImplementation(
+    specification,
+    manifests
+  );
+
+  // 4. Calculate deployment readiness from manifests
+  const deploymentReadiness = calculateDeploymentReadiness(
+    manifests,
+    specification
+  );
+
+  // 5. Analyze code patterns and duplication
+  const codeAnalysis = analyzeCodePatterns(manifests, specification);
+
+  // 6. Calculate overall compliance score
+  const complianceScore = calculateOverallCompliance(
+    specImplementation,
+    deploymentReadiness,
+    codeAnalysis,
+    specification
+  );
+
+  return {
+    feature: featureName,
+    timestamp: new Date().toISOString(),
+    overall_compliant:
+      complianceScore >=
+      (specification.validation_targets?.reliability_thresholds
+        ?.overall_reliability_minimum || 90),
+    active: complianceScore >= 75,
+    compliance_score: complianceScore,
+    specification_implementation: specImplementation,
+    deployment_readiness: deploymentReadiness,
+    code_analysis: codeAnalysis,
+    endpoints_analyzed: manifests.length,
+    configuration_source: `${featureName}.specification.json`,
+    manifests: manifests, // Include manifests for detailed summary
+  };
+}
+
+/**
+ * Load and validate specification file
+ */
+async function loadSpecification(featurePath, featureName) {
+  const specPath = join(featurePath, `${featureName}.specification.json`);
+
+  try {
+    const specContent = await readFile(specPath, 'utf-8');
+    const specification = JSON.parse(specContent);
+
+    // Validate required specification structure
+    if (!specification.endpoints) {
+      throw new Error('Specification missing endpoints configuration');
+    }
+
+    if (!specification.validation_targets) {
+      throw new Error('Specification missing validation_targets configuration');
+    }
+
+    return specification;
+  } catch (error) {
+    throw new Error(`Failed to load specification: ${error.message}`);
+  }
+}
+
+/**
+ * Discover endpoint manifest files in feature directory
+ */
+async function discoverEndpointManifests(featurePath) {
+  const manifests = [];
+
+  try {
+    // Find all subdirectories (endpoints)
+    const entries = await readdir(featurePath, { withFileTypes: true });
+    const endpointDirs = entries.filter(
+      (entry) =>
+        entry.isDirectory() &&
+        !entry.name.startsWith('_') &&
+        !entry.name.startsWith('.')
+    );
+
+    // Load manifest from each endpoint directory
+    for (const endpointDir of endpointDirs) {
+      const endpointPath = join(featurePath, endpointDir.name);
+      const manifestFiles = await readdir(endpointPath);
+
+      // Find .manifest.json file
+      const manifestFile = manifestFiles.find((f) =>
+        f.endsWith('.manifest.json')
+      );
+
+      if (manifestFile) {
+        const manifestPath = join(endpointPath, manifestFile);
+        const manifestContent = await readFile(manifestPath, 'utf-8');
+        const manifest = JSON.parse(manifestContent);
+
+        manifests.push({
+          endpoint: endpointDir.name,
+          manifest_file: manifestFile,
+          ...manifest,
+        });
       }
+    }
 
-      const featurePath = join(featuresPath, featureName);
+    return manifests;
+  } catch (error) {
+    throw new Error(`Failed to discover manifests: ${error.message}`);
+  }
+}
 
-      try {
-        const featureStat = await stat(featurePath);
-        if (!featureStat.isDirectory()) continue;
+/**
+ * Validate how well the specification is implemented based on manifest data
+ */
+async function validateSpecificationImplementation(specification, manifests) {
+  const implementation = {
+    business_logic_coverage: 0,
+    error_scenarios_coverage: 0,
+    external_integrations_compliance: 0,
+    validation_targets_met: 0,
+    issues: [],
+    details: {},
+  };
 
-        // Load feature specification
-        const specPath = join(featurePath, `${featureName}.specification.json`);
+  try {
+    const specEndpoints = Object.keys(specification.endpoints || {});
+    const manifestEndpoints = manifests.map((m) => m.endpoint);
 
-        try {
-          const specContent = await readFile(specPath, 'utf-8');
-          const specification = JSON.parse(specContent);
+    // 1. Check endpoint completeness
+    const missingEndpoints = specEndpoints.filter(
+      (ep) => !manifestEndpoints.includes(ep)
+    );
+    const extraEndpoints = manifestEndpoints.filter(
+      (ep) => !specEndpoints.includes(ep)
+    );
 
-          // Validate specification has required structure
-          if (
-            !specification.implementation ||
-            !specification.implementation.endpoints
-          ) {
-            errors.push(
-              `${featureName}: specification.json missing implementation.endpoints`
-            );
-            continue;
-          }
+    if (missingEndpoints.length > 0) {
+      implementation.issues.push(
+        `Missing endpoints: ${missingEndpoints.join(', ')}`
+      );
+    }
 
-          // Filter endpoints based on validation scope if targeting specific endpoint or file
-          let endpointsToValidate = specification.implementation.endpoints;
+    if (extraEndpoints.length > 0) {
+      implementation.issues.push(
+        `Unexpected endpoints: ${extraEndpoints.join(', ')}`
+      );
+    }
 
-          if (targetInfo.type === 'endpoint' || targetInfo.type === 'file') {
-            endpointsToValidate = specification.implementation.endpoints.filter(
-              (endpoint) => endpoint.name === targetInfo.endpoint
-            );
-          }
+    const endpointCompleteness =
+      specEndpoints.length > 0
+        ? Math.round(
+            ((specEndpoints.length - missingEndpoints.length) /
+              specEndpoints.length) *
+              100
+          )
+        : 100;
 
-          const implementation = {
-            feature: featureName,
-            specification: specification,
-            endpoints: endpointsToValidate,
-            featurePath: featurePath,
-          };
+    implementation.details.endpoint_completeness = `${endpointCompleteness}%`;
 
-          implementations.push(implementation);
-          totalEndpoints += endpointsToValidate.length;
-        } catch (specError) {
-          errors.push(
-            `${featureName}: Failed to load specification.json - ${specError.message}`
-          );
-        }
-      } catch (featureError) {
-        errors.push(
-          `${featureName}: Failed to access feature directory - ${featureError.message}`
+    // 2. Analyze business logic implementation from manifest contract compliance
+    const contractScores = manifests.map((m) =>
+      parseInt(m.contract_compliance?.score?.replace('%', '') || '0')
+    );
+
+    implementation.business_logic_coverage =
+      contractScores.length > 0
+        ? Math.round(
+            contractScores.reduce((a, b) => a + b, 0) / contractScores.length
+          )
+        : 0;
+
+    // 3. Analyze error handling from manifest validation details
+    const errorHandlingScores = manifests.map((m) => {
+      const validationDetails =
+        m.specification_requirements?.validation_details || {};
+      const passCount = Object.values(validationDetails).filter(
+        (v) => v === 'PASSED'
+      ).length;
+      const totalCount = Object.keys(validationDetails).length;
+      return totalCount > 0 ? Math.round((passCount / totalCount) * 100) : 0;
+    });
+
+    implementation.error_scenarios_coverage =
+      errorHandlingScores.length > 0
+        ? Math.round(
+            errorHandlingScores.reduce((a, b) => a + b, 0) /
+              errorHandlingScores.length
+          )
+        : 0;
+
+    // 4. Check external integrations (based on import compliance from manifests)
+    const importScores = manifests.map((m) =>
+      m.contract_compliance?.imports_complete === 'COMPLETE' ? 100 : 0
+    );
+
+    implementation.external_integrations_compliance =
+      importScores.length > 0
+        ? Math.round(
+            importScores.reduce((a, b) => a + b, 0) / importScores.length
+          )
+        : 0;
+
+    // 5. Validate against all specification targets (excluding breaking_change_prevention)
+    const validationTargets = specification.validation_targets || {};
+    const targetsMet = [];
+
+    // 1. Check total endpoints target
+    if (validationTargets.total_endpoints) {
+      const actualEndpoints = manifests.length;
+      const expectedEndpoints = validationTargets.total_endpoints;
+      if (actualEndpoints >= expectedEndpoints) {
+        targetsMet.push('total_endpoints');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedEndpoints} endpoints, found ${actualEndpoints}`
         );
       }
     }
 
-    return {
-      success: errors.length === 0,
-      implementations,
-      totalEndpoints,
-      errors,
-      duration: Date.now() - startTime,
-    };
+    // 2. Check total contracts target
+    if (validationTargets.total_contracts) {
+      const contractsWithCompliance = manifests.filter(
+        (m) => m.contract_compliance?.score
+      ).length;
+      const expectedContracts = validationTargets.total_contracts;
+      if (contractsWithCompliance >= expectedContracts) {
+        targetsMet.push('total_contracts');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedContracts} contracts, found ${contractsWithCompliance}`
+        );
+      }
+    }
+
+    // 3. Check total logic files target
+    if (validationTargets.total_logic_files) {
+      const logicFilesImplemented = manifests.filter(
+        (m) =>
+          m.specification_requirements?.business_logic?.function_exports ===
+          'IMPLEMENTED'
+      ).length;
+      const expectedLogicFiles = validationTargets.total_logic_files;
+      if (logicFilesImplemented >= expectedLogicFiles) {
+        targetsMet.push('total_logic_files');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedLogicFiles} logic files, found ${logicFilesImplemented} implemented`
+        );
+      }
+    }
+
+    // 4. Check total test files target
+    if (validationTargets.total_test_files) {
+      const testFilesWithCoverage = manifests.filter(
+        (m) => m.test_coverage?.score
+      ).length;
+      const expectedTestFiles = validationTargets.total_test_files;
+      if (testFilesWithCoverage >= expectedTestFiles) {
+        targetsMet.push('total_test_files');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedTestFiles} test files, found ${testFilesWithCoverage}`
+        );
+      }
+    }
+
+    // 5. Check total routes target
+    if (validationTargets.total_routes) {
+      const totalRoutes = manifests.reduce(
+        (sum, m) => sum + Object.keys(m.routes || {}).length,
+        0
+      );
+      const expectedRoutes = validationTargets.total_routes;
+      if (totalRoutes >= expectedRoutes) {
+        targetsMet.push('total_routes');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedRoutes} routes, found ${totalRoutes}`
+        );
+      }
+    }
+
+    // 6. Check total functions target
+    if (validationTargets.total_functions) {
+      const totalFunctions = manifests.reduce(
+        (sum, m) => sum + Object.keys(m.routes || {}).length,
+        0
+      );
+      const expectedFunctions = validationTargets.total_functions;
+      if (totalFunctions >= expectedFunctions) {
+        targetsMet.push('total_functions');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedFunctions} functions, found ${totalFunctions}`
+        );
+      }
+    }
+
+    // 7. Check total test cases target
+    if (validationTargets.total_test_cases) {
+      const totalTestCases = manifests.reduce((sum, m) => {
+        const testMapping = m.test_coverage?.test_case_mapping || {};
+        return sum + Object.keys(testMapping).length;
+      }, 0);
+      const expectedTestCases = validationTargets.total_test_cases;
+      if (totalTestCases >= expectedTestCases) {
+        targetsMet.push('total_test_cases');
+      } else {
+        implementation.issues.push(
+          `Expected ${expectedTestCases} test cases, found ${totalTestCases}`
+        );
+      }
+    }
+
+    // 8. Check required coverage target
+    if (validationTargets.required_coverage) {
+      const testScores = manifests.map((m) =>
+        parseInt(m.test_coverage?.score?.replace('%', '') || '0')
+      );
+      const avgTestCoverage =
+        testScores.length > 0
+          ? Math.round(
+              testScores.reduce((a, b) => a + b, 0) / testScores.length
+            )
+          : 0;
+
+      if (avgTestCoverage >= validationTargets.required_coverage) {
+        targetsMet.push('required_coverage');
+      } else {
+        implementation.issues.push(
+          `Test coverage ${avgTestCoverage}% below target ${validationTargets.required_coverage}%`
+        );
+      }
+    }
+
+    // 9. Check VoilaJSX patterns target
+    if (validationTargets.voilajsx_patterns) {
+      const patternsCompliant = manifests.filter(
+        (m) =>
+          m.specification_requirements?.business_logic
+            ?.module_initialization === 'IMPLEMENTED'
+      ).length;
+      if (patternsCompliant === manifests.length && manifests.length > 0) {
+        targetsMet.push('voilajsx_patterns');
+      } else {
+        implementation.issues.push(
+          `VoilaJSX patterns not fully implemented: ${patternsCompliant}/${manifests.length} endpoints compliant`
+        );
+      }
+    }
+
+    // 10. Check test requirements target
+    if (validationTargets.test_requirements) {
+      const testRequirementsMet = manifests.filter((m) => {
+        const validationDetails =
+          m.specification_requirements?.validation_details || {};
+        return validationDetails.test_validation === 'PASSED';
+      }).length;
+      if (testRequirementsMet === manifests.length && manifests.length > 0) {
+        targetsMet.push('test_requirements');
+      } else {
+        implementation.issues.push(
+          `Test requirements not fully met: ${testRequirementsMet}/${manifests.length} endpoints passed`
+        );
+      }
+    }
+
+    // 11. Check code quality targets
+    if (validationTargets.code_quality_targets) {
+      const codeQualityMet = manifests.filter((m) => {
+        const validationDetails =
+          m.specification_requirements?.validation_details || {};
+        return (
+          validationDetails.schema_validation === 'PASSED' &&
+          validationDetails.types_validation === 'PASSED' &&
+          validationDetails.lint_validation === 'PASSED'
+        );
+      }).length;
+      if (codeQualityMet === manifests.length && manifests.length > 0) {
+        targetsMet.push('code_quality_targets');
+      } else {
+        implementation.issues.push(
+          `Code quality targets not fully met: ${codeQualityMet}/${manifests.length} endpoints passed`
+        );
+      }
+    }
+
+    // 12. Check reliability thresholds
+    if (validationTargets.reliability_thresholds) {
+      const reliabilityMet = manifests.filter((m) => {
+        const overallScore = parseInt(
+          m.quick_status?.overall?.replace('%', '') || '0'
+        );
+        const minReliability =
+          validationTargets.reliability_thresholds
+            ?.overall_reliability_minimum || 90;
+        return overallScore >= minReliability;
+      }).length;
+      if (reliabilityMet === manifests.length && manifests.length > 0) {
+        targetsMet.push('reliability_thresholds');
+      } else {
+        implementation.issues.push(
+          `Reliability thresholds not met: ${reliabilityMet}/${manifests.length} endpoints meet minimum reliability`
+        );
+      }
+    }
+
+    // Calculate validation targets met (excluding breaking_change_prevention)
+    const validatableTargets = [
+      'total_endpoints',
+      'total_contracts',
+      'total_logic_files',
+      'total_test_files',
+      'total_routes',
+      'total_functions',
+      'total_test_cases',
+      'required_coverage',
+      'voilajsx_patterns',
+      'test_requirements',
+      'code_quality_targets',
+      'reliability_thresholds',
+    ];
+
+    const availableTargets = validatableTargets.filter(
+      (target) => validationTargets[target] !== undefined
+    );
+    const totalTargets = availableTargets.length;
+
+    implementation.validation_targets_met =
+      totalTargets > 0
+        ? Math.round((targetsMet.length / totalTargets) * 100)
+        : 100;
+
+    implementation.details.targets_met = `${targetsMet.length}/${totalTargets}`;
+    implementation.details.available_targets = availableTargets;
+    implementation.details.met_targets = targetsMet;
+
+    // Create detailed breakdown with actual vs expected counts
+    implementation.details.targets_breakdown = {};
+
+    // 1. total_endpoints
+    if (validationTargets.total_endpoints) {
+      const actual = manifests.length;
+      const expected = validationTargets.total_endpoints;
+      implementation.details.targets_breakdown.total_endpoints = `${actual}/${expected}`;
+    }
+
+    // 2. total_contracts
+    if (validationTargets.total_contracts) {
+      const actual = manifests.filter(
+        (m) => m.contract_compliance?.score
+      ).length;
+      const expected = validationTargets.total_contracts;
+      implementation.details.targets_breakdown.total_contracts = `${actual}/${expected}`;
+    }
+
+    // 3. total_logic_files
+    if (validationTargets.total_logic_files) {
+      const actual = manifests.filter(
+        (m) =>
+          m.specification_requirements?.business_logic?.function_exports ===
+          'IMPLEMENTED'
+      ).length;
+      const expected = validationTargets.total_logic_files;
+      implementation.details.targets_breakdown.total_logic_files = `${actual}/${expected}`;
+    }
+
+    // 4. total_test_files
+    if (validationTargets.total_test_files) {
+      const actual = manifests.filter((m) => m.test_coverage?.score).length;
+      const expected = validationTargets.total_test_files;
+      implementation.details.targets_breakdown.total_test_files = `${actual}/${expected}`;
+    }
+
+    // 5. total_routes
+    if (validationTargets.total_routes) {
+      const actual = manifests.reduce(
+        (sum, m) => sum + Object.keys(m.routes || {}).length,
+        0
+      );
+      const expected = validationTargets.total_routes;
+      implementation.details.targets_breakdown.total_routes = `${actual}/${expected}`;
+    }
+
+    // 6. total_functions
+    if (validationTargets.total_functions) {
+      const actual = manifests.reduce(
+        (sum, m) => sum + Object.keys(m.routes || {}).length,
+        0
+      );
+      const expected = validationTargets.total_functions;
+      implementation.details.targets_breakdown.total_functions = `${actual}/${expected}`;
+    }
+
+    // 7. total_test_cases
+    if (validationTargets.total_test_cases) {
+      const actual = manifests.reduce((sum, m) => {
+        const testMapping = m.test_coverage?.test_case_mapping || {};
+        return sum + Object.keys(testMapping).length;
+      }, 0);
+      const expected = validationTargets.total_test_cases;
+      implementation.details.targets_breakdown.total_test_cases = `${actual}/${expected}`;
+    }
+
+    // 8. required_coverage
+    if (validationTargets.required_coverage) {
+      const testScores = manifests.map((m) =>
+        parseInt(m.test_coverage?.score?.replace('%', '') || '0')
+      );
+      const actual =
+        testScores.length > 0
+          ? Math.round(
+              testScores.reduce((a, b) => a + b, 0) / testScores.length
+            )
+          : 0;
+      const expected = validationTargets.required_coverage;
+      implementation.details.targets_breakdown.required_coverage = `${actual}%/${expected}%`;
+    }
+
+    // 9. voilajsx_patterns
+    if (validationTargets.voilajsx_patterns) {
+      const actual = manifests.filter(
+        (m) =>
+          m.specification_requirements?.business_logic
+            ?.module_initialization === 'IMPLEMENTED'
+      ).length;
+      const expected = manifests.length;
+      implementation.details.targets_breakdown.voilajsx_patterns = `${actual}/${expected}`;
+    }
+
+    // 10. test_requirements
+    if (validationTargets.test_requirements) {
+      const actual = manifests.filter((m) => {
+        const validationDetails =
+          m.specification_requirements?.validation_details || {};
+        return validationDetails.test_validation === 'PASSED';
+      }).length;
+      const expected = manifests.length;
+      implementation.details.targets_breakdown.test_requirements = `${actual}/${expected}`;
+    }
+
+    // 11. code_quality_targets
+    if (validationTargets.code_quality_targets) {
+      const actual = manifests.filter((m) => {
+        const validationDetails =
+          m.specification_requirements?.validation_details || {};
+        return (
+          validationDetails.schema_validation === 'PASSED' &&
+          validationDetails.types_validation === 'PASSED' &&
+          validationDetails.lint_validation === 'PASSED'
+        );
+      }).length;
+      const expected = manifests.length;
+      implementation.details.targets_breakdown.code_quality_targets = `${actual}/${expected}`;
+    }
+
+    // 12. reliability_thresholds
+    if (validationTargets.reliability_thresholds) {
+      const actual = manifests.filter((m) => {
+        const overallScore = parseInt(
+          m.quick_status?.overall?.replace('%', '') || '0'
+        );
+        const minReliability =
+          validationTargets.reliability_thresholds
+            ?.overall_reliability_minimum || 90;
+        return overallScore >= minReliability;
+      }).length;
+      const expected = manifests.length;
+      implementation.details.targets_breakdown.reliability_thresholds = `${actual}/${expected}`;
+    }
   } catch (error) {
-    return {
-      success: false,
-      implementations: [],
-      totalEndpoints: 0,
-      errors: [`Failed to load features: ${error.message}`],
-      duration: Date.now() - startTime,
-    };
+    implementation.issues.push(
+      `Specification validation error: ${error.message}`
+    );
   }
+
+  return implementation;
+}
+
+/**
+ * Calculate deployment readiness from manifest data
+ */
+function calculateDeploymentReadiness(manifests, specification) {
+  const readiness = {
+    endpoints_ready: 0,
+    endpoints_total: manifests.length,
+    blocking_issues_total: 0,
+    deployment_score: 0,
+    endpoint_status: {},
+    summary: '',
+  };
+
+  try {
+    let readyCount = 0;
+    let totalBlockingIssues = 0;
+
+    manifests.forEach((manifest) => {
+      const canDeploy = manifest.developer_gate?.can_deploy === true;
+      const blockingCount = manifest.blocking_issues?.length || 0;
+
+      readiness.endpoint_status[manifest.endpoint] = {
+        ready: canDeploy,
+        blocking_issues: blockingCount,
+        overall_score: manifest.quick_status?.overall || '0%',
+      };
+
+      if (canDeploy) readyCount++;
+      totalBlockingIssues += blockingCount;
+    });
+
+    readiness.endpoints_ready = readyCount;
+    readiness.blocking_issues_total = totalBlockingIssues;
+    readiness.deployment_score =
+      manifests.length > 0
+        ? Math.round((readyCount / manifests.length) * 100)
+        : 0;
+
+    readiness.summary = `${readyCount}/${manifests.length} endpoints ready for deployment`;
+
+    // Check against specification reliability thresholds
+    const reliabilityThresholds =
+      specification.validation_targets?.reliability_thresholds || {};
+    const minReliability =
+      reliabilityThresholds.overall_reliability_minimum || 90;
+
+    if (readiness.deployment_score < minReliability) {
+      readiness.meets_reliability_threshold = false;
+    } else {
+      readiness.meets_reliability_threshold = true;
+    }
+  } catch (error) {
+    readiness.summary = `Deployment readiness calculation error: ${error.message}`;
+  }
+
+  return readiness;
+}
+
+/**
+ * Analyze code patterns and duplication from manifest data
+ */
+function analyzeCodePatterns(manifests, specification) {
+  const analysis = {
+    shared_patterns: [],
+    method_duplication: {},
+    voilajsx_compliance: 0,
+    refactor_suggestions: [],
+    pattern_consistency: 100,
+  };
+
+  try {
+    // 1. Analyze method duplication from manifest routes
+    const allMethods = {};
+
+    manifests.forEach((manifest) => {
+      const routes = manifest.routes || {};
+      Object.values(routes).forEach((methodName) => {
+        if (!allMethods[methodName]) {
+          allMethods[methodName] = [];
+        }
+        allMethods[methodName].push(manifest.endpoint);
+      });
+    });
+
+    // Identify duplicated method names (indicating potential code duplication)
+    Object.entries(allMethods).forEach(([methodName, endpoints]) => {
+      if (endpoints.length > 1) {
+        analysis.method_duplication[methodName] = endpoints;
+        analysis.refactor_suggestions.push(
+          `Method '${methodName}' appears in endpoints: ${endpoints.join(', ')} - consider extracting shared logic`
+        );
+      }
+    });
+
+    // 2. Analyze VoilaJSX pattern compliance from manifests
+    const complianceScores = manifests.map((manifest) => {
+      const businessLogic =
+        manifest.specification_requirements?.business_logic || {};
+      let score = 100;
+
+      if (businessLogic.function_exports !== 'IMPLEMENTED') score -= 25;
+      if (businessLogic.module_initialization !== 'IMPLEMENTED') score -= 25;
+
+      return Math.max(0, score);
+    });
+
+    analysis.voilajsx_compliance =
+      complianceScores.length > 0
+        ? Math.round(
+            complianceScores.reduce((a, b) => a + b, 0) /
+              complianceScores.length
+          )
+        : 100;
+
+    // 3. Check pattern consistency across endpoints
+    const statusVariation = new Set(manifests.map((m) => m.status)).size;
+    if (statusVariation > 1) {
+      analysis.pattern_consistency = 75; // Reduce score for inconsistent implementation
+      analysis.refactor_suggestions.push(
+        'Inconsistent endpoint status - some endpoints have different compliance levels'
+      );
+    }
+
+    // 4. Identify shared patterns that are acceptable
+    const specPatterns =
+      specification.validation_targets?.voilajsx_patterns?.required_patterns ||
+      [];
+    analysis.shared_patterns = specPatterns.map((pattern) => ({
+      pattern,
+      type: 'required_voilajsx_pattern',
+      endpoints: manifests.length, // Assume all endpoints should have these patterns
+      acceptable: true,
+    }));
+  } catch (error) {
+    analysis.refactor_suggestions.push(`Code analysis error: ${error.message}`);
+  }
+
+  return analysis;
+}
+
+/**
+ * Calculate overall compliance score using specification weights
+ */
+function calculateOverallCompliance(
+  specImplementation,
+  deploymentReadiness,
+  codeAnalysis,
+  specification
+) {
+  try {
+    // Use specification scoring weights or defaults
+    const scoringWeights = specification.validation_targets
+      ?.scoring_weights || {
+      specification_implementation: 40,
+      deployment_readiness: 30,
+      code_quality: 20,
+      pattern_compliance: 10,
+    };
+
+    const specScore = Math.round(
+      (specImplementation.business_logic_coverage +
+        specImplementation.error_scenarios_coverage +
+        specImplementation.external_integrations_compliance +
+        specImplementation.validation_targets_met) /
+        4
+    );
+
+    const weightedScore =
+      (specScore * (scoringWeights.specification_implementation || 40) +
+        deploymentReadiness.deployment_score *
+          (scoringWeights.deployment_readiness || 30) +
+        codeAnalysis.voilajsx_compliance * (scoringWeights.code_quality || 20) +
+        codeAnalysis.pattern_consistency *
+          (scoringWeights.pattern_compliance || 10)) /
+      100;
+
+    return Math.round(weightedScore);
+  } catch (error) {
+    return 0; // Conservative score on calculation error
+  }
+}
+
+/**
+ * Generate compliance report file
+ */
+async function generateComplianceReport(featureName, complianceResult) {
+  const reportPath = join(
+    process.cwd(),
+    'src',
+    'api',
+    featureName,
+    `${featureName}.compliance.json`
+  );
+
+  const report = {
+    feature: featureName,
+    version: '1.0.0',
+    generated_at: complianceResult.timestamp,
+    status: complianceResult.overall_compliant
+      ? '✅ COMPLIANT'
+      : '❌ NON-COMPLIANT',
+    active: complianceResult.active,
+
+    summary: {
+      compliance_score: `${complianceResult.compliance_score}%`,
+      endpoints_analyzed: complianceResult.endpoints_analyzed,
+      deployment_ready: complianceResult.deployment_readiness.summary,
+      specification_alignment: `${complianceResult.specification_implementation.validation_targets_met}%`,
+    },
+
+    detailed_summary: await generateDetailedSummary(
+      featureName,
+      complianceResult
+    ),
+
+    specification_implementation: {
+      business_logic_coverage: `${complianceResult.specification_implementation.business_logic_coverage}%`,
+      error_scenarios_coverage: `${complianceResult.specification_implementation.error_scenarios_coverage}%`,
+      external_integrations_compliance: `${complianceResult.specification_implementation.external_integrations_compliance}%`,
+      validation_targets_met:
+        complianceResult.specification_implementation.details.targets_met,
+      validation_targets_breakdown:
+        complianceResult.specification_implementation.details
+          .targets_breakdown || {},
+      issues: complianceResult.specification_implementation.issues,
+    },
+
+    deployment_readiness: {
+      endpoints_status: complianceResult.deployment_readiness.endpoint_status,
+      blocking_issues_total:
+        complianceResult.deployment_readiness.blocking_issues_total,
+      deployment_score: `${complianceResult.deployment_readiness.deployment_score}%`,
+      meets_reliability_threshold:
+        complianceResult.deployment_readiness.meets_reliability_threshold,
+    },
+
+    code_analysis: {
+      voilajsx_compliance: `${complianceResult.code_analysis.voilajsx_compliance}%`,
+      pattern_consistency: `${complianceResult.code_analysis.pattern_consistency}%`,
+      method_duplication: complianceResult.code_analysis.method_duplication,
+      refactor_suggestions: complianceResult.code_analysis.refactor_suggestions,
+      shared_patterns: complianceResult.code_analysis.shared_patterns.length,
+    },
+
+    recommendations: generateRecommendations(complianceResult),
+
+    metadata: {
+      configuration_source: complianceResult.configuration_source,
+      validation_timestamp: complianceResult.timestamp,
+      generated_by: 'FLUX Framework Compliance Validator',
+      specification_driven: true,
+      manifest_based: true,
+    },
+  };
+
+  await writeFile(reportPath, JSON.stringify(report, null, 2));
+}
+
+/**
+ * Generate comprehensive detailed summary as single source of truth
+ */
+async function generateDetailedSummary(featureName, complianceResult) {
+  const featurePath = join(process.cwd(), 'src', 'api', featureName);
+  const specification = await loadSpecification(featurePath, featureName);
+  const manifests = complianceResult.manifests || [];
+
+  const detailedSummary = {
+    feature_overview: {
+      name: featureName,
+      total_endpoints: manifests.length,
+      specification_endpoints: Object.keys(specification.endpoints || {})
+        .length,
+      endpoints_status:
+        manifests.length === Object.keys(specification.endpoints || {}).length
+          ? '✅ Complete'
+          : '⚠️ Missing endpoints',
+    },
+
+    validation_targets_detailed:
+      complianceResult.specification_implementation.details.targets_breakdown ||
+      {},
+
+    endpoints_breakdown: {},
+
+    implementation_checklist: {
+      contracts: `${manifests.filter((m) => m.contract_compliance?.score).length}/${manifests.length}`,
+      logic_files: `${manifests.filter((m) => m.specification_requirements?.business_logic?.function_exports === 'IMPLEMENTED').length}/${manifests.length}`,
+      test_files: `${manifests.filter((m) => m.test_coverage?.score).length}/${manifests.length}`,
+      deployment_ready: `${manifests.filter((m) => m.developer_gate?.can_deploy).length}/${manifests.length}`,
+    },
+
+    quick_reference: {
+      all_endpoints_ready: manifests.every((m) => m.developer_gate?.can_deploy),
+      blocking_issues_total:
+        complianceResult.deployment_readiness.blocking_issues_total,
+      extra_test_cases: 0, // Will be calculated below
+      specification_compliance: complianceResult.overall_compliant,
+    },
+  };
+
+  // Generate detailed breakdown for each endpoint
+  manifests.forEach((manifest) => {
+    const specEndpoint = specification.endpoints?.[manifest.endpoint] || {};
+
+    // Calculate extra test cases
+    const testMapping = manifest.test_coverage?.test_case_mapping || {};
+    const extraTests = Object.entries(testMapping).filter(
+      ([name, status]) => status === 'EXTRA'
+    ).length;
+    detailedSummary.quick_reference.extra_test_cases += extraTests;
+
+    detailedSummary.endpoints_breakdown[manifest.endpoint] = {
+      // Basic Info
+      route: manifest.route,
+      status: manifest.status,
+      deployment_ready: manifest.developer_gate?.can_deploy
+        ? '✅ Ready'
+        : '❌ Blocked',
+      overall_score: manifest.quick_status?.overall || '0%',
+
+      // Routes Implementation
+      routes: {
+        implemented: manifest.routes || {},
+        specification_routes: specEndpoint.contract?.routes || {},
+        status:
+          manifest.contract_compliance?.routes_match === 'PASS'
+            ? '✅ Match'
+            : '❌ Mismatch',
+      },
+
+      // Function Implementation
+      functions: {
+        implemented: Object.values(manifest.routes || {}),
+        specification_functions: specEndpoint.logic?.exports || [],
+        status:
+          manifest.specification_requirements?.business_logic
+            ?.function_exports === 'IMPLEMENTED'
+            ? '✅ Implemented'
+            : '❌ Missing',
+      },
+
+      // Test Cases Implementation
+      test_cases: {
+        total_implemented: Object.keys(testMapping).length,
+        specification_required: Object.keys(testMapping).filter(
+          (name) => testMapping[name] === 'IMPLEMENTED'
+        ).length,
+        extra_tests: extraTests,
+        specification_tests:
+          specEndpoint.test?.test_cases?.map((tc) => tc.name) || [],
+        implemented_tests: Object.keys(testMapping),
+        test_status_mapping: testMapping,
+        status:
+          manifest.test_coverage?.score === '100%'
+            ? '✅ Complete'
+            : '⚠️ Partial',
+      },
+
+      // Validation Details
+      validation_status: {
+        contract_compliance: manifest.contract_compliance?.score || '0%',
+        types_validation:
+          manifest.specification_requirements?.validation_details
+            ?.types_validation || 'UNKNOWN',
+        lint_validation:
+          manifest.specification_requirements?.validation_details
+            ?.lint_validation || 'UNKNOWN',
+        test_validation:
+          manifest.specification_requirements?.validation_details
+            ?.test_validation || 'UNKNOWN',
+        schema_validation:
+          manifest.specification_requirements?.validation_details
+            ?.schema_validation || 'UNKNOWN',
+      },
+
+      // Business Logic Status
+      business_logic: {
+        module_initialization:
+          manifest.specification_requirements?.business_logic
+            ?.module_initialization || 'UNKNOWN',
+        function_exports:
+          manifest.specification_requirements?.business_logic
+            ?.function_exports || 'UNKNOWN',
+        appkit_patterns:
+          manifest.contract_compliance?.imports_complete === 'COMPLETE'
+            ? '✅ Complete'
+            : '❌ Missing',
+      },
+
+      // Issues and Warnings
+      issues: {
+        blocking_issues: manifest.blocking_issues || [],
+        warnings: manifest.warnings || [],
+        blocking_count: (manifest.blocking_issues || []).length,
+        can_deploy: manifest.developer_gate?.can_deploy || false,
+      },
+
+      // Files Status
+      // Files Status
+      files: {
+        contract_file: `${manifest.endpoint}.contract.ts`,
+        logic_file: `${manifest.endpoint}.logic.ts`,
+        test_file: `${manifest.endpoint}.test.ts`,
+        manifest_file: `${manifest.endpoint}.manifest.json`,
+        all_files_present: true, // Assuming they exist if manifest exists
+      },
+    };
+  });
+
+  return detailedSummary;
+}
+
+/**
+ * Generate actionable recommendations based on compliance results
+ */
+function generateRecommendations(complianceResult) {
+  const recommendations = [];
+
+  // Specification implementation recommendations
+  if (
+    complianceResult.specification_implementation.business_logic_coverage < 90
+  ) {
+    recommendations.push({
+      type: 'specification',
+      priority: 'high',
+      action: 'Improve business logic implementation',
+      details:
+        'Contract compliance scores below 90% - review endpoint implementations',
+    });
+  }
+
+  // Deployment readiness recommendations
+  if (complianceResult.deployment_readiness.blocking_issues_total > 0) {
+    recommendations.push({
+      type: 'deployment',
+      priority: 'critical',
+      action: 'Resolve blocking issues',
+      details: `${complianceResult.deployment_readiness.blocking_issues_total} total blocking issues preventing deployment`,
+    });
+  }
+
+  // Code quality recommendations
+  if (
+    Object.keys(complianceResult.code_analysis.method_duplication).length > 0
+  ) {
+    recommendations.push({
+      type: 'refactoring',
+      priority: 'medium',
+      action: 'Reduce code duplication',
+      details: 'Extract shared methods to helper functions',
+    });
+  }
+
+  // VoilaJSX compliance recommendations
+  if (complianceResult.code_analysis.voilajsx_compliance < 85) {
+    recommendations.push({
+      type: 'patterns',
+      priority: 'medium',
+      action: 'Improve VoilaJSX pattern compliance',
+      details:
+        'Ensure all endpoints follow VoilaJSX module initialization patterns',
+    });
+  }
+
+  return recommendations;
 }

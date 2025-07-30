@@ -1,11 +1,11 @@
 /**
- * FLUX Framework Types Command - Simple TypeScript compilation check
+ * FLUX Framework Types Command - Improved TypeScript compilation check
  * @module @voilajsx/flux/scripts/commands/types
  * @file scripts/commands/types.js
  *
- * @llm-rule WHEN: Running TypeScript compilation check
- * @llm-rule AVOID: Complex validation - just run tsc and report errors
- * @llm-rule NOTE: Simple wrapper around TypeScript compiler with unified file-path targeting
+ * @llm-rule WHEN: Running TypeScript compilation check with proper error detection
+ * @llm-rule AVOID: Complex validation - run tsc in project context and properly parse all errors
+ * @llm-rule NOTE: Always uses project-wide compilation for accurate module resolution
  */
 
 import { exec } from 'child_process';
@@ -25,7 +25,7 @@ function stripAnsiCodes(text) {
 }
 
 /**
- * Parse TypeScript errors from compiler output
+ * Parse TypeScript errors from compiler output with improved detection
  */
 function parseTypeScriptErrors(output) {
   const cleanOutput = stripAnsiCodes(output);
@@ -34,7 +34,23 @@ function parseTypeScriptErrors(output) {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.match(/\.ts:\d+:\d+\s+-\s+error\s+TS\d+:/)) {
+
+    // Improved regex patterns to catch various TypeScript error formats
+    const errorPatterns = [
+      // Standard format: src/file.ts:12:34 - error TS2345: Message
+      /\.ts:\d+:\d+\s*-\s*error\s+TS\d+:/,
+      // Alternative format: file.ts(12,34): error TS2345: Message
+      /\.ts\(\d+,\d+\):\s*error\s+TS\d+:/,
+      // Simple format: error TS2345: Message (when file context is elsewhere)
+      /^error\s+TS\d+:/,
+      // Found X error(s) - summary line that indicates errors exist
+      /^Found\s+\d+\s+error/i,
+    ];
+
+    // Check if line matches any error pattern
+    const isError = errorPatterns.some((pattern) => pattern.test(trimmed));
+
+    if (isError) {
       errors.push(trimmed);
     }
   }
@@ -44,9 +60,6 @@ function parseTypeScriptErrors(output) {
 
 /**
  * Parse target argument with unified file-path syntax support
- * @llm-rule WHEN: Processing command arguments to determine scope
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
  */
 function parseTarget(target) {
   if (!target) {
@@ -59,12 +72,8 @@ function parseTarget(target) {
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
 
-    // Parse the file part to get endpoint name
-    // main.contract.ts -> main
     const fileNameParts = filePart.split('.');
     const endpoint = fileNameParts[0];
-
-    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
     const feature = pathPart;
 
     return {
@@ -74,6 +83,7 @@ function parseTarget(target) {
       fileName: filePart,
       description: `specific file ${filePart}`,
       path: target,
+      fullPath: `src/api/${feature}/${endpoint}/${filePart}`,
     };
   }
 
@@ -85,7 +95,8 @@ function parseTarget(target) {
       feature,
       endpoint,
       description: `${feature}/${endpoint} endpoint`,
-      path: `src/features/${feature}/${endpoint}`,
+      path: `src/api/${feature}/${endpoint}`,
+      fullPath: `src/api/${feature}/${endpoint}`,
     };
   }
 
@@ -94,12 +105,51 @@ function parseTarget(target) {
     type: 'feature',
     feature: target,
     description: `${target} feature`,
-    path: `src/features/${target}`,
+    path: `src/api/${target}`,
+    fullPath: `src/api/${target}`,
   };
 }
 
 /**
- * TypeScript compilation command - just runs tsc and reports results
+ * Filter errors based on target with improved path matching
+ */
+function filterErrorsByTarget(errors, targetInfo) {
+  if (targetInfo.type === 'all') {
+    return errors;
+  }
+
+  return errors.filter((error) => {
+    // Skip summary lines like "Found X error(s)"
+    if (error.match(/^Found\s+\d+\s+error/i)) {
+      return true; // Keep summary lines
+    }
+
+    // For specific targets, check if the error relates to our target path
+    const pathsToCheck = [];
+
+    if (targetInfo.type === 'file') {
+      // Check for the specific file
+      pathsToCheck.push(targetInfo.fullPath);
+      pathsToCheck.push(
+        `${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`
+      );
+    } else if (targetInfo.type === 'endpoint') {
+      // Check for any file in the endpoint directory
+      pathsToCheck.push(targetInfo.fullPath);
+      pathsToCheck.push(`${targetInfo.feature}/${targetInfo.endpoint}/`);
+    } else if (targetInfo.type === 'feature') {
+      // Check for any file in the feature directory
+      pathsToCheck.push(targetInfo.fullPath);
+      pathsToCheck.push(`${targetInfo.feature}/`);
+    }
+
+    // Check if error mentions any of our target paths
+    return pathsToCheck.some((path) => error.includes(path));
+  });
+}
+
+/**
+ * TypeScript compilation command - runs project-wide tsc and filters results
  */
 export default async function types(commandArgs) {
   const startTime = Date.now();
@@ -109,123 +159,106 @@ export default async function types(commandArgs) {
   try {
     // Validate target exists if specified
     if (targetInfo.type !== 'all') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
-
-      if (targetInfo.type === 'file') {
-        // Validate specific file exists - construct correct path
-        const filePath = join(
-          process.cwd(),
-          'src',
-          'features',
-          targetInfo.feature,
-          targetInfo.endpoint,
-          targetInfo.fileName
+      try {
+        await stat(targetInfo.fullPath);
+      } catch (error) {
+        log.human(
+          `❌ Target '${targetInfo.description}' not found at ${targetInfo.fullPath}`
         );
-        try {
-          await stat(filePath);
-        } catch (error) {
-          log.human(
-            `❌ File '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
-          );
-          return false;
-        }
-      } else if (targetInfo.type === 'endpoint') {
-        // Validate endpoint exists
-        const featurePath = join(featuresPath, targetInfo.feature);
-        const endpointPath = join(featurePath, targetInfo.endpoint);
-
-        try {
-          await stat(featurePath);
-          await stat(endpointPath);
-        } catch (error) {
-          log.human(
-            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
-          );
-          return false;
-        }
-      } else if (targetInfo.type === 'feature') {
-        // Validate feature exists
-        const featurePath = join(featuresPath, targetInfo.feature);
-
-        try {
-          await stat(featurePath);
-        } catch (error) {
-          log.human(`❌ Feature '${targetInfo.feature}' not found`);
-          return false;
-        }
+        return false;
       }
     }
 
-    // Run TypeScript compilation and handle both success and error cases
+    // CRITICAL: Always run project-wide TypeScript compilation for proper module resolution
+    // This ensures we get accurate errors, not module resolution failures
+    log.human(`🚀 FLUX: Running types for ${targetInfo.description}`);
+    log.human(`🎯 Target: ${target || 'all'}`);
+    log.human(
+      `💡 Running project-wide TypeScript compilation for accurate results`
+    );
+
     let compileResult;
     let hasErrors = false;
 
     try {
-      compileResult = await execAsync('npx tsc --noEmit --pretty');
+      // Run TypeScript compilation on entire project for proper context
+      compileResult = await execAsync('npx tsc --noEmit --pretty', {
+        cwd: process.cwd(),
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
+      });
     } catch (error) {
-      // TypeScript found errors - this is the normal case when there are compilation errors
+      // TypeScript found errors - capture the output
       compileResult = error;
       hasErrors = true;
     }
 
     const duration = Date.now() - startTime;
-
-    // Get the output from either success or error case
     const output = compileResult.stdout || compileResult.stderr || '';
 
-    // If we have output, check if it contains errors
-    if (output && (output.includes('error TS') || output.includes(': error'))) {
-      const allErrors = parseTypeScriptErrors(output);
+    // Parse all TypeScript errors from output
+    const allErrors = parseTypeScriptErrors(output);
 
-      if (allErrors.length === 0) {
-        // Output indicates errors but we couldn't parse them - show raw output
-        log.human(`❌ TypeScript validation failed (${duration}ms)`);
-        console.log(output);
-        return false;
-      }
-
-      // Filter errors based on target if specified
-      let relevantErrors = allErrors;
-      if (targetInfo.type !== 'all') {
-        relevantErrors = allErrors.filter((error) => {
-          if (targetInfo.type === 'file') {
-            // For file targeting, check if error is in the specific file
-            const expectedPath = `src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
-            return error.includes(expectedPath);
-          } else if (targetInfo.type === 'endpoint') {
-            return error.includes(
-              `src/features/${targetInfo.feature}/${targetInfo.endpoint}`
-            );
-          } else if (targetInfo.type === 'feature') {
-            return error.includes(`src/features/${targetInfo.feature}/`);
-          }
-          return true;
-        });
-      }
-
-      if (relevantErrors.length > 0) {
-        log.human(
-          `❌ TypeScript validation failed (${relevantErrors.length} errors) ${duration}ms`
-        );
-        console.log('');
-        relevantErrors.forEach((error) => console.log(`   ${error}`));
-        return false;
-      } else if (targetInfo.type !== 'all') {
-        // No relevant errors for the specified target
-        log.human(
-          `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
-        );
-        return true;
-      }
+    // Debug output in development
+    if (
+      process.env.NODE_ENV === 'development' ||
+      commandArgs.includes('--debug')
+    ) {
+      console.log('\n📊 Debug Info:');
+      console.log(`Raw output length: ${output.length}`);
+      console.log(`Total errors found: ${allErrors.length}`);
+      console.log('All errors:', allErrors);
     }
 
-    // No errors found or no relevant errors for target
-    if (hasErrors && targetInfo.type === 'all') {
-      // There were errors but not in our target scope
+    // If no errors were found and TypeScript didn't fail, we're good
+    if (!hasErrors && allErrors.length === 0) {
+      log.human(
+        `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
+      );
+      return true;
+    }
+
+    // If we have errors, filter them based on target
+    const relevantErrors = filterErrorsByTarget(allErrors, targetInfo);
+
+    if (
+      process.env.NODE_ENV === 'development' ||
+      commandArgs.includes('--debug')
+    ) {
+      console.log(`Relevant errors after filtering: ${relevantErrors.length}`);
+      console.log('Relevant errors:', relevantErrors);
+    }
+
+    // Report results
+    if (relevantErrors.length > 0) {
+      log.human(
+        `❌ TypeScript validation failed (${relevantErrors.length} errors) ${duration}ms`
+      );
+      console.log('');
+      relevantErrors.forEach((error) => {
+        // Format error output nicely
+        if (error.match(/^Found\s+\d+\s+error/i)) {
+          console.log(`📊 ${error}`);
+        } else {
+          console.log(`   ❌ ${error}`);
+        }
+      });
+      return false;
+    } else if (targetInfo.type !== 'all' && hasErrors) {
+      // There were errors in the project, but none in our target
+      log.human(
+        `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
+      );
+      log.human(`ℹ️  Note: Other files in the project have TypeScript errors`);
+      return true;
+    } else if (hasErrors) {
+      // Project-wide errors when checking all
       log.human(`❌ TypeScript validation failed (${duration}ms)`);
+      console.log('');
+      allErrors.forEach((error) => console.log(`   ❌ ${error}`));
       return false;
     }
 
+    // Fallback success case
     log.human(
       `✅ TypeScript validation passed for ${targetInfo.description} (${duration}ms)`
     );
@@ -235,6 +268,11 @@ export default async function types(commandArgs) {
     log.human(
       `❌ TypeScript validation error (${duration}ms): ${error.message}`
     );
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Error details:', error);
+    }
+
     return false;
   }
 }

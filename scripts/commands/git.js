@@ -112,7 +112,7 @@ function parseTarget(target) {
       feature,
       endpoint,
       fileName: filePart,
-      fullPath: `src/features/${target}`,
+      fullPath: `src/api/${target}`,
       description: `file ${filePart}`,
     };
   }
@@ -124,7 +124,7 @@ function parseTarget(target) {
       type: 'endpoint',
       feature,
       endpoint,
-      path: `src/features/${feature}/${endpoint}`,
+      path: `src/api/${feature}/${endpoint}`,
       description: `endpoint ${feature}/${endpoint}`,
     };
   }
@@ -133,7 +133,7 @@ function parseTarget(target) {
   return {
     type: 'feature',
     feature: target,
-    path: `src/features/${target}`,
+    path: `src/api/${target}`,
     description: `feature ${target}`,
   };
 }
@@ -177,7 +177,7 @@ function shouldIncludeFile(file, targetInfo) {
 
       // Include related files in the same endpoint
       if (targetInfo.feature && targetInfo.endpoint) {
-        const endpointPath = `src/features/${targetInfo.feature}/${targetInfo.endpoint}`;
+        const endpointPath = `src/api/${targetInfo.feature}/${targetInfo.endpoint}`;
         return (
           file.startsWith(endpointPath) && file.includes(targetInfo.endpoint)
         );
@@ -543,9 +543,9 @@ async function handleHistory(args) {
       const targetInfo = parseTarget(target);
 
       if (targetInfo.type === 'feature') {
-        gitCommand += ` -- src/features/${targetInfo.feature}/`;
+        gitCommand += ` -- src/api/${targetInfo.feature}/`;
       } else if (targetInfo.type === 'endpoint') {
-        gitCommand += ` -- src/features/${targetInfo.feature}/${targetInfo.endpoint}/`;
+        gitCommand += ` -- src/api/${targetInfo.feature}/${targetInfo.endpoint}/`;
       } else if (targetInfo.type === 'file') {
         gitCommand += ` -- ${targetInfo.fullPath}`;
       }

@@ -52,12 +52,7 @@
   },
   "compliance_data": {
     "endpoint_id": "weather.main",
-    "scores": [
-      100,
-      100,
-      100,
-      100
-    ],
+    "scores": [100, 100, 100, 100],
     "blocking_count": 0,
     "warning_count": 0,
     "last_validated": "2025-07-29T16:22:03.994Z"

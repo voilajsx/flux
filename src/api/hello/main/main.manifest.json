@@ -1,0 +1,70 @@
+{
+  "endpoint": "main",
+  "feature": "hello",
+  "route": "GET /api/hello",
+  "routes": {},
+  "status": "BLOCKED",
+  "active": false,
+  "generated_at": "2025-07-30T04:40:23.579Z",
+  "contract_compliance": {
+    "routes_match": "FAIL",
+    "functions_match": "PASS",
+    "imports_complete": "MISSING",
+    "tests_declared": "0/0",
+    "score": "0%"
+  },
+  "specification_requirements": {
+    "validation_details": {
+      "schema_validation": "FAILED",
+      "types_validation": "FAILED",
+      "lint_validation": "FAILED",
+      "test_validation": "FAILED"
+    },
+    "business_logic": {
+      "function_exports": "IMPLEMENTED",
+      "module_initialization": "MISSING"
+    },
+    "score": "0%"
+  },
+  "test_coverage": {
+    "test_case_mapping": {
+      "should return welcome message (contract: GET /hello → list)": "IMPLEMENTED",
+      "should return consistent response format": "IMPLEMENTED",
+      "should generate unique request IDs": "IMPLEMENTED"
+    },
+    "score": "100%"
+  },
+  "blocking_issues": [
+    "No valid CONTRACT export found",
+    "Schema validation failed: 1 errors",
+    "TypeScript validation failed: 1 errors",
+    "Lint validation failed: 1 errors",
+    "Test validation failed: 1 failures",
+    "Missing AppKit module initialization: logging, error, utils"
+  ],
+  "warnings": [],
+  "developer_gate": {
+    "can_deploy": false,
+    "can_merge": false,
+    "blocking_count": 6
+  },
+  "quick_status": {
+    "contract": "FAIL",
+    "spec": "FAIL",
+    "tests": "PASS",
+    "deployment": "BLOCKED",
+    "overall": "25%"
+  },
+  "compliance_data": {
+    "endpoint_id": "hello.main",
+    "scores": [
+      0,
+      0,
+      100,
+      0
+    ],
+    "blocking_count": 6,
+    "warning_count": 0,
+    "last_validated": "2025-07-30T04:40:23.580Z"
+  }
+}

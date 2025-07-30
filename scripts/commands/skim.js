@@ -204,7 +204,7 @@ async function skimContract(feature, endpoint, filePath) {
   const contractFile = join(
     process.cwd(),
     'src',
-    'features',
+    'api',
     feature,
     endpoint,
     `${endpoint}.contract.ts`
@@ -251,7 +251,7 @@ async function skimLogic(feature, endpoint, filePath) {
   const logicFile = join(
     process.cwd(),
     'src',
-    'features',
+    'api',
     feature,
     endpoint,
     `${endpoint}.logic.ts`
@@ -293,7 +293,7 @@ async function skimTest(feature, endpoint, filePath) {
   const testFile = join(
     process.cwd(),
     'src',
-    'features',
+    'api',
     feature,
     endpoint,
     `${endpoint}.test.ts`

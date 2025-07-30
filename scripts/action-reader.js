@@ -236,13 +236,7 @@ function displayResumeGuidance(feature, resumeInfo) {
  * @llm-rule NOTE: Follows FLUX convention: src/features/{feature}/{feature}.actions.log
  */
 function getLogFilePath(feature) {
-  return join(
-    process.cwd(),
-    'src',
-    'features',
-    feature,
-    `${feature}.actions.log`
-  );
+  return join(process.cwd(), 'src', 'api', feature, `${feature}.actions.log`);
 }
 
 /**

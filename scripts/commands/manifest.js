@@ -77,7 +77,7 @@ export default async function manifest(args) {
  */
 async function loadSpecifications(target) {
   const specifications = [];
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
     // Determine features to load
@@ -163,10 +163,10 @@ async function validateEndpoints(specifications, target) {
             score: 0,
             errors: [`Validation failed: ${error.message}`],
             validation_details: {
-              schema_validation: '❌ ERROR',
-              types_validation: '❌ ERROR',
-              lint_validation: '❌ ERROR',
-              test_validation: '❌ ERROR',
+              schema_validation: 'ERROR',
+              types_validation: 'ERROR',
+              lint_validation: 'ERROR',
+              test_validation: 'ERROR',
             },
           },
           test_coverage: {
@@ -305,7 +305,9 @@ async function validateContractFile(
       ) &&
       Object.keys(contractRoutes).length === Object.keys(specRoutes).length;
 
-    validation.details.routes_match = routesMatch ? '✅ 1/1' : '❌ 0/1';
+    validation.details.routes_match = routesMatch ? 'PASS' : 'FAIL';
+    validation.details.contract_routes = contractRoutes; // Store actual routes for manifest
+
     if (routesMatch) validation.score += 20;
     else validation.errors.push('Contract routes do not match specification');
 
@@ -322,9 +324,7 @@ async function validateContractFile(
       JSON.stringify(specImports.external?.sort() || []) ===
         JSON.stringify(contractImports.external?.sort() || []);
 
-    validation.details.imports_complete = importsMatch
-      ? '✅ ALL'
-      : '❌ MISMATCH';
+    validation.details.imports_complete = importsMatch ? 'COMPLETE' : 'MISSING';
     if (importsMatch) validation.score += 20;
     else validation.errors.push('Contract imports do not match specification');
 
@@ -337,8 +337,8 @@ async function validateContractFile(
       specTests.every((test) => contractTests.includes(test));
 
     validation.details.tests_declared = testsMatch
-      ? `✅ ${specTests.length}/${specTests.length}`
-      : `❌ ${contractTests.length}/${specTests.length}`;
+      ? `${specTests.length}/${specTests.length}`
+      : `${contractTests.length}/${specTests.length}`;
 
     if (testsMatch) validation.score += 20;
     else
@@ -383,10 +383,10 @@ async function validateImplementationFiles(
     errors: [],
     business_logic: {},
     validation_details: {
-      schema_validation: '✅ PASSED',
-      types_validation: '✅ PASSED',
-      lint_validation: '✅ PASSED',
-      test_validation: '✅ PASSED',
+      schema_validation: 'PASSED',
+      types_validation: 'PASSED',
+      lint_validation: 'PASSED',
+      test_validation: 'PASSED',
     },
   };
 
@@ -414,7 +414,7 @@ async function validateImplementationFiles(
         `Schema validation failed: ${validationScores.schema_errors} errors`
       );
       validation.score -= 25;
-      validation.validation_details.schema_validation = '❌ FAILED';
+      validation.validation_details.schema_validation = 'FAILED';
     }
 
     if (validationScores.types_errors > 0) {
@@ -422,7 +422,7 @@ async function validateImplementationFiles(
         `TypeScript validation failed: ${validationScores.types_errors} errors`
       );
       validation.score -= 25;
-      validation.validation_details.types_validation = '❌ FAILED';
+      validation.validation_details.types_validation = 'FAILED';
     }
 
     if (validationScores.lint_errors > 0) {
@@ -430,7 +430,7 @@ async function validateImplementationFiles(
         `Lint validation failed: ${validationScores.lint_errors} errors`
       );
       validation.score -= 25;
-      validation.validation_details.lint_validation = '❌ FAILED';
+      validation.validation_details.lint_validation = 'FAILED';
     }
 
     if (validationScores.test_errors > 0) {
@@ -438,7 +438,7 @@ async function validateImplementationFiles(
         `Test validation failed: ${validationScores.test_errors} failures`
       );
       validation.score -= 25;
-      validation.validation_details.test_validation = '❌ FAILED';
+      validation.validation_details.test_validation = 'FAILED';
     }
 
     // Additional pattern validation (business logic checks)
@@ -451,10 +451,10 @@ async function validateImplementationFiles(
 
     if (!hasRequiredExports) {
       validation.errors.push('Missing required function exports');
-      validation.business_logic.function_exports = '❌ MISSING';
+      validation.business_logic.function_exports = 'MISSING';
       if (validation.score > 0) validation.score -= 10;
     } else {
-      validation.business_logic.function_exports = '✅ IMPLEMENTED';
+      validation.business_logic.function_exports = 'IMPLEMENTED';
     }
 
     // Check for AppKit module initialization
@@ -468,7 +468,7 @@ async function validateImplementationFiles(
     });
 
     if (missingImports.length > 0) {
-      validation.business_logic.module_initialization = '❌ MISSING';
+      validation.business_logic.module_initialization = 'MISSING';
       validation.errors.push(
         `Missing AppKit module initialization: ${missingImports.join(', ')}`
       );
@@ -477,7 +477,7 @@ async function validateImplementationFiles(
         validation.score -= 10;
       }
     } else {
-      validation.business_logic.module_initialization = '✅ IMPLEMENTED';
+      validation.business_logic.module_initialization = 'IMPLEMENTED';
     }
 
     // Ensure score doesn't go below 0
@@ -488,10 +488,10 @@ async function validateImplementationFiles(
     );
     validation.score = 0;
     validation.validation_details = {
-      schema_validation: '❌ ERROR',
-      types_validation: '❌ ERROR',
-      lint_validation: '❌ ERROR',
-      test_validation: '❌ ERROR',
+      schema_validation: 'ERROR',
+      types_validation: 'ERROR',
+      lint_validation: 'ERROR',
+      test_validation: 'ERROR',
     };
   }
 
@@ -645,10 +645,10 @@ async function validateTestCoverage(endpointSpec, feature, endpointName) {
     // Check each spec test
     specTests.forEach((specTest) => {
       if (implementedTests.includes(specTest)) {
-        validation.test_case_mapping[specTest] = '✅ IMPLEMENTED';
+        validation.test_case_mapping[specTest] = 'IMPLEMENTED';
         matchingTests++;
       } else {
-        validation.test_case_mapping[specTest] = '❌ MISSING';
+        validation.test_case_mapping[specTest] = 'MISSING';
         validation.errors.push(`Missing test case: "${specTest}"`);
       }
     });
@@ -656,7 +656,7 @@ async function validateTestCoverage(endpointSpec, feature, endpointName) {
     // Check for extra tests
     implementedTests.forEach((implTest) => {
       if (!specTests.includes(implTest)) {
-        validation.test_case_mapping[implTest] = '⚠️ EXTRA';
+        validation.test_case_mapping[implTest] = 'EXTRA';
       }
     });
 
@@ -720,36 +720,36 @@ function buildManifestObject(result) {
     (contractScore + specScore + testScore + deploymentScore) / 4
   );
 
+  // Extract routes from contract validation (this is the key fix!)
+  const contractRoutes =
+    result.contract_compliance.details?.contract_routes || {};
+
   return {
     endpoint: result.endpoint,
     feature: result.feature,
     route: result.route,
-    status:
-      result.status === 'READY'
-        ? '✅ READY'
-        : result.status === 'PARTIAL'
-          ? '⚠️ PARTIAL'
-          : '❌ BLOCKED',
+    routes: contractRoutes, // ← KEY FIX: Use extracted contract routes as JSON object
+    status: result.status,
+    active: result.status === 'READY',
     generated_at: new Date().toISOString(),
 
     contract_compliance: {
-      routes_match:
-        result.contract_compliance.details?.routes_match || '❌ 0/1',
-      functions_match: '✅ 1/1', // Assume functions match if routes match
+      routes_match: result.contract_compliance.details?.routes_match || 'FAIL',
+      functions_match: 'PASS', // Assume functions match if routes match
       imports_complete:
-        result.contract_compliance.details?.imports_complete || '❌ MISSING',
+        result.contract_compliance.details?.imports_complete || 'MISSING',
       tests_declared:
-        result.contract_compliance.details?.tests_declared || '❌ 0/0',
+        result.contract_compliance.details?.tests_declared || '0/0',
       score: `${contractScore}%`,
     },
 
     specification_requirements: {
       validation_details: result.specification_requirements
         .validation_details || {
-        schema_validation: '❌ ERROR',
-        types_validation: '❌ ERROR',
-        lint_validation: '❌ ERROR',
-        test_validation: '❌ ERROR',
+        schema_validation: 'ERROR',
+        types_validation: 'ERROR',
+        lint_validation: 'ERROR',
+        test_validation: 'ERROR',
       },
       business_logic: result.specification_requirements.business_logic || {},
       score: `${specScore}%`,
@@ -771,24 +771,10 @@ function buildManifestObject(result) {
 
     quick_status: {
       contract:
-        contractScore >= 90
-          ? '✅ PASS'
-          : contractScore >= 70
-            ? '⚠️ PARTIAL'
-            : '❌ FAIL',
-      spec:
-        specScore >= 90
-          ? '✅ PASS'
-          : specScore >= 70
-            ? '⚠️ PARTIAL'
-            : '❌ FAIL',
-      tests:
-        testScore >= 90
-          ? '✅ PASS'
-          : testScore >= 70
-            ? '⚠️ PARTIAL'
-            : '❌ FAIL',
-      deployment: deploymentScore >= 90 ? '✅ READY' : '❌ BLOCKED',
+        contractScore >= 90 ? 'PASS' : contractScore >= 70 ? 'PARTIAL' : 'FAIL',
+      spec: specScore >= 90 ? 'PASS' : specScore >= 70 ? 'PARTIAL' : 'FAIL',
+      tests: testScore >= 90 ? 'PASS' : testScore >= 70 ? 'PARTIAL' : 'FAIL',
+      deployment: deploymentScore >= 90 ? 'READY' : 'BLOCKED',
       overall: `${overallScore}%`,
     },
 

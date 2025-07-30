@@ -143,7 +143,7 @@ function parseTarget(target) {
       endpoint,
       fileName: filePart,
       description: `file ${filePart}`,
-      path: `src/features/${feature}/${endpoint}/${filePart}`,
+      path: `src/api/${feature}/${endpoint}/${filePart}`,
     };
   }
 
@@ -155,7 +155,7 @@ function parseTarget(target) {
       feature,
       endpoint,
       description: `endpoint ${feature}/${endpoint}`,
-      path: `src/features/${feature}/${endpoint}`,
+      path: `src/api/${feature}/${endpoint}`,
     };
   }
 
@@ -164,7 +164,7 @@ function parseTarget(target) {
     type: 'feature',
     feature: target,
     description: `feature ${target}`,
-    path: `src/features/${target}`,
+    path: `src/api/${target}`,
   };
 }
 
@@ -175,7 +175,7 @@ function parseTarget(target) {
  * @llm-rule NOTE: Provides clear error messages for missing targets
  */
 async function validateTargetExists(targetInfo) {
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
     if (targetInfo.type === 'file') {
@@ -207,7 +207,7 @@ async function validateTargetExists(targetInfo) {
  */
 async function validateAllFeatures() {
   const results = [];
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
 
   try {
     const features = await readdir(featuresPath);
@@ -220,7 +220,7 @@ async function validateAllFeatures() {
     }
   } catch (error) {
     results.push(
-      createErrorResult('system', 'features', [
+      createErrorResult('system', 'api', [
         `Cannot read features directory: ${error.message}`,
       ])
     );
@@ -237,7 +237,7 @@ async function validateAllFeatures() {
  */
 async function validateFeature(featureName) {
   const results = [];
-  const featurePath = join(process.cwd(), 'src', 'features', featureName);
+  const featurePath = join(process.cwd(), 'src', 'api', featureName);
 
   try {
     const items = await readdir(featurePath);
@@ -286,7 +286,7 @@ async function validateEndpoint(featureName, endpointName) {
   const endpointPath = join(
     process.cwd(),
     'src',
-    'features',
+    'api',
     featureName,
     endpointName
   );

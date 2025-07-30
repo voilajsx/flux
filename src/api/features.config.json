@@ -1,0 +1,11 @@
+{
+  "weather": {
+    "enabled": true,
+    "environments": ["development", "staging", "production"]
+  },
+
+  "hello": {
+    "enabled": true,
+    "environments": ["development"]
+  }
+}

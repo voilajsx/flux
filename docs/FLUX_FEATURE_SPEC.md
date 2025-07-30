@@ -300,7 +300,7 @@ validation_skip_pattern: string # Fields to skip during validation
     "main": {
       "id": "hello-main",
       "route": "/api/hello",
-      "folder": "src/features/hello/main",
+      "folder": "src/api/hello/main",
       "contract": {
         "file": "main.contract.ts",
         "routes": {

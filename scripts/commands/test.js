@@ -60,7 +60,7 @@ function parseTarget(target) {
       feature,
       endpoint,
       description: `${feature}/${endpoint} endpoint`,
-      path: `src/features/${feature}/${endpoint}`,
+      path: `src/api/${feature}/${endpoint}`,
     };
   }
 
@@ -69,7 +69,7 @@ function parseTarget(target) {
     type: 'feature',
     feature: target,
     description: `${target} feature`,
-    path: `src/features/${target}`,
+    path: `src/api/${target}`,
   };
 }
 
@@ -87,14 +87,14 @@ export default async function test(args) {
   try {
     // Validate target exists if specified
     if (targetInfo.type !== 'all') {
-      const featuresPath = join(process.cwd(), 'src', 'features');
+      const featuresPath = join(process.cwd(), 'src', 'api');
 
       if (targetInfo.type === 'file') {
         // Validate specific file exists
         const filePath = join(
           process.cwd(),
           'src',
-          'features',
+          'api',
           targetInfo.feature,
           targetInfo.endpoint,
           targetInfo.fileName
@@ -174,7 +174,7 @@ export default async function test(args) {
  */
 async function validateTestStructure(targetInfo) {
   const startTime = Date.now();
-  const featuresPath = join(process.cwd(), 'src', 'features');
+  const featuresPath = join(process.cwd(), 'src', 'api');
   const errors = [];
   let filesFound = 0;
   let endpointsChecked = 0;
@@ -315,13 +315,13 @@ async function executeTests(targetInfo) {
 
     if (targetInfo.type === 'file') {
       // Test specific file
-      testCommand += ` src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
+      testCommand += ` src/api/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
     } else if (targetInfo.type === 'endpoint') {
       // Test specific endpoint
-      testCommand += ` src/features/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`;
+      testCommand += ` src/api/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`;
     } else if (targetInfo.type === 'feature') {
       // Test specific feature
-      testCommand += ` src/features/${targetInfo.feature}`;
+      testCommand += ` src/api/${targetInfo.feature}`;
     }
     // For 'all', no additional path needed
 

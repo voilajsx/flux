@@ -25,7 +25,7 @@
 ### 4. **Contract-Driven Architecture**
 
 ```
-src/features/{feature}/
+src/api/{feature}/
 ├── {feature}.requirements.yml      # Human: Business requirements & user stories
 ├── {feature}.specification.json    # Human: Technical specs and patterns
 ├── {feature}.instructions.yml      # Human: Agent execution instructions
