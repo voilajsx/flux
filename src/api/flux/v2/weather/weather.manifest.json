@@ -1,0 +1,8 @@
+{
+  "feature": "weather",
+  "api_version": "v2",
+  "copied_from": "v1",
+  "copied_at": "2025-07-30T14:44:17.608Z",
+  "active": true,
+  "version_notes": "Copied from v1 for v2 development"
+}

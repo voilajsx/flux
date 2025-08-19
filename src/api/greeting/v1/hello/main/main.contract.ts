@@ -1,7 +1,7 @@
 /**
  * FLUX Framework contract for hello main endpoint
- * @file src/features/hello/main/main.contract.ts
- * @llm-rule sampel
+ * @file src/api/greeting/v1/hello/main/main.contract.ts
+ * @llm-rule sample
  */
 
 // Export the contract directly - no parsing needed!

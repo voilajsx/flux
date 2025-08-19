@@ -1,6 +1,6 @@
 /**
  * Tests for hello name endpoint with contract validation and proper error handling
- * @file src/features/hello/@name/@name.test.ts
+ * @file src/api/greeting/v1/hello/@name/@name.test.ts
  * 
  * @llm-rule WHEN: Testing contract-validated name parameter endpoints with error scenarios
  * @llm-rule AVOID: TypeScript conflicts between Express and VoilaJSX types - use clean approach

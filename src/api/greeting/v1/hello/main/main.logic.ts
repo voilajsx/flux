@@ -1,7 +1,7 @@
 /**
  * Business logic for hello main endpoint with VoilaJSX AppKit integration
- * @module @voilajsx/flux/features/hello/main/logic
- * @file src/features/hello/main/main.logic.ts
+ * @module @voilajsx/flux/api/greeting/v1/hello/main/logic
+ * @file src/api/greeting/v1/hello/main/main.logic.ts
  * 
  * @llm-rule WHEN: Implementing simple hello endpoint for FLUX Framework demonstration
  * @llm-rule AVOID: Complex logic - this is a basic hello world example

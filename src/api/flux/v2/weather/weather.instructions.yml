@@ -1,0 +1,243 @@
+# Weather API - Agent Instructions
+# @file src/features/weather/weather.instructions.yml
+
+feature: weather
+version: 1.0.0
+created: 2025-07-26
+created_by: Human Developer
+
+# ============================================================================
+# AGENT EXECUTION RULES
+# ============================================================================
+
+agent_instructions: |
+  You are implementing weather feature with OpenWeatherMap API integration.
+
+  STEP COMMAND KEYWORDS - USE THESE EXACTLY:
+  - Log: = Write to action log using npm run flux:actionlog weather write:"message"
+  - Read: = Read and understand a file's contents  
+  - Create: = Create a new file with specified content
+  - Run: = Execute a terminal command
+  - Print: = Tell human what you're about to do
+  - Condition: = Check if something is true/false and take action
+  - Wait: = Stop and wait for human response before continuing
+
+  EXECUTION RULES:
+  1. Always use step keywords as first word in each step
+  2. Read weather.specification.json for exact implementation details
+  3. Use VoilaJSX AppKit patterns with .get() methodology
+  4. If schema validation fails in Task 1.1, STOP IMMEDIATELY
+  5. Always explain validations before running them using Print:
+
+documentation:
+  - 'docs/APPKIT_LLM_GUIDE.md - read this to understand AppKit patterns'
+  - 'docs/VOILA-COMMENT-GUIDELINES.md - read this to understand code comments documentation standards'
+
+config:
+  log_file: 'src/features/weather/weather.actions.log'
+  commit_strategy: 'flux_per_task'
+  max_retries_per_task: 3
+
+validation_commands:
+  schema: 'npm run flux:schema weather'
+  contract: 'npm run flux:contract weather'
+  types: 'npm run flux:types weather'
+  lint: 'npm run flux:lint weather'
+  test: 'npm run flux:test weather/{endpoint}.test.ts'
+  compliance: 'npm run flux:compliance weather'
+  full: 'npm run flux:check weather'
+  skim: 'npm run flux:skim weather/{endpoint}.{file_type}.ts'
+
+failure_handling:
+  validation_failure:
+    action: 'Stop execution and log exact error details'
+  security_failure:
+    action: 'Stop execution and log security error'
+  git_failure:
+    action: 'Continue execution but log warning'
+
+completion_criteria:
+  all_tasks_complete: 'All tasks 1.1-3.6 completed successfully'
+  all_validations_pass: 'npm run flux:check weather/main returns success'
+  deployment_ready: 'Weather main endpoint production-ready'
+
+# ============================================================================
+# EXECUTION TASKS
+# ============================================================================
+
+tasks:
+  1.1:
+    name: 'validate_schemas'
+    what: 'Validate all specification files'
+    steps:
+      - 'Log: TASK_1.1_START validate_schemas'
+      - 'Print: Validating weather.requirements.yml, weather.specification.json, weather.instructions.yml schemas'
+      - 'Run: npm run flux:schema weather'
+      - 'Condition: IF FAILS - Display "❌ SCHEMA FAILED - Fix files manually and restart agent" and STOP'
+      - 'Condition: IF PASSES - Log: TASK_1.1_COMPLETE SCHEMAS_VALID ready_for_setup'
+      - 'Wait: Schemas validated. Type continue to proceed or exit to stop.'
+
+  1.2:
+    name: 'create_folder_structure'
+    what: 'Create weather feature directories'
+    steps:
+      - 'Log: TASK_1.3_START create_folder_structure'
+      - 'Create: src/features/weather/main/ subdirectory'
+      - 'Log: TASK_1.3_COMPLETE FOLDERS_CREATED ready_for_implementation'
+      - 'Wait: Folder created. Type continue to proceed or exit to stop.'
+
+  2.1:
+    name: 'implement_main_contract'
+    what: 'Create and validate contract file'
+    steps:
+      - 'Log: TASK_2.1_START implement_main_contract'
+      - 'Read: the contract template from scripts/templates/contract.template.ts and use it to create the contract file'
+      - 'Read: weather.specification.json endpoints.main.contract section for exact requirements'
+      - 'Print: Creating main.contract.ts with API routes and imports'
+      - 'Create: src/features/weather/main/main.contract.ts using specification requirements'
+      - 'Print: Running skim validation on contract structure'
+      - 'Run: npm run flux:skim weather/main.contract.ts'
+      - 'Condition: IF FAILS - Fix errors and retry until passes'
+      - 'Condition: IF PASSES - Log: TASK_2.1_COMPLETE MAIN_CONTRACT_CREATED validation=passed'
+      - 'Wait: Contract validated. Type continue to proceed or exit to stop.'
+
+  2.2:
+    name: 'implement_main_logic'
+    what: 'Create and validate business logic file'
+    steps:
+      - 'Log: TASK_2.2_START implement_main_logic'
+      - 'Read: the logic template from scripts/templates/logic.template.ts and use it to create the logic file'
+      - 'Read: weather.specification.json endpoints.main.logic section for business rules'
+      - 'Print: Creating main.logic.ts with business logic and OpenWeatherMap API integration'
+      - 'Create: src/features/weather/main/main.logic.ts using specification requirements'
+      - 'Print: Running skim validation on logic structure'
+      - 'Run: npm run flux:skim weather/main.logic.ts'
+      - 'Condition: IF FAILS - Fix errors and retry until passes'
+      - 'Condition: IF PASSES - Log: TASK_2.2_COMPLETE MAIN_LOGIC_CREATED validation=passed'
+      - 'Wait: Business logic validated. Type continue to proceed or exit to stop.'
+
+  2.3:
+    name: 'implement_main_tests'
+    what: 'Create and validate test file'
+    steps:
+      - 'Log: TASK_2.3_START implement_main_tests'
+      - 'Read: scripts/templates/test.template.ts and weather.specification.json endpoints.main.test'
+      - 'Create: src/features/weather/main/main.test.ts using specification test_cases exactly'
+      - 'Run: npm run flux:test weather/main.test.ts'
+      - 'Condition: IF FAILS - fix and retry'
+      - 'Condition: IF PASSES - Log: TASK_2.3_COMPLETE MAIN_TESTS_CREATED'
+      - 'Wait: Tests validated. Type continue to proceed or exit to stop.'
+
+  2.4:
+    name: 'validate_main_endpoint'
+    what: 'Run endpoint validation pipeline'
+    steps:
+      - 'Log: TASK_2.4_START validate_main_endpoint'
+      - 'Print: Running complete validation pipeline on main endpoint'
+      - 'Run: npm run flux:check weather/main'
+      - 'Condition: IF FAILS - STOP and ask human to review errors'
+      - 'Condition: IF PASSES - Log: TASK_2.4_COMPLETE MAIN_ENDPOINT_VALIDATED'
+      - 'Wait: Main endpoint  validated. Type continue to proceed or exit to stop.'
+  2.5:
+    name: 'main_endpoint_manifest'
+    what: 'Generate endpoint manifest for main endpoint'
+    steps:
+      - 'Log: TASK_2.5_START main_endpoint_manifest'
+      - 'Print: Generating endpoint manifest for main endpoint'
+      - 'Run: npm run flux:manifest weather/main'
+      - 'Condition: IF FAILS - STOP and ask human to review errors'
+      - 'Condition: IF PASSES - Log: TASK_2.5_COMPLETE MAIN_ENDPOINT_MANIFEST_GENERATED'
+      - 'Wait: Endpoint manifest generated. Type continue to proceed or exit to stop.'
+  2.6:
+    name: 'main_endpoint_git_commit'
+    what: 'Commit main endpoint changes to git'
+    steps:
+      - 'Log: TASK_2.6_START main_endpoint_git_commit'
+      - 'Print: Committing main endpoint changes to git'
+      - 'Run: npm run flux:git commit weather/main'
+      - 'Condition: IF FAILS - Log warning but continue execution'
+      - 'Condition: IF PASSES - Log: TASK_2.6_COMPLETE MAIN_ENDPOINT_GIT_COMMITTED'
+      - 'Wait: Git commit completed. Type continue to proceed or exit to stop.'
+# ============================================================================
+# @CITY ENDPOINT IMPLEMENTATION TASKS (3.1-3.6)
+# ============================================================================
+
+3.1:
+  name: 'implement_city_contract'
+  what: 'Create and validate @city endpoint contract file'
+  steps:
+    - 'Log: TASK_3.1_START implement_city_contract'
+    - 'Print: Creating @city folder structure for GET /weather/:city endpoint'
+    - 'Read: docs/APPKIT_LLM_GUIDE.md if needed for understanding AppKit patterns'
+    - 'Create: src/features/weather/@city/ subdirectory'
+    - 'Read: scripts/templates/contract.template.ts and use it to create the contract file'
+    - 'Read: weather.specification.json endpoints.@city.contract section for exact requirements'
+    - 'Print: Creating @city.contract.ts with API routes and imports for URL parameter handling'
+    - 'Create: src/features/weather/@city/@city.contract.ts using specification requirements'
+    - 'Print: Running skim validation on @city contract structure'
+    - 'Run: npm run flux:skim weather/@city.contract.ts'
+    - 'Condition: IF FAILS - Fix errors and retry until passes'
+    - 'Condition: IF PASSES - Log: TASK_3.1_COMPLETE CITY_CONTRACT_CREATED validation=passed'
+    - 'Wait: @city contract validated. Type continue to proceed or exit to stop.'
+
+3.2:
+  name: 'implement_city_logic'
+  what: 'Create and validate @city endpoint business logic file'
+  steps:
+    - 'Log: TASK_3.2_START implement_city_logic'
+    - 'Read: scripts/templates/logic.template.ts and use it to create the logic file'
+    - 'Read: weather.specification.json endpoints.@city.logic section for business rules'
+    - 'Print: Creating @city.logic.ts with URL parameter extraction, validation, and OpenWeatherMap API integration'
+    - 'Create: src/features/weather/@city/@city.logic.ts using specification requirements'
+    - 'Print: Running skim validation on @city logic structure'
+    - 'Run: npm run flux:skim weather/@city.logic.ts'
+    - 'Condition: IF FAILS - Fix errors and retry until passes'
+    - 'Condition: IF PASSES - Log: TASK_3.2_COMPLETE CITY_LOGIC_CREATED validation=passed'
+    - 'Wait: @city business logic validated. Type continue to proceed or exit to stop.'
+
+3.3:
+  name: 'implement_city_tests'
+  what: 'Create and validate @city endpoint test file'
+  steps:
+    - 'Log: TASK_3.3_START implement_city_tests'
+    - 'Read: scripts/templates/test.template.ts and weather.specification.json endpoints.@city.test'
+    - 'Print: Creating @city.test.ts with URL parameter testing, validation testing, and security testing'
+    - 'Create: src/features/weather/@city/@city.test.ts using specification test_cases exactly'
+    - 'Print: Running test validation on @city endpoint'
+    - 'Run: npm run flux:test weather/@city.test.ts'
+    - 'Condition: IF FAILS - fix and retry'
+    - 'Condition: IF PASSES - Log: TASK_3.3_COMPLETE CITY_TESTS_CREATED'
+    - 'Wait: @city tests validated. Type continue to proceed or exit to stop.'
+
+3.4:
+  name: 'validate_city_endpoint'
+  what: 'Run @city endpoint validation pipeline'
+  steps:
+    - 'Log: TASK_3.4_START validate_city_endpoint'
+    - 'Print: Running complete validation pipeline on @city endpoint'
+    - 'Run: npm run flux:check weather/@city'
+    - 'Condition: IF FAILS - STOP and ask human to review errors'
+    - 'Condition: IF PASSES - Log: TASK_3.4_COMPLETE CITY_ENDPOINT_VALIDATED'
+    - 'Wait: @city endpoint validated. Type continue to proceed or exit to stop.'
+
+3.5:
+  name: 'city_endpoint_manifest'
+  what: 'Generate endpoint manifest for @city endpoint'
+  steps:
+    - 'Log: TASK_3.5_START city_endpoint_manifest'
+    - 'Print: Generating endpoint manifest for @city endpoint'
+    - 'Run: npm run flux:manifest weather/@city'
+    - 'Condition: IF FAILS - STOP and ask human to review errors'
+    - 'Condition: IF PASSES - Log: TASK_3.5_COMPLETE CITY_ENDPOINT_MANIFEST_GENERATED'
+    - 'Wait: @city endpoint manifest generated. Type continue to proceed or exit to stop.'
+
+3.6:
+  name: 'city_endpoint_git_commit'
+  what: 'Commit @city endpoint changes to git'
+  steps:
+    - 'Log: TASK_3.6_START city_endpoint_git_commit'
+    - 'Print: Committing @city endpoint changes to git'
+    - 'Run: npm run flux:git commit weather/@city'
+    - 'Condition: IF FAILS - Log warning but continue execution'
+    - 'Condition: IF PASSES - Log: TASK_3.6_COMPLETE CITY_ENDPOINT_GIT_COMMITTED'
+    - 'Wait: @city git commit completed. Type continue to proceed or exit to stop.'

@@ -1,293 +1,271 @@
 /**
- * FLUX Framework application entry point with production-ready startup and graceful shutdown
+ * FLUX Framework application entry point with production-ready startup
  * @module @voilajsx/flux/server
  * @file src/server.ts
  */
 
-import 'dotenv/config'; // Load environment variables first
+import 'dotenv/config';
 import { configClass } from '@voilajsx/appkit/config';
 import { loggerClass } from '@voilajsx/appkit/logger';
-import { utilClass } from '@voilajsx/appkit/util';
-import { app } from './app.js';
+import { initializeApp } from './app.js'; // Import the initialization function
+import { readdir, stat } from 'fs/promises';
+import { join } from 'path';
+import { Server } from 'http';
+import express from 'express';
 
-// Initialize core modules following VoilaJSX AppKit patterns
+// Extend NodeJS.Process to include server property
+declare global {
+  namespace NodeJS {
+    interface Process {
+      server?: Server;
+    }
+  }
+}
+
+// Initialize core modules
 const config = configClass.get();
 const logger = loggerClass.get('server');
-const util = utilClass.get();
+
+// =========================================================================
+// Helper Functions (Updated for new folder structure)
+// =========================================================================
 
 /**
- * Validates required environment configuration before server startup
- * FIXED: More flexible validation with defaults for development
+ * Application discovery result
  */
-function validateEnvironment(): void {
+interface AppDiscoveryResult {
+  applications: string[];
+  totalVersions: number;
+  apiStructure: Record<string, string[]>;
+}
+
+/**
+ * Discover applications and their versions from folder structure
+ */
+async function discoverApplications(): Promise<AppDiscoveryResult> {
   try {
-    // Get values with fallback defaults for development
-    const authSecret = config.get('auth.secret') || 
-                      config.get('voila.auth.secret') || 
-                      process.env.AUTH_SECRET ||
-                      process.env.VOILA_AUTH_SECRET ||
-                      'development-secret-change-in-production';
+    const apiPath = join(process.cwd(), 'src', 'api');
+    const appDirs = await readdir(apiPath);
+    const apiStructure: Record<string, string[]> = {};
+    let totalVersions = 0;
 
-    const csrfSecret = config.get('security.csrf.secret') || 
-                      config.get('voila.security.csrf.secret') || 
-                      process.env.CSRF_SECRET ||
-                      process.env.VOILA_SECURITY_CSRF_SECRET ||
-                      'development-csrf-secret';
-
-    const encryptionKey = config.get('security.encryption.key') || 
-                         config.get('voila.security.encryption.key') || 
-                         process.env.ENCRYPTION_KEY ||
-                         process.env.VOILA_SECURITY_ENCRYPTION_KEY ||
-                         'development-encryption-key-64-chars';
-
-    // Warn if using defaults in any environment
-    if (authSecret.includes('development')) {
-      logger.warn('⚠️ Using default auth secret - change in production!');
-    }
-    if (csrfSecret.includes('development')) {
-      logger.warn('⚠️ Using default CSRF secret - change in production!');
-    }
-    if (encryptionKey.includes('development')) {
-      logger.warn('⚠️ Using default encryption key - change in production!');
-    }
-
-    // Production-specific validation
-    if (configClass.isProduction()) {
-      // In production, require actual secrets
-      if (authSecret.includes('development') || authSecret.length < 32) {
-        throw new Error('Production requires secure VOILA_AUTH_SECRET (32+ characters)');
-      }
-      if (csrfSecret.includes('development') || csrfSecret.length < 32) {
-        throw new Error('Production requires secure VOILA_SECURITY_CSRF_SECRET (32+ characters)');
-      }
-      if (encryptionKey.includes('development') || encryptionKey.length < 64) {
-        throw new Error('Production requires secure VOILA_SECURITY_ENCRYPTION_KEY (64+ characters)');
-      }
-
-      // Check optional production services
-      const redisUrl = config.get('redis.url');
-      const emailKey = config.get('email.api.key');
+    for (const appDir of appDirs) {
+      if (appDir.startsWith('_') || appDir.startsWith('.')) continue;
       
-      if (!redisUrl) {
-        logger.warn('Production deployment without Redis - performance may be limited');
-      }
-      
-      if (!emailKey) {
-        logger.warn('Production deployment without email service - notifications disabled');
+      const appPath = join(apiPath, appDir);
+      const appStat = await stat(appPath);
+      if (!appStat.isDirectory()) continue;
+
+      try {
+        const versionDirs = await readdir(appPath);
+        const versions = versionDirs
+          .filter(item => item.match(/^v\d+$/))
+          .sort((a, b) => parseInt(a.substring(1)) - parseInt(b.substring(1)));
+
+        if (versions.length > 0) {
+          apiStructure[appDir] = versions;
+          totalVersions += versions.length;
+        }
+      } catch (err) {
+        logger.warn(`Could not read versions for app ${appDir}`);
       }
     }
 
-    logger.info('✅ Environment validation passed', {
+    return {
+      applications: Object.keys(apiStructure),
+      totalVersions,
+      apiStructure
+    };
+  } catch (err) {
+    logger.error('Failed to discover applications', {
+      error: err instanceof Error ? err.message : 'Unknown error'
+    });
+    return {
+      applications: [],
+      totalVersions: 0,
+      apiStructure: {}
+    };
+  }
+}
+
+/**
+ * Validate required environment configuration
+ */
+async function validateEnvironment(): Promise<void> {
+  try {
+    // Check if src/api directory exists
+    const apiPath = join(process.cwd(), 'src', 'api');
+    try {
+      await stat(apiPath);
+    } catch {
+      throw new Error('src/api directory not found');
+    }
+
+    // Discover applications
+    const discovery = await discoverApplications();
+    
+    if (discovery.applications.length === 0) {
+      throw new Error('No applications found in src/api/');
+    }
+
+    if (discovery.totalVersions === 0) {
+      throw new Error('No API versions found in any application');
+    }
+
+    // Validate application names
+    for (const appname of discovery.applications) {
+      if (!appname.match(/^[a-zA-Z0-9-_]+$/)) {
+        throw new Error(`Invalid application name: ${appname} (must be alphanumeric with hyphens/underscores)`);
+      }
+    }
+
+    logger.info('Environment validation passed', {
       environment: configClass.getEnvironment(),
-      production: configClass.isProduction(),
-      nodeVersion: process.version,
-      authConfigured: !!authSecret,
-      csrfConfigured: !!csrfSecret,
-      encryptionConfigured: !!encryptionKey
+      applications: discovery.applications.length,
+      totalVersions: discovery.totalVersions,
+      apps: discovery.applications
     });
 
-  } catch (error) {
-    logger.error('❌ Environment validation failed', { 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      suggestion: 'Create .env file with VOILA_AUTH_SECRET, VOILA_SECURITY_CSRF_SECRET, VOILA_SECURITY_ENCRYPTION_KEY'
+  } catch (err) {
+    logger.error('Environment validation failed', {
+      error: err instanceof Error ? err.message : 'Unknown error'
     });
     process.exit(1);
   }
 }
 
 /**
- * Initializes FLUX Framework platform services and validates system health
- * FIXED: Handle missing platform services gracefully
+ * Start HTTP server with error handling
  */
-async function initializePlatform(): Promise<void> {
-  try {
-   
-
-    logger.info('✅ Platform initialization completed');
-
-  } catch (error) {
-    logger.error('💥 Platform initialization failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      suggestion: 'Platform services are optional - this should not prevent startup'
-    });
-    // Don't exit - platform services are optional
-  }
-}
-
-/**
- * Starts HTTP server with proper error handling and startup logging
- */
-function startServer(): void {
+async function startServer(app: express.Application): Promise<void> {
   const port = config.get('server.port') || process.env.PORT || 3000;
   const host = config.get('server.host') || process.env.HOST || '0.0.0.0';
   
-  const server = app.listen(port, host, () => {
+  const server = app.listen(Number(port), host, async () => {
     const startupTime = Date.now() - startTime;
+    const discovery = await discoverApplications();
     
-    logger.info('🌟 FLUX Framework server ready', {
+    logger.info('FLUX Framework server ready', {
       port,
       host,
+      applications: discovery.applications,
+      totalVersions: discovery.totalVersions,
       environment: configClass.getEnvironment(),
       startupTime: `${startupTime}ms`,
-      health: `http://localhost:${port}/health`,
-      root: `http://localhost:${port}/`,
-      processId: process.pid,
-      nodeVersion: process.version
+      processId: process.pid
     });
 
-    // Console output for developers
-    console.log('');
-    console.log('🚀 FLUX Framework Server Started Successfully!');
-    console.log('');
+    console.log(`\n🚀 FLUX Framework Server Started on http://${host}:${port}`);
     console.log(`📋 Health Check: http://localhost:${port}/health`);
     console.log(`🏠 Root:        http://localhost:${port}/`);
-    console.log(`🌐 Features:    http://localhost:${port}/api/*`);
-    console.log('');
-    console.log('Ready for feature development! 🎉');
+    console.log(`🌐 API Info:    http://localhost:${port}/api`);
+    
+    // Show discovered applications
+    if (discovery.applications.length > 0) {
+      console.log('\n📱 Discovered Applications:');
+      discovery.applications.forEach(appname => {
+        const versions = discovery.apiStructure[appname];
+        if (versions && versions.length > 0) {
+          const latestVersion = versions[versions.length - 1];
+          console.log(`   • ${appname}: http://localhost:${port}/api/${appname} (latest: ${latestVersion})`);
+        } else {
+          console.log(`   • ${appname}: http://localhost:${port}/api/${appname} (no versions)`);
+        }
+      });
+    }
     console.log('');
   });
 
-  // Handle server startup errors
-  server.on('error', (error: NodeJS.ErrnoException) => {
-    if (error.code === 'EADDRINUSE') {
-      logger.error('❌ Port already in use', { 
-        port, 
-        suggestion: `Try: PORT=${Number(port) + 1} npm start` 
-      });
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error('Port already in use', { port });
     } else {
-      logger.error('❌ Server startup failed', { 
-        error: error.message,
-        code: error.code 
-      });
+      logger.error('Server startup failed', { error: err.message });
     }
     process.exit(1);
   });
 
-  // Store server reference for graceful shutdown
   process.server = server;
 }
 
 /**
- * Implements graceful shutdown for production deployments with proper cleanup
- */
-async function gracefulShutdown(signal: string): Promise<void> {
-  const shutdownId = util.uuid();
-  
-  logger.info(`🔄 Graceful shutdown initiated`, { 
-    signal, 
-    shutdownId,
-    uptime: process.uptime() 
-  });
-
-  try {
-    // 1. Stop accepting new connections
-    if (process.server) {
-      await new Promise<void>((resolve) => {
-        process.server.close(() => {
-          logger.info('✅ HTTP server closed', { shutdownId });
-          resolve();
-        });
-      });
-    }
-
-    
-
-    
-
-    logger.info('✅ Graceful shutdown completed', { 
-      shutdownId,
-      totalTime: Date.now() - startTime 
-    });
-
-    process.exit(0);
-
-  } catch (error) {
-    logger.error('❌ Shutdown error', { 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      shutdownId 
-    });
-    process.exit(1);
-  }
-}
-
-/**
- * Configures process signal handlers for graceful shutdown in production
+ * Setup signal handlers for graceful shutdown
  */
 function setupSignalHandlers(): void {
-  let shutdownInProgress = false;
-
-  const handleShutdown = (signal: string) => {
-    if (shutdownInProgress) {
-      logger.warn('⚠️ Shutdown already in progress', { signal });
-      return;
-    }
-    shutdownInProgress = true;
-    gracefulShutdown(signal);
-  };
-
-  // Production container signals
-  process.on('SIGTERM', () => handleShutdown('SIGTERM')); // Docker/Kubernetes stop
-  process.on('SIGINT', () => handleShutdown('SIGINT'));   // Ctrl+C
-  process.on('SIGUSR2', () => handleShutdown('SIGUSR2')); // Nodemon restart
-
-  // Handle uncaught errors
-  process.on('uncaughtException', (error) => {
-    logger.error('💥 Uncaught exception', { 
-      error: error.message,
-      stack: error.stack 
+  const signals = ['SIGINT', 'SIGTERM', 'SIGQUIT'] as const;
+  signals.forEach((signal) => {
+    process.on(signal, () => {
+      logger.info(`Received ${signal}, initiating graceful shutdown`);
+      if (process.server) {
+        process.server.close(() => {
+          logger.info('Server closed successfully');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
     });
-    gracefulShutdown('UNCAUGHT_EXCEPTION');
   });
 
-  process.on('unhandledRejection', (reason) => {
-    logger.error('💥 Unhandled promise rejection', { 
-      reason: reason instanceof Error ? reason.message : String(reason)
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    logger.error('Uncaught exception', {
+      error: err.message,
+      stack: err.stack
     });
-    gracefulShutdown('UNHANDLED_REJECTION');
+    process.exit(1);
+  });
+
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled promise rejection', {
+      reason: reason instanceof Error ? reason.message : String(reason),
+      promise: String(promise)
+    });
+    process.exit(1);
   });
 }
 
-// Track startup time for performance monitoring
+// =========================================================================
+// Main Entry Point
+// The app is now fully initialized before starting the server.
+// =========================================================================
+
 const startTime = Date.now();
 
-/**
- * Main server startup sequence with comprehensive error handling
- */
 async function main(): Promise<void> {
   try {
-    logger.info('🚀 Starting FLUX Framework server', {
+    logger.info('Starting FLUX Framework server', {
       version: process.env.npm_package_version || '1.0.0',
       nodeVersion: process.version,
       environment: configClass.getEnvironment(),
-      timestamp: new Date().toISOString()
+      cwd: process.cwd()
     });
 
-    // Initialize in strict order for reliability
-    validateEnvironment();     // 1. Validate configuration (with flexible defaults)
-    setupSignalHandlers();     // 2. Setup graceful shutdown
-    await initializePlatform(); // 3. Initialize platform services (optional)
-    startServer();             // 4. Start HTTP server
-
-  } catch (error) {
-    logger.error('💥 Server startup failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      startupTime: Date.now() - startTime
+    // Validate environment first (includes application discovery)
+    await validateEnvironment();
+    
+    // Initialize the Express app
+    const app = await initializeApp();
+    
+    // Setup handlers and start server
+    setupSignalHandlers();
+    await startServer(app);
+    
+  } catch (err) {
+    logger.error('Server startup failed', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined
     });
     process.exit(1);
   }
 }
 
-// Extend NodeJS.Process interface for server reference
-declare global {
-  namespace NodeJS {
-    interface Process {
-      server: any;
-    }
-  }
-}
-
-// Start the application
-main().catch((error) => {
-  console.error('Fatal startup error:', error);
+// Run the main function
+main().catch((err) => {
+  logger.error('Unhandled error in main', {
+    error: err instanceof Error ? err.message : 'Unknown error',
+    stack: err instanceof Error ? err.stack : undefined
+  });
   process.exit(1);
 });

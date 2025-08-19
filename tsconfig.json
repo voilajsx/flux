@@ -3,9 +3,10 @@
     /* Language and Environment */
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "isolatedModules": true,
+    "typeRoots": ["./node_modules/@types", "./src/@types"],
     
     /* Emit */
     "outDir": "./dist",
@@ -34,6 +35,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    "downlevelIteration": true,
     
     /* Completeness */
     "skipLibCheck": true,
@@ -85,16 +87,16 @@
   /* Compiler Diagnostic Options */
   "compileOnSave": false,
   
-  /* FLUX Framework Type Checking Rules */
+  /* FLUX Framework Type Checking Rules - Fixed for Node 20 compatibility */
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node",
-    "transpileOnly": false,
+    "transpileOnly": true,
     "files": true,
     "compilerOptions": {
-      "module": "Node16",
+      "module": "ESNext",
       "target": "ES2022",
-      "moduleResolution": "node16"
+      "moduleResolution": "node"
     }
   }
 }

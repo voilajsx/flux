@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "status": "active",
+  "created_at": "2025-07-30T12:00:00Z",
+  "features": ["weather", "hello"],
+  "breaking_changes": [],
+  "deprecation_date": null,
+  "migration_guide": "This is the initial API version"
+}

@@ -123,7 +123,7 @@
 
   "code_generation_guidelines": {
     "voilajsx_comment_standards": {
-      "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/flux/features/{feature}/{endpoint}/logic\n * @file src/features/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
+      "file_header_template": "/**\n * Business logic for {endpoint} endpoint\n * @module @voilajsx/flux/api/{app}/v1/{feature}/{endpoint}/logic\n * @file src/api/{app}/v1/{feature}/{endpoint}/{endpoint}.logic.ts\n * \n * @llm-rule WHEN: {when_guidance}\n * @llm-rule AVOID: {avoid_guidance}\n * @llm-rule NOTE: {note_guidance}\n */",
       "function_header_template": "/**\n * {function_description}\n * @llm-rule WHEN: {function_when}\n * @llm-rule AVOID: {function_avoid}\n * @llm-rule NOTE: {function_note}\n */",
       "required_tags": ["@module", "@file", "@llm-rule WHEN", "@llm-rule AVOID"]
     },
@@ -153,7 +153,7 @@
     "main": {
       "id": 1,
       "route": "GET /api/hello",
-      "folder": "src/features/hello/main/",
+      "folder": "src/api/greeting/v1/hello/main/",
       "url": "GET /api/hello",
       "business_purpose_notes": "Provide standard welcome greeting for all visitors",
 
@@ -264,7 +264,7 @@
     "@name": {
       "id": 2,
       "route": "GET /api/hello/:name",
-      "folder": "src/features/hello/@name/",
+      "folder": "src/api/greeting/v1/hello/@name/",
       "url": "GET /api/hello/:name",
       "business_purpose_notes": "Provide personalized greeting using visitor name",
       "security_implementation_notes": "Must sanitize name input to prevent XSS attacks",
@@ -462,11 +462,11 @@
   "validation_skip_pattern": "*_notes",
 
   "file_structure": {
-    "src/features/hello/main/main.contract.ts": "exists",
-    "src/features/hello/main/main.logic.ts": "exists",
-    "src/features/hello/main/main.test.ts": "exists",
-    "src/features/hello/@name/@name.contract.ts": "exists",
-    "src/features/hello/@name/@name.logic.ts": "exists",
-    "src/features/hello/@name/@name.test.ts": "exists"
+    "src/api/greeting/v1/hello/main/main.contract.ts": "exists",
+    "src/api/greeting/v1/hello/main/main.logic.ts": "exists",
+    "src/api/greeting/v1/hello/main/main.test.ts": "exists",
+    "src/api/greeting/v1/hello/@name/@name.contract.ts": "exists",
+    "src/api/greeting/v1/hello/@name/@name.logic.ts": "exists",
+    "src/api/greeting/v1/hello/@name/@name.test.ts": "exists"
   }
 }

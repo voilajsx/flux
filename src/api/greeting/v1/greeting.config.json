@@ -1,0 +1,26 @@
+{
+  "app": "greeting",
+  "version": "v1",
+  "release_date": "2025-08-19",
+  "is_latest": true,
+  "is_deprecated": false,
+  "changelog": [
+    "Initial greeting app release",
+    "Hello feature implementation with main and @name endpoints",
+    "Moved from flux app to dedicated greeting app",
+    "Updated folder structure and path references"
+  ],
+  "features": {
+    "hello": {
+      "enabled": true,
+      "environments": ["development", "staging", "production"],
+      "description": "Simple greeting service for customer engagement",
+      "endpoints": ["main", "@name"]
+    }
+  },
+  "metadata": {
+    "owner": "Greeting Team",
+    "created": "2025-08-19",
+    "last_updated": "2025-08-19"
+  }
+}

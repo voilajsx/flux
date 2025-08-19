@@ -1,6 +1,6 @@
 /**
  * FLUX Framework contract for hello name endpoint
- * @file src/features/hello/@name/@name.contract.ts
+ * @file src/api/greeting/v1/hello/@name/@name.contract.ts
  * @llm-rule sample
  */
 

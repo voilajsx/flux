@@ -1,0 +1,547 @@
+{
+  "feature": "weather",
+  "version": "1.0.0",
+  "generated_at": "2025-07-26T00:00:00Z",
+  "source_requirements": "weather.requirements.yml",
+
+  "business_logic": {
+    "validations": [
+      "City name must be 1-50 characters",
+      "Default to Hyderabad when no location specified",
+      "Reject empty or whitespace-only city names",
+      "Handle URL encoding properly",
+      "Normalize city names to lowercase and trim whitespace"
+    ],
+    "workflows": [
+      "Receive city parameter from URL or query",
+      "Sanitize and validate city name",
+      "Normalize city name (toLowerCase, trim)",
+      "Query external weather API with normalized city",
+      "Transform API response to standard format",
+      "Return consistent JSON response",
+      "Log request for monitoring"
+    ],
+    "error_scenarios": [
+      "Invalid city name returns 400 with clear error",
+      "External API failure returns 503 with retry message",
+      "City not found returns 404 with helpful message",
+      "API timeout returns 504 with timeout message",
+      "Rate limit exceeded returns 429 with retry-after header"
+    ],
+    "calculations": [
+      "Temperature conversion: Kelvin to Celsius (K - 273.15)",
+      "Humidity percentage formatting",
+      "Wind speed unit conversion if needed"
+    ]
+  },
+
+  "external_integrations": {
+    "weather_api": {
+      "provider": "OpenWeatherMap",
+      "base_url": "https://api.openweathermap.org/data/2.5",
+      "endpoint": "/weather",
+      "auth_method": "query_parameter",
+      "auth_param": "appid",
+      "env_variable": "OPENWEATHER_API_KEY",
+      "timeout_ms": 5000,
+      "retry_attempts": 3,
+      "retry_delay_ms": 1000,
+      "rate_limit": "1000_calls_per_day",
+      "required_params": {
+        "q": "city_name",
+        "appid": "api_key",
+        "units": "metric"
+      },
+      "response_mapping": {
+        "name": "data.city",
+        "main.temp": "data.temperature",
+        "weather[0].description": "data.condition",
+        "main.humidity": "data.humidity",
+        "wind.speed": "data.wind_speed"
+      },
+      "implementation_pattern": {
+        "url_construction": "${base_url}${endpoint}?q=${encodeURIComponent(city)}&appid=${process.env.OPENWEATHER_API_KEY}&units=metric",
+        "axios_config": {
+          "timeout": "process.env.API_TIMEOUT || 5000",
+          "headers": { "User-Agent": "WeatherApp/1.0" }
+        },
+        "error_mapping": {
+          "404": "error.notFound('City not found')",
+          "401": "error.serverError('Invalid API key')",
+          "500": "error.serverError('Weather service unavailable')",
+          "timeout": "error.serverError('Weather API timeout')"
+        }
+      }
+    }
+  },
+
+  "response_schemas": {
+    "success_format": {
+      "success": true,
+      "data": {
+        "city": "string (original input)",
+        "temperature": "number (celsius)",
+        "condition": "string (weather description)",
+        "humidity": "number (percentage)",
+        "wind_speed": "number (m/s)",
+        "requestId": "string (uuid)",
+        "timestamp": "string (ISO 8601)",
+        "source": "string (always 'OpenWeatherMap')"
+      }
+    },
+    "error_format": {
+      "success": false,
+      "error": "string (error_type)",
+      "message": "string (human readable)",
+      "requestId": "string (uuid)",
+      "timestamp": "string (ISO 8601)"
+    },
+    "error_types": {
+      "BAD_REQUEST": "Invalid city name or parameters",
+      "NOT_FOUND": "City not found in weather service",
+      "SERVICE_UNAVAILABLE": "Weather API temporarily unavailable",
+      "GATEWAY_TIMEOUT": "Weather API request timeout",
+      "TOO_MANY_REQUESTS": "Rate limit exceeded"
+    }
+  },
+
+  "environment_requirements": {
+    "required_vars": ["OPENWEATHER_API_KEY"],
+    "optional_vars": ["WEATHER_CACHE_TTL", "DEFAULT_CITY", "API_TIMEOUT"],
+    "default_values": {
+      "DEFAULT_CITY": "hyderabad",
+      "API_TIMEOUT": 5000,
+      "WEATHER_CACHE_TTL": 300
+    },
+    "validation": {
+      "OPENWEATHER_API_KEY": "Must be 32 character alphanumeric string"
+    },
+    "usage_patterns": {
+      "OPENWEATHER_API_KEY": "const apiKey = config.getRequired('OPENWEATHER_API_KEY');",
+      "DEFAULT_CITY": "const city = util.get(req.query, 'city', process.env.DEFAULT_CITY || 'hyderabad');",
+      "API_TIMEOUT": "timeout: parseInt(process.env.API_TIMEOUT) || 5000"
+    }
+  },
+
+  "implementation_details": {
+    "city_normalization": {
+      "algorithm": "input.toLowerCase().trim().replace(/\\s+/g, ' ')",
+      "encoding": "encodeURIComponent() for API calls",
+      "validation": "Must match /^[a-zA-Z\\s-']{1,50}$/ pattern",
+      "implementation_code": [
+        "const rawCity = util.get(req.query, 'city', process.env.DEFAULT_CITY || 'hyderabad');",
+        "const normalizedCity = rawCity.toLowerCase().trim().replace(/\\s+/g, ' ');",
+        "if (util.isEmpty(normalizedCity)) { throw error.badRequest('City name is required'); }",
+        "if (normalizedCity.length > 50) { throw error.badRequest('City name must be 50 characters or less'); }",
+        "if (!/^[a-zA-Z\\s-']{1,50}$/.test(normalizedCity)) { throw error.badRequest('City name contains invalid characters'); }"
+      ]
+    },
+    "temperature_handling": {
+      "input_unit": "kelvin (from API)",
+      "output_unit": "celsius",
+      "conversion": "kelvin - 273.15",
+      "rounding": "Math.round() to nearest integer",
+      "implementation_code": "temperature: Math.round(response.data.main.temp)"
+    },
+    "error_retry_logic": {
+      "strategy": "exponential_backoff",
+      "base_delay": 1000,
+      "max_attempts": 3,
+      "timeout_handling": "Fail after 5 seconds"
+    },
+    "response_transformation": {
+      "implementation_code": [
+        "const responseData = {",
+        "  city: normalizedCity,",
+        "  temperature: Math.round(apiResponse.main.temp),",
+        "  condition: apiResponse.weather[0].description,",
+        "  humidity: apiResponse.main.humidity,",
+        "  wind_speed: apiResponse.wind.speed,",
+        "  requestId,",
+        "  timestamp: new Date().toISOString(),",
+        "  source: 'OpenWeatherMap'",
+        "};"
+      ]
+    }
+  },
+
+  "validation_targets": {
+    "total_endpoints": 2,
+    "total_contracts": 2,
+    "total_logic_files": 2,
+    "total_test_files": 2,
+    "total_routes": 2,
+    "total_functions": 2,
+    "total_test_cases": 8,
+    "required_coverage": 95,
+
+    "voilajsx_patterns": {
+      "required_modules": ["util", "logger", "error", "security"],
+      "required_patterns": [
+        "utilClass.get()",
+        "util.uuid()",
+        "logger.info(",
+        "error.badRequest",
+        "security.input("
+      ],
+      "module_initialization": [
+        "const util = utilClass.get();",
+        "const logger = loggerClass.get('features.weather.{endpoint}');",
+        "const error = errorClass.get();",
+        "const security = securityClass.get();"
+      ],
+      "security_patterns": ["security.input(", "util.get("],
+      "response_patterns": ["res.json(", "success:", "data:", "requestId"]
+    },
+
+    "test_requirements": {
+      "critical_test_patterns": [
+        "error",
+        "validation",
+        "sanitiz",
+        "response",
+        "format"
+      ],
+      "minimum_critical_coverage": 2,
+      "security_test_patterns": ["XSS", "empty", "reject", "dangerous"],
+      "voilajsx_test_patterns": ["requestId", "success", "timestamp"],
+      "edge_case_patterns": ["Unicode", "length", "numeric", "special"]
+    },
+
+    "code_quality_targets": {
+      "error_handling_required": true,
+      "input_sanitization_required": true,
+      "structured_logging_required": true,
+      "voilajsx_compliance_minimum": 90,
+      "security_score_minimum": 85,
+      "type_safety_required": true
+    },
+
+    "reliability_thresholds": {
+      "contract_compliance_minimum": 100,
+      "test_validation_minimum": 95,
+      "types_validation_minimum": 100,
+      "lint_validation_minimum": 90,
+      "code_quality_minimum": 85,
+      "overall_reliability_minimum": 90
+    },
+
+    "breaking_change_prevention": {
+      "api_contract_locked": true,
+      "response_schema_stable": true,
+      "backward_compatibility_required": true,
+      "route_conflicts_blocked": true
+    }
+  },
+
+  "endpoints": {
+    "main": {
+      "id": 1,
+      "route": "GET /weather",
+      "folder": "src/features/weather/main",
+      "template_replacements": {
+        "FEATURE_NAME": "weather",
+        "ENDPOINT_NAME": "main",
+        "HANDLER_FUNCTION_NAME": "getWeather",
+        "HANDLER_FUNCTION_DESCRIPTION": "Get weather data for specified city or default to Hyderabad",
+        "HTTP_METHOD": "GET",
+        "HTTP_METHOD_LOWERCASE": "get",
+        "ROUTE_PATH": "/weather"
+      },
+      "contract": {
+        "file": "main.contract.ts",
+        "exports": ["CONTRACT"],
+        "routes": {
+          "GET /weather": "getWeather"
+        },
+        "imports": {
+          "appkit": ["util", "logger", "error", "security"],
+          "external": ["axios"]
+        }
+      },
+      "logic": {
+        "file": "main.logic.ts",
+        "exports": ["getWeather"],
+        "function_signature": "export async function getWeather(req: Request, res: Response): Promise<void>",
+        "business_rules": [
+          "Extract city from query parameter, default to 'hyderabad'",
+          "Normalize city name using implementation_details.city_normalization",
+          "Call OpenWeatherMap API with normalized city name",
+          "Transform response using external_integrations.weather_api.response_mapping",
+          "Return response_schemas.success_format structure",
+          "Log all steps using requestId",
+          "Handle errors according to response_schemas.error_types"
+        ],
+        "implementation_guidance": {
+          "input_extraction": "const city = util.get(req.query, 'city', 'hyderabad');",
+          "validation": "Copy implementation_details.city_normalization.implementation_code exactly",
+          "api_call": "Use external_integrations.weather_api.implementation_pattern",
+          "response_building": "Copy implementation_details.response_transformation.implementation_code",
+          "error_handling": "Use external_integrations.weather_api.implementation_pattern.error_mapping"
+        },
+        "imports": [
+          "import { Request, Response } from 'express';",
+          "import { utilClass } from '@voilajsx/appkit/util';",
+          "import { loggerClass } from '@voilajsx/appkit/logger';",
+          "import { errorClass } from '@voilajsx/appkit/error';",
+          "import { securityClass } from '@voilajsx/appkit/security';",
+          "import axios from 'axios';"
+        ],
+        "environment_usage": [
+          "process.env.OPENWEATHER_API_KEY for API authentication",
+          "process.env.DEFAULT_CITY || 'hyderabad' for default city",
+          "process.env.API_TIMEOUT || 5000 for request timeout"
+        ]
+      },
+      "test": {
+        "file": "main.test.ts",
+        "template_replacements": {
+          "import_path": "'./main.logic.js'",
+          "function_name": "getWeather",
+          "http_method": "get",
+          "route_path": "/weather"
+        },
+        "imports": [
+          "import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';",
+          "import request from 'supertest';",
+          "import express from 'express';",
+          "import { utilClass } from '@voilajsx/appkit/util';",
+          "import { loggerClass } from '@voilajsx/appkit/logger';",
+          "import { getWeather } from './main.logic.js';",
+          "import axios from 'axios';",
+          "vi.mock('axios');"
+        ],
+        "test_cases": [
+          {
+            "name": "should return Hyderabad weather by default",
+            "http_method": "GET",
+            "path": "/weather",
+            "expected_status": 200,
+            "expected_properties": [
+              "success",
+              "data.city",
+              "data.temperature",
+              "data.condition",
+              "data.humidity",
+              "data.requestId",
+              "data.timestamp",
+              "data.source"
+            ],
+            "validation": "expect(response.body.data.city).toBe('hyderabad');",
+            "mock_setup": "vi.mocked(axios.get).mockResolvedValueOnce({ data: mockWeatherResponse });",
+            "template_values": {
+              "test_name": "should return Hyderabad weather by default",
+              "http_method_lowercase": "get",
+              "test_path": "/weather",
+              "expected_status": 200
+            }
+          },
+          {
+            "name": "should return weather for query parameter city",
+            "http_method": "GET",
+            "path": "/weather?city=mumbai",
+            "expected_status": 200,
+            "expected_properties": ["success", "data.city", "data.temperature"],
+            "validation": "expect(response.body.data.city).toBe('mumbai');",
+            "mock_setup": "vi.mocked(axios.get).mockResolvedValueOnce({ data: mockMumbaiResponse });",
+            "template_values": {
+              "test_name": "should return weather for query parameter city",
+              "http_method_lowercase": "get",
+              "test_path": "/weather?city=mumbai",
+              "expected_status": 200
+            }
+          },
+          {
+            "name": "should handle API failures with 503 status",
+            "http_method": "GET",
+            "path": "/weather?city=invalidcity",
+            "expected_status": 503,
+            "expected_properties": ["success", "error", "message", "requestId"],
+            "validation": "expect(response.body.error).toBe('Weather service unavailable');",
+            "mock_setup": "vi.mocked(axios.get).mockRejectedValueOnce(new Error('API unavailable'));",
+            "template_values": {
+              "test_name": "should handle API failures with 503 status",
+              "http_method_lowercase": "get",
+              "test_path": "/weather?city=invalidcity",
+              "expected_status": 503
+            }
+          }
+        ],
+        "coverage_target": 95,
+        "coverage_files": ["main.logic.ts"]
+      }
+    },
+
+    "@city": {
+      "id": 2,
+      "route": "GET /weather/:city",
+      "folder": "src/features/weather/@city",
+      "template_replacements": {
+        "FEATURE_NAME": "weather",
+        "ENDPOINT_NAME": "@city",
+        "HANDLER_FUNCTION_NAME": "getWeatherForCity",
+        "HANDLER_FUNCTION_DESCRIPTION": "Get weather data for specific city from URL parameter",
+        "HTTP_METHOD": "GET",
+        "HTTP_METHOD_LOWERCASE": "get",
+        "ROUTE_PATH": "/weather/:city"
+      },
+      "contract": {
+        "file": "@city.contract.ts",
+        "exports": ["CONTRACT"],
+        "routes": {
+          "GET /weather/:city": "getWeatherForCity"
+        },
+        "imports": {
+          "appkit": ["util", "logger", "error", "security"],
+          "external": ["axios"]
+        }
+      },
+      "logic": {
+        "file": "@city.logic.ts",
+        "exports": ["getWeatherForCity"],
+        "function_signature": "export async function getWeatherForCity(req: Request, res: Response): Promise<void>",
+        "business_rules": [
+          "Extract city from req.params.city",
+          "Validate city name using implementation_details.city_normalization.validation",
+          "Reject city names longer than 50 characters with BAD_REQUEST error",
+          "Sanitize city name to prevent XSS using security.input()",
+          "Normalize city name using implementation_details.city_normalization.algorithm",
+          "Call OpenWeatherMap API using external_integrations.weather_api configuration",
+          "Handle API errors according to response_schemas.error_types",
+          "Return response in response_schemas.success_format structure"
+        ],
+        "implementation_guidance": {
+          "input_extraction": "const city = req.params.city;",
+          "url_decoding": "const decodedCity = decodeURIComponent(city);",
+          "sanitization": "const sanitizedCity = security.input(decodedCity);",
+          "validation": "Copy implementation_details.city_normalization.implementation_code with param source",
+          "api_call": "Use external_integrations.weather_api.implementation_pattern",
+          "response_building": "Copy implementation_details.response_transformation.implementation_code"
+        },
+        "imports": [
+          "import { Request, Response } from 'express';",
+          "import { utilClass } from '@voilajsx/appkit/util';",
+          "import { loggerClass } from '@voilajsx/appkit/logger';",
+          "import { errorClass } from '@voilajsx/appkit/error';",
+          "import { securityClass } from '@voilajsx/appkit/security';",
+          "import axios from 'axios';"
+        ],
+        "environment_usage": [
+          "process.env.OPENWEATHER_API_KEY for API authentication",
+          "process.env.API_TIMEOUT || 5000 for request timeout"
+        ]
+      },
+      "test": {
+        "file": "@city.test.ts",
+        "template_replacements": {
+          "import_path": "'./@city.logic.js'",
+          "function_name": "getWeatherForCity",
+          "http_method": "get",
+          "route_path": "/weather/:city"
+        },
+        "imports": [
+          "import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';",
+          "import request from 'supertest';",
+          "import express from 'express';",
+          "import { utilClass } from '@voilajsx/appkit/util';",
+          "import { loggerClass } from '@voilajsx/appkit/logger';",
+          "import { getWeatherForCity } from './@city.logic.js';",
+          "import axios from 'axios';",
+          "vi.mock('axios');"
+        ],
+        "test_cases": [
+          {
+            "name": "should return weather for valid city name",
+            "http_method": "GET",
+            "path": "/weather/mumbai",
+            "expected_status": 200,
+            "expected_properties": [
+              "success",
+              "data.city",
+              "data.temperature",
+              "data.condition",
+              "data.humidity",
+              "data.wind_speed",
+              "data.requestId",
+              "data.timestamp",
+              "data.source"
+            ],
+            "validation": "expect(response.body.data.source).toBe('OpenWeatherMap');",
+            "template_values": {
+              "test_name": "should return weather for valid city name",
+              "http_method_lowercase": "get",
+              "test_path": "/weather/mumbai",
+              "expected_status": 200
+            }
+          },
+          {
+            "name": "should handle URL encoded city names",
+            "http_method": "GET",
+            "path": "/weather/New%20York",
+            "expected_status": 200,
+            "validation": "expect(response.body.data.city).toBe('new york');",
+            "template_values": {
+              "test_name": "should handle URL encoded city names",
+              "http_method_lowercase": "get",
+              "test_path": "/weather/New%20York",
+              "expected_status": 200
+            }
+          },
+          {
+            "name": "should reject empty city names with 400",
+            "http_method": "GET",
+            "path": "/weather/%20",
+            "expected_status": 400,
+            "expected_properties": ["success", "error", "message", "requestId"],
+            "validation": "expect(response.body.error).toBe('City name is required');",
+            "template_values": {
+              "test_name": "should reject empty city names with 400",
+              "http_method_lowercase": "get",
+              "test_path": "/weather/%20",
+              "expected_status": 400
+            }
+          },
+          {
+            "name": "should reject city names exceeding 50 characters",
+            "http_method": "GET",
+            "path": "/weather/verylongcitynamethatexceedsfiftycharacterslimit",
+            "expected_status": 400,
+            "validation": "expect(response.body.error).toBe('City name must be 50 characters or less');",
+            "template_values": {
+              "test_name": "should reject city names exceeding 50 characters",
+              "http_method_lowercase": "get",
+              "test_path": "/weather/verylongcitynamethatexceedsfiftycharacterslimit",
+              "expected_status": 400
+            }
+          },
+          {
+            "name": "should sanitize dangerous input and reject",
+            "http_method": "GET",
+            "path": "/weather/%3Cscript%3Ealert%28%22xss%22%29%3C%2Fscript%3E",
+            "expected_status": 400,
+            "validation": "expect(response.body.error).toBe('City name contains invalid characters');",
+            "template_values": {
+              "test_name": "should sanitize dangerous input and reject",
+              "http_method_lowercase": "get",
+              "test_path": "/weather/%3Cscript%3Ealert%28%22xss%22%29%3C%2Fscript%3E",
+              "expected_status": 400
+            }
+          }
+        ],
+        "coverage_target": 95,
+        "coverage_files": ["@city.logic.ts"]
+      }
+    }
+  },
+
+  "validation_skip_pattern": "*_notes",
+
+  "file_structure": {
+    "src/features/weather/main/main.contract.ts": "exists",
+    "src/features/weather/main/main.logic.ts": "exists",
+    "src/features/weather/main/main.test.ts": "exists",
+    "src/features/weather/@city/@city.contract.ts": "exists",
+    "src/features/weather/@city/@city.logic.ts": "exists",
+    "src/features/weather/@city/@city.test.ts": "exists"
+  }
+}

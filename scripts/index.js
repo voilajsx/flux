@@ -38,6 +38,7 @@ const COMMANDS = {
   git: 'Smart git operations with FLUX context awareness',
   docs: 'Generate API documentation (markdown + JSON for agents)',
   uat: 'Run UAT tests against live endpoints with Playwright',
+  version: 'Manage API versioning and compatibility checks',
 };
 
 /**

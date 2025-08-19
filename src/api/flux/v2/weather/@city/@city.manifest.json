@@ -1,0 +1,70 @@
+{
+  "endpoint": "@city",
+  "feature": "weather",
+  "route": "GET /weather/:city",
+  "routes": {
+    "GET /weather/:city": "getWeatherForCity"
+  },
+  "status": "READY",
+  "active": true,
+  "generated_at": "2025-07-29T16:35:15.218Z",
+  "contract_compliance": {
+    "routes_match": "PASS",
+    "functions_match": "PASS",
+    "imports_complete": "COMPLETE",
+    "tests_declared": "5/5",
+    "score": "100%"
+  },
+  "specification_requirements": {
+    "validation_details": {
+      "schema_validation": "PASSED",
+      "types_validation": "PASSED",
+      "lint_validation": "PASSED",
+      "test_validation": "PASSED"
+    },
+    "business_logic": {
+      "function_exports": "IMPLEMENTED",
+      "module_initialization": "IMPLEMENTED"
+    },
+    "score": "100%"
+  },
+  "test_coverage": {
+    "test_case_mapping": {
+      "should return weather for valid city name": "IMPLEMENTED",
+      "should handle URL encoded city names": "IMPLEMENTED",
+      "should reject empty city names with 400": "IMPLEMENTED",
+      "should reject city names exceeding 50 characters": "IMPLEMENTED",
+      "should sanitize dangerous input and reject": "IMPLEMENTED",
+      "should generate unique request IDs for each request": "EXTRA",
+      "should return consistent response format for all endpoints": "EXTRA",
+      "should handle concurrent requests properly": "EXTRA"
+    },
+    "score": "100%"
+  },
+  "blocking_issues": [],
+  "warnings": [],
+  "developer_gate": {
+    "can_deploy": true,
+    "can_merge": true,
+    "blocking_count": 0
+  },
+  "quick_status": {
+    "contract": "PASS",
+    "spec": "PASS",
+    "tests": "PASS",
+    "deployment": "READY",
+    "overall": "100%"
+  },
+  "compliance_data": {
+    "endpoint_id": "weather.@city",
+    "scores": [
+      100,
+      100,
+      100,
+      100
+    ],
+    "blocking_count": 0,
+    "warning_count": 0,
+    "last_validated": "2025-07-29T16:35:15.219Z"
+  }
+}

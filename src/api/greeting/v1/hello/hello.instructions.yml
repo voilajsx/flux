@@ -1,6 +1,6 @@
 # ============================================================================
 # Hello Feature - Agent Execution Instructions
-# @file src/features/hello/hello.instructions.yml
+# @file src/api/greeting/v1/hello/hello.instructions.yml
 # ============================================================================
 
 feature: hello
@@ -81,7 +81,7 @@ tasks:
     steps:
       - 'Log: Starting main endpoint contract creation'
       - 'Read: Contract specification from hello.specification.json endpoints.main.contract'
-      - 'Create: src/features/hello/main/main.contract.ts with VoilaJSX imports'
+      - 'Create: src/api/greeting/v1/hello/main/main.contract.ts with VoilaJSX imports'
       - 'Log: Contract file created with routes and test definitions'
       - 'Run: npm run flux:contract hello/main for validation'
       - 'Log: Main contract validation completed successfully'
@@ -95,7 +95,7 @@ tasks:
     steps:
       - 'Log: Starting @name endpoint contract creation'
       - 'Read: Contract specification from hello.specification.json endpoints.@name.contract'
-      - 'Create: src/features/hello/@name/@name.contract.ts with security imports'
+      - 'Create: src/api/greeting/v1/hello/@name/@name.contract.ts with security imports'
       - 'Log: Contract file created with security validation routes'
       - 'Run: npm run flux:contract hello/@name for validation'
       - 'Log: Name contract validation completed successfully'
@@ -110,7 +110,7 @@ tasks:
       - 'Log: Starting main endpoint logic implementation'
       - 'Read: Logic specification from hello.specification.json endpoints.main.logic'
       - 'Read: VoilaJSX patterns from APPKIT_LLM_GUIDE.md for .get() methodology'
-      - 'Create: src/features/hello/main/main.logic.ts with business rules'
+      - 'Create: src/api/greeting/v1/hello/main/main.logic.ts with business rules'
       - 'Log: Logic file created with VoilaJSX patterns and error handling'
       - 'Run: npm run flux:types hello/main for type validation'
       - 'Run: npm run flux:lint hello/main for code quality'
@@ -126,7 +126,7 @@ tasks:
       - 'Log: Starting @name endpoint logic implementation'
       - 'Read: Logic specification from hello.specification.json endpoints.@name.logic'
       - 'Read: Security patterns from APPKIT_LLM_GUIDE.md for input sanitization'
-      - 'Create: src/features/hello/@name/@name.logic.ts with security validation'
+      - 'Create: src/api/greeting/v1/hello/@name/@name.logic.ts with security validation'
       - 'Log: Logic file created with XSS protection and input validation'
       - 'Run: npm run flux:types hello/@name for type validation'
       - 'Run: npm run flux:lint hello/@name for security compliance'
@@ -141,7 +141,7 @@ tasks:
     steps:
       - 'Log: Starting main endpoint test creation'
       - 'Read: Test specification from hello.specification.json endpoints.main.test'
-      - 'Create: src/features/hello/main/main.test.ts with contract validation tests'
+      - 'Create: src/api/greeting/v1/hello/main/main.test.ts with contract validation tests'
       - 'Log: Test file created with response format and requestId validation'
       - 'Run: npm run flux:test hello/main for test execution'
       - 'Log: Main tests validation completed successfully'
@@ -155,7 +155,7 @@ tasks:
     steps:
       - 'Log: Starting @name endpoint test creation'
       - 'Read: Test specification from hello.specification.json endpoints.@name.test'
-      - 'Create: src/features/hello/@name/@name.test.ts with security test coverage'
+      - 'Create: src/api/greeting/v1/hello/@name/@name.test.ts with security test coverage'
       - 'Log: Test file created with XSS, validation, and edge case tests'
       - 'Run: npm run flux:test hello/@name for security test execution'
       - 'Log: Name tests validation completed successfully'

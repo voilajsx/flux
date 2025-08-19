@@ -1,7 +1,7 @@
 /**
  * Tests for hello main endpoint with contract validation
- * @module @voilajsx/flux/features/hello/main/test
- * @file src/features/hello/main/main.test.ts
+ * @module @voilajsx/flux/api/greeting/v1/hello/main/test
+ * @file src/api/greeting/v1/hello/main/main.test.ts
  * 
  * @llm-rule WHEN: Testing contract-validated hello endpoint
  * @llm-rule AVOID: Over-testing simple endpoints - focus on contract compliance

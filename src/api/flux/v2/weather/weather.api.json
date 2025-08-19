@@ -1,0 +1,147 @@
+{
+  "feature": "weather",
+  "version": "1.0.0",
+  "generated": "2025-07-30T09:27:53.513Z",
+  "description": "Real-time weather information API for location-based services",
+  "base_url": "/api",
+  "authentication": null,
+  "endpoints": {
+    "@city": {
+      "routes": {
+        "GET /weather/:city": "getWeatherForCity"
+      },
+      "purpose": null,
+      "request_schema": null,
+      "response_schema": null,
+      "error_types": {},
+      "business_rules": [
+        "Extract city from req.params.city",
+        "Validate city name using implementation_details.city_normalization.validation",
+        "Reject city names longer than 50 characters with BAD_REQUEST error",
+        "Sanitize city name to prevent XSS using security.input()",
+        "Normalize city name using implementation_details.city_normalization.algorithm",
+        "Call OpenWeatherMap API using external_integrations.weather_api configuration",
+        "Handle API errors according to response_schemas.error_types",
+        "Return response in response_schemas.success_format structure"
+      ],
+      "validations": [],
+      "imports": {
+        "appkit": [
+          "util",
+          "logger",
+          "error",
+          "security"
+        ],
+        "external": [
+          "axios"
+        ]
+      },
+      "test_cases": [
+        "should return weather for valid city name",
+        "should handle URL encoded city names",
+        "should reject empty city names with 400",
+        "should reject city names exceeding 50 characters",
+        "should sanitize dangerous input and reject"
+      ]
+    },
+    "main": {
+      "routes": {
+        "GET /weather": "getWeather"
+      },
+      "purpose": null,
+      "request_schema": null,
+      "response_schema": null,
+      "error_types": {},
+      "business_rules": [
+        "Extract city from query parameter, default to 'hyderabad'",
+        "Normalize city name using implementation_details.city_normalization",
+        "Call OpenWeatherMap API with normalized city name",
+        "Transform response using external_integrations.weather_api.response_mapping",
+        "Return response_schemas.success_format structure",
+        "Log all steps using requestId",
+        "Handle errors according to response_schemas.error_types"
+      ],
+      "validations": [],
+      "imports": {
+        "appkit": [
+          "util",
+          "logger",
+          "error",
+          "security"
+        ],
+        "external": [
+          "axios"
+        ]
+      },
+      "test_cases": [
+        "should return Hyderabad weather by default",
+        "should return weather for query parameter city",
+        "should handle API failures with 503 status"
+      ]
+    }
+  },
+  "external_integrations": {
+    "weather_api": {
+      "provider": "OpenWeatherMap",
+      "base_url": "https://api.openweathermap.org/data/2.5",
+      "endpoint": "/weather",
+      "auth_method": "query_parameter",
+      "auth_param": "appid",
+      "env_variable": "OPENWEATHER_API_KEY",
+      "timeout_ms": 5000,
+      "retry_attempts": 3,
+      "retry_delay_ms": 1000,
+      "rate_limit": "1000_calls_per_day",
+      "required_params": {
+        "q": "city_name",
+        "appid": "api_key",
+        "units": "metric"
+      },
+      "response_mapping": {
+        "name": "data.city",
+        "main.temp": "data.temperature",
+        "weather[0].description": "data.condition",
+        "main.humidity": "data.humidity",
+        "wind.speed": "data.wind_speed"
+      },
+      "implementation_pattern": {
+        "url_construction": "${base_url}${endpoint}?q=${encodeURIComponent(city)}&appid=${process.env.OPENWEATHER_API_KEY}&units=metric",
+        "axios_config": {
+          "timeout": "process.env.API_TIMEOUT || 5000",
+          "headers": {
+            "User-Agent": "WeatherApp/1.0"
+          }
+        },
+        "error_mapping": {
+          "401": "error.serverError('Invalid API key')",
+          "404": "error.notFound('City not found')",
+          "500": "error.serverError('Weather service unavailable')",
+          "timeout": "error.serverError('Weather API timeout')"
+        }
+      }
+    }
+  },
+  "environment_requirements": {
+    "required_vars": [
+      "OPENWEATHER_API_KEY"
+    ],
+    "optional_vars": [
+      "WEATHER_CACHE_TTL",
+      "DEFAULT_CITY",
+      "API_TIMEOUT"
+    ],
+    "default_values": {
+      "DEFAULT_CITY": "hyderabad",
+      "API_TIMEOUT": 5000,
+      "WEATHER_CACHE_TTL": 300
+    },
+    "validation": {
+      "OPENWEATHER_API_KEY": "Must be 32 character alphanumeric string"
+    },
+    "usage_patterns": {
+      "OPENWEATHER_API_KEY": "const apiKey = config.getRequired('OPENWEATHER_API_KEY');",
+      "DEFAULT_CITY": "const city = util.get(req.query, 'city', process.env.DEFAULT_CITY || 'hyderabad');",
+      "API_TIMEOUT": "timeout: parseInt(process.env.API_TIMEOUT) || 5000"
+    }
+  }
+}

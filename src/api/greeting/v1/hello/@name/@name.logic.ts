@@ -1,6 +1,6 @@
 /**
  * Business logic for hello name endpoint
- * @file src/features/hello/@name/@name.logic.ts
+ * @file src/api/greeting/v1/hello/@name/@name.logic.ts
  * 
  * @llm-rule WHEN: Processing dynamic name parameters from URL routes
  * @llm-rule AVOID: Using raw req.params - causes security vulnerabilities

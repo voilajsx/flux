@@ -1,6 +1,6 @@
 # ============================================================================
 # Hello API - Business Blueprint
-# @file src/features/hello/hello.requirements.yml
+# @file src/api/greeting/v1/hello/hello.requirements.yml
 # ============================================================================
 
 name: hello
