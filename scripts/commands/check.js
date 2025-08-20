@@ -119,10 +119,37 @@ export default async function check(args) {
 }
 
 /**
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
+ */
+function parseTarget(target) {
+  if (!target) return null;
+  
+  const pathParts = target.split('/');
+  
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    // Example: greeting/v1/hello/main or flux/v1/weather/main
+    return {
+      appname: pathParts[0],
+      version: pathParts[1], 
+      feature: pathParts[2],
+      endpoint: pathParts[3] || null,
+      fullPath: `src/api/${pathParts[0]}/${pathParts[1]}/${pathParts[2]}${pathParts[3] ? '/' + pathParts[3] : ''}`
+    };
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
+}
+
+/**
  * Determine validation scope based on target argument
  * @llm-rule WHEN: Deciding between full, feature, or endpoint-level validation
  * @llm-rule AVOID: Wrong validation scope - causes unnecessary work or missed issues
- * @llm-rule NOTE: Supports unified file-path syntax: feature, endpoint, and specific files
+ * @llm-rule NOTE: Supports multi-app syntax per docs/FLUX_COMMANDS.md
  */
 function determineValidationScope(target) {
   if (!target) {
@@ -130,47 +157,57 @@ function determineValidationScope(target) {
       type: 'full',
       description: 'complete project',
       target: null,
-      scope: 'all features',
+      scope: 'all apps and features',
     };
   }
 
-  // Handle specific file targeting (hello/main.contract.js)
+  const parsed = parseTarget(target);
+  
+  // Handle specific file targeting (greeting/v1/hello/main.contract.js)
   if (target.includes('.') && target.includes('/')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
-    const [feature, endpoint] = pathPart.split('/');
+    const parsedPath = parseTarget(pathPart);
 
     return {
       type: 'file',
       description: `specific file ${filePart}`,
       target: target,
-      feature: feature,
-      endpoint: endpoint,
-      scope: `${pathPart}/${filePart} file only`,
+      parsed: parsedPath,
+      appname: parsedPath.appname,
+      version: parsedPath.version,
+      feature: parsedPath.feature,
+      endpoint: parsedPath.endpoint,
+      scope: `${parsedPath.appname}/${parsedPath.version}/${parsedPath.feature}${parsedPath.endpoint ? '/' + parsedPath.endpoint : ''}/${filePart} file only`,
     };
   }
 
-  // Handle feature/endpoint syntax (hello/main)
-  if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
+  // Handle multi-level paths (app/version/feature/endpoint or feature/endpoint)
+  if (parsed.endpoint) {
     return {
       type: 'endpoint',
       description: 'endpoint-level',
       target: target,
-      feature: feature,
-      endpoint: endpoint,
-      scope: `${feature}/${endpoint} endpoint only`,
+      parsed: parsed,
+      appname: parsed.appname,
+      version: parsed.version,
+      feature: parsed.feature,
+      endpoint: parsed.endpoint,
+      scope: `${parsed.appname}/${parsed.version}/${parsed.feature}/${parsed.endpoint} endpoint only`,
     };
   }
 
-  // Feature-specific validation (hello)
+  // Feature-specific validation
   return {
     type: 'feature',
     description: 'feature-level',
     target: target,
-    feature: target,
-    scope: `${target} feature only`,
+    parsed: parsed,
+    appname: parsed.appname,
+    version: parsed.version,
+    feature: parsed.feature,
+    scope: `${parsed.appname}/${parsed.version}/${parsed.feature} feature only`,
   };
 }
 
@@ -188,9 +225,9 @@ function printSuccessSummary(results, totalStartTime, validationScope) {
   // Dynamic success message based on validation scope
   let successMessage = '🎉 FLUX: ';
   if (validationScope.type === 'endpoint') {
-    successMessage += `Endpoint ${validationScope.feature}/${validationScope.endpoint} validation completed!`;
+    successMessage += `Endpoint ${validationScope.appname}/${validationScope.version}/${validationScope.feature}/${validationScope.endpoint} validation completed!`;
   } else if (validationScope.type === 'feature') {
-    successMessage += `Feature ${validationScope.feature} validation completed!`;
+    successMessage += `Feature ${validationScope.appname}/${validationScope.version}/${validationScope.feature} validation completed!`;
   } else if (validationScope.type === 'file') {
     successMessage += `File ${validationScope.target} validation completed!`;
   } else {

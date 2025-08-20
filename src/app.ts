@@ -38,18 +38,33 @@ const security = securityClass.get();
 const util = utilClass.get();
 
 /**
- * Feature flags configuration structure
+ * Feature configuration structure in consolidated config
  */
 interface FeatureConfig {
   enabled: boolean;
   environments: string[];
+  description?: string;
+  endpoints?: string[];
 }
 
 /**
- * Feature flags configuration file structure
+ * Consolidated app configuration structure
  */
-interface FeatureFlags {
-  [featureName: string]: FeatureConfig;
+interface AppConfig {
+  app: string;
+  version: string;
+  release_date: string;
+  is_latest: boolean;
+  is_deprecated?: boolean;
+  changelog?: string[];
+  features: {
+    [featureName: string]: FeatureConfig;
+  };
+  metadata: {
+    owner: string;
+    created: string;
+    last_updated: string;
+  };
 }
 
 /**
@@ -74,10 +89,6 @@ interface EndpointManifest {
   status: string;
   active: boolean;
   routes: Record<string, string>;
-  developer_gate?: {
-    can_deploy: boolean;
-    blocking_count: number;
-  };
   blocking_issues?: string[];
 }
 
@@ -102,24 +113,24 @@ interface ExtendedRequest extends Request {
 type RouteHandler = (req: ExtendedRequest, res: Response, next: NextFunction) => void | Promise<void>;
 
 /**
- * Load version-specific feature flags from {appname}/{version}/features.config.json
+ * Load consolidated app configuration from {appname}/{version}/{appname}.config.json
  */
-async function loadFeatureFlags(appname: string, version: string): Promise<FeatureFlags> {
+async function loadAppConfig(appname: string, version: string): Promise<AppConfig | null> {
   try {
-    const configPath = join(process.cwd(), 'src', 'api', appname, version, 'features.config.json');
+    const configPath = join(process.cwd(), 'src', 'api', appname, version, `${appname}.config.json`);
     const configContent = await readFile(configPath, 'utf-8');
-    return JSON.parse(configContent) as FeatureFlags;
+    return JSON.parse(configContent) as AppConfig;
   } catch (err) {
-    logger.warn(`Feature flags not found for ${appname}/${version}, using empty config`);
-    return {};
+    logger.warn(`App config not found for ${appname}/${version}, skipping app`);
+    return null;
   }
 }
 
 /**
- * Check if feature is enabled based on flags and environment
+ * Check if feature is enabled based on consolidated config and environment
  */
-function isFeatureEnabled(appname: string, version: string, featureName: string, featureFlags: FeatureFlags): boolean {
-  const feature = featureFlags[featureName];
+function isFeatureEnabled(appname: string, version: string, featureName: string, appConfig: AppConfig): boolean {
+  const feature = appConfig.features[featureName];
   
   if (!feature?.enabled) return false;
   
@@ -132,7 +143,6 @@ function isFeatureEnabled(appname: string, version: string, featureName: string,
  */
 function isEndpointReady(manifest: EndpointManifest): boolean {
   if (!manifest.active) return false;
-  if (manifest.developer_gate?.can_deploy === false) return false;
   if (manifest.blocking_issues && manifest.blocking_issues.length > 0) return false;
   return true;
 }
@@ -414,7 +424,9 @@ async function discoverVersionedEndpoints(): Promise<{ endpoints: VersionedEndpo
         appStructure[appDir] = versions;
 
         for (const version of versions) {
-          const featureFlags = await loadFeatureFlags(appDir, version);
+          const appConfig = await loadAppConfig(appDir, version);
+          if (!appConfig) continue; // Skip if no config found
+          
           const versionPath = join(appPath, version);
           
           try {
@@ -424,7 +436,7 @@ async function discoverVersionedEndpoints(): Promise<{ endpoints: VersionedEndpo
               if (featureDir.startsWith('_') || featureDir.startsWith('.') || 
                   featureDir.endsWith('.json')) continue;
 
-              if (!isFeatureEnabled(appDir, version, featureDir, featureFlags)) continue;
+              if (!isFeatureEnabled(appDir, version, featureDir, appConfig)) continue;
 
               const featurePath = join(versionPath, featureDir);
               const featureStat = await stat(featurePath);
@@ -490,7 +502,6 @@ async function registerEndpoint(app: express.Application, endpoint: VersionedEnd
     if (!isEndpointReady(manifest)) {
       const reasons = [];
       if (!manifest.active) reasons.push('manifest.active = false');
-      if (manifest.developer_gate?.can_deploy === false) reasons.push('developer_gate.can_deploy = false');
       if (manifest.blocking_issues && manifest.blocking_issues.length > 0) {
         reasons.push(`${manifest.blocking_issues.length} blocking issues`);
       }

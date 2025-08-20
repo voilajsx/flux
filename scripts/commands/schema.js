@@ -39,7 +39,7 @@ export default async function schema(args) {
     // Execute validation based on scope
     if (scope.type === 'single') {
       results.push(
-        ...(await validateSingleSchema(scope.feature, scope.schemaType))
+        ...(await validateSingleSchema(scope.appname, scope.version, scope.feature, scope.schemaType))
       );
     } else if (scope.type === 'contract-file') {
       results.push(
@@ -48,16 +48,20 @@ export default async function schema(args) {
             process.cwd(),
             'src',
             'api',
+            scope.appname,
+            scope.version,
             scope.feature,
             scope.endpoint,
             scope.fileName
           ),
+          scope.appname,
+          scope.version,
           scope.feature,
           scope.endpoint
         )
       );
     } else if (scope.feature) {
-      results.push(...(await validateFeatureSchemas(scope.feature)));
+      results.push(...(await validateFeatureSchemas(scope.appname, scope.version, scope.feature)));
     } else {
       results.push(...(await validateAllSchemas()));
     }
@@ -73,50 +77,74 @@ export default async function schema(args) {
 }
 
 /**
- * Parse target argument with unified file-path syntax
- * @llm-rule WHEN: Processing command arguments to determine validation scope
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports file-path syntax: hello.requirements.yml, hello.instructions.yml, hello.specification.json, hello/main.contract.ts
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
  */
 function parseTarget(target) {
   if (!target) {
     return {
       type: 'all',
-      description: 'all features, all schemas',
+      description: 'all apps and features, all schemas',
+      appname: null,
+      version: null,
       feature: null,
       schemaType: null,
     };
   }
 
-  // Handle contract file targeting (hello/main.contract.ts)
+  const pathParts = target.split('/');
+
+  // Handle contract file targeting (greeting/v1/hello/main.contract.ts)
   if (target.includes('/') && target.includes('.contract.')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
+    
+    const pathPartParts = pathPart.split('/');
+    if (pathPartParts.length < 3) {
+      throw new Error(`Invalid contract file path format: ${target}. Expected: {app}/{version}/{feature}/{endpoint}/{file}`);
+    }
 
     // Parse the file part to get endpoint name
     // main.contract.ts -> main
     const fileNameParts = filePart.split('.');
     const endpoint = fileNameParts[0];
 
-    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
-    const feature = pathPart;
-
     return {
       type: 'contract-file',
       description: `contract file ${filePart}`,
-      feature,
-      endpoint,
+      appname: pathPartParts[0],
+      version: pathPartParts[1],
+      feature: pathPartParts[2],
+      endpoint: pathPartParts[3] || endpoint,
       fileName: filePart,
+      fullPath: `src/api/${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint}/${filePart}`,
     };
   }
 
-  // Handle file-path syntax (hello.requirements.yml)
-  if (target.includes('.') && !target.includes('/')) {
-    const parts = target.split('.');
-    const feature = parts[0];
-    const type = parts[1];
-    const extension = parts[2];
+  // Handle feature schema file syntax (greeting/v1/hello.requirements.yml)
+  if (target.includes('.') && target.includes('/')) {
+    const lastDot = target.lastIndexOf('.');
+    const beforeLastDot = target.lastIndexOf('.', lastDot - 1);
+    
+    if (beforeLastDot === -1) {
+      throw new Error(`Invalid schema file format: ${target}. Expected: {app}/{version}/{feature}.{type}.{ext}`);
+    }
+
+    const pathAndFeature = target.slice(0, beforeLastDot);
+    const type = target.slice(beforeLastDot + 1, lastDot);
+    const extension = target.slice(lastDot + 1);
+
+    const pathParts = pathAndFeature.split('/');
+    if (pathParts.length < 3) {
+      throw new Error(`Invalid schema file path format: ${target}. Expected: {app}/{version}/{feature}.{type}.{ext}`);
+    }
+
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
 
     // Validate file-path syntax
     const validCombinations = {
@@ -129,25 +157,40 @@ function parseTarget(target) {
     const fileTypePart = `${type}.${extension}`;
     if (!validCombinations[fileTypePart]) {
       throw new Error(
-        `Invalid file-path syntax: ${target}. Valid formats: hello.requirements.yml, hello.instructions.yml, hello.specification.json`
+        `Invalid file-path syntax: ${target}. Valid formats: {app}/{version}/{feature}.requirements.yml, {app}/{version}/{feature}.instructions.yml, {app}/{version}/{feature}.specification.json`
       );
     }
 
     return {
       type: 'single',
-      description: `${feature}.${type}.${extension}`,
+      description: `${appname}/${version}/${feature}.${type}.${extension}`,
+      appname,
+      version,
       feature,
       schemaType: validCombinations[fileTypePart],
+      fullPath: `src/api/${appname}/${version}/${feature}/${feature}.${type}.${extension}`,
     };
   }
 
-  // Feature-specific validation (all schemas for one feature)
-  return {
-    type: 'feature',
-    description: `${target} feature, all schemas`,
-    feature: target,
-    schemaType: null,
-  };
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+
+    return {
+      type: 'feature',
+      description: `${appname}/${version}/${feature} feature, all schemas`,
+      appname,
+      version,
+      feature,
+      schemaType: null,
+      fullPath: `src/api/${appname}/${version}/${feature}`,
+    };
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}.{type}.{ext}`);
+  }
 }
 
 /**
@@ -156,25 +199,25 @@ function parseTarget(target) {
  * @llm-rule AVOID: Validating other files when user requests specific schema
  * @llm-rule NOTE: Fast validation for development workflow
  */
-async function validateSingleSchema(feature, schemaType) {
+async function validateSingleSchema(appname, version, feature, schemaType) {
   const results = [];
 
   // Check if feature exists
-  if (!(await checkFeatureExists(feature))) {
-    throw new Error(`Feature '${feature}' not found in src/api/`);
+  if (!(await checkFeatureExists(appname, version, feature))) {
+    throw new Error(`Feature '${appname}/${version}/${feature}' not found in src/api/`);
   }
 
-  const featurePath = join(process.cwd(), 'src', 'api', feature);
+  const featurePath = join(process.cwd(), 'src', 'api', appname, version, feature);
 
   switch (schemaType) {
     case 'requirements':
       const requirementsPath = join(featurePath, `${feature}.requirements.yml`);
-      results.push(await validateRequirementsFile(requirementsPath, feature));
+      results.push(await validateRequirementsFile(requirementsPath, appname, version, feature));
       break;
 
     case 'instructions':
       const instructionsPath = join(featurePath, `${feature}.instructions.yml`);
-      results.push(await validateInstructionsFile(instructionsPath, feature));
+      results.push(await validateInstructionsFile(instructionsPath, appname, version, feature));
       break;
 
     case 'specification':
@@ -182,7 +225,7 @@ async function validateSingleSchema(feature, schemaType) {
         featurePath,
         `${feature}.specification.json`
       );
-      results.push(await validateSpecificationFile(specificationPath, feature));
+      results.push(await validateSpecificationFile(specificationPath, appname, version, feature));
       break;
 
     default:
@@ -198,7 +241,7 @@ async function validateSingleSchema(feature, schemaType) {
  * @llm-rule AVOID: Cross-feature validation when user wants specific feature only
  * @llm-rule NOTE: Includes requirements, instructions, specification, and all contracts
  */
-async function validateFeatureSchemas(feature) {
+async function validateFeatureSchemas(appname, version, feature) {
   const results = [];
 
   // Check if feature exists
@@ -621,7 +664,7 @@ async function validateSpecificationFile(filePath, feature) {
  * @llm-rule AVOID: Allowing TypeScript imports in contract files
  * @llm-rule NOTE: Contract files should be pure objects with no imports
  */
-async function validateContractFile(filePath, feature, endpoint) {
+async function validateContractFile(filePath, appname, version, feature, endpoint) {
   const result = {
     type: 'contract',
     feature,

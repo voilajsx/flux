@@ -59,55 +59,79 @@ function parseTypeScriptErrors(output) {
 }
 
 /**
- * Parse target argument with unified file-path syntax support
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
  */
 function parseTarget(target) {
   if (!target) {
-    return { type: 'all', description: 'all features' };
+    return { type: 'all', description: 'all apps and features' };
   }
 
-  // Handle specific file targeting (hello/main.contract.ts)
+  const pathParts = target.split('/');
+
+  // Handle specific file targeting (greeting/v1/hello/main.contract.ts)
   if (target.includes('.') && target.includes('/')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
+    
+    const pathPartParts = pathPart.split('/');
+    if (pathPartParts.length < 3) {
+      throw new Error(`Invalid file path format: ${target}. Expected: {app}/{version}/{feature}/{endpoint}/{file}`);
+    }
 
     const fileNameParts = filePart.split('.');
     const endpoint = fileNameParts[0];
-    const feature = pathPart;
 
     return {
       type: 'file',
-      feature,
-      endpoint,
+      appname: pathPartParts[0],
+      version: pathPartParts[1],
+      feature: pathPartParts[2],
+      endpoint: pathPartParts[3] || endpoint,
       fileName: filePart,
       description: `specific file ${filePart}`,
       path: target,
-      fullPath: `src/api/${feature}/${endpoint}/${filePart}`,
+      fullPath: `src/api/${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint}/${filePart}`,
     };
   }
 
-  // Handle endpoint targeting (hello/main)
-  if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
-    return {
-      type: 'endpoint',
-      feature,
-      endpoint,
-      description: `${feature}/${endpoint} endpoint`,
-      path: `src/api/${feature}/${endpoint}`,
-      fullPath: `src/api/${feature}/${endpoint}`,
-    };
-  }
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    // Example: greeting/v1/hello/main or flux/v1/weather
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
 
-  // Handle feature targeting (hello)
-  return {
-    type: 'feature',
-    feature: target,
-    description: `${target} feature`,
-    path: `src/api/${target}`,
-    fullPath: `src/api/${target}`,
-  };
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        description: `${appname}/${version}/${feature}/${endpoint} endpoint`,
+        path: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+        fullPath: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        description: `${appname}/${version}/${feature} feature`,
+        path: `src/api/${appname}/${version}/${feature}`,
+        fullPath: `src/api/${appname}/${version}/${feature}`,
+      };
+    }
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
 }
 
 /**
@@ -131,16 +155,16 @@ function filterErrorsByTarget(errors, targetInfo) {
       // Check for the specific file
       pathsToCheck.push(targetInfo.fullPath);
       pathsToCheck.push(
-        `${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`
+        `${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`
       );
     } else if (targetInfo.type === 'endpoint') {
       // Check for any file in the endpoint directory
       pathsToCheck.push(targetInfo.fullPath);
-      pathsToCheck.push(`${targetInfo.feature}/${targetInfo.endpoint}/`);
+      pathsToCheck.push(`${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/`);
     } else if (targetInfo.type === 'feature') {
       // Check for any file in the feature directory
       pathsToCheck.push(targetInfo.fullPath);
-      pathsToCheck.push(`${targetInfo.feature}/`);
+      pathsToCheck.push(`${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/`);
     }
 
     // Check if error mentions any of our target paths

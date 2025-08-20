@@ -15,35 +15,51 @@ import { createLogger } from '../logger.js';
 const log = createLogger('compliance');
 
 /**
- * Parse target argument with unified file-path syntax support
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
  */
 function parseTarget(target) {
   if (!target) {
-    return { type: 'all', description: 'all features' };
+    return { type: 'all', description: 'all apps and features' };
   }
 
-  // Handle feature targeting (weather)
-  if (!target.includes('/') && !target.includes('.')) {
-    return {
-      type: 'feature',
-      feature: target,
-      description: `${target} feature`,
-      path: `src/api/${target}`,
-    };
-  }
+  const pathParts = target.split('/');
 
-  // Handle endpoint targeting (weather/main) - validate feature only
-  if (target.includes('/')) {
-    const [feature] = target.split('/');
-    return {
-      type: 'feature', // Still validate entire feature for consistency
-      feature,
-      description: `${feature} feature`,
-      path: `src/api/${feature}`,
-    };
-  }
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
 
-  return { type: 'all', description: 'all features' };
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        description: `${appname}/${version}/${feature}/${endpoint} endpoint`,
+        path: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+        fullPath: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        description: `${appname}/${version}/${feature} feature`,
+        path: `src/api/${appname}/${version}/${feature}`,
+        fullPath: `src/api/${appname}/${version}/${feature}`,
+      };
+    }
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
 }
 
 /**
@@ -73,11 +89,11 @@ export default async function compliance(args) {
     let allFeaturesValid = true;
     const results = [];
 
-    for (const featureName of features) {
+    for (const feature of features) {
       try {
-        log.human(`📊 Validating ${featureName} feature...`);
+        log.human(`📊 Validating ${feature.appname}/${feature.version}/${feature.feature} feature...`);
 
-        const featureResult = await validateFeatureCompliance(featureName);
+        const featureResult = await validateFeatureCompliance(feature.appname, feature.version, feature.feature);
         results.push(featureResult);
 
         if (!featureResult.overall_compliant) {
@@ -85,14 +101,14 @@ export default async function compliance(args) {
         }
 
         // Generate compliance report
-        await generateComplianceReport(featureName, featureResult);
+        await generateComplianceReport(feature.appname, feature.version, feature.feature, featureResult);
 
         const status = featureResult.overall_compliant ? '✅' : '❌';
         log.human(
-          `${status} ${featureName}: ${featureResult.compliance_score}% compliant`
+          `${status} ${feature.appname}/${feature.version}/${feature.feature}: ${featureResult.compliance_score}% compliant`
         );
       } catch (error) {
-        log.human(`❌ Failed to validate ${featureName}: ${error.message}`);
+        log.human(`❌ Failed to validate ${feature.appname}/${feature.version}/${feature.feature}: ${error.message}`);
         allFeaturesValid = false;
       }
     }
@@ -127,22 +143,29 @@ export default async function compliance(args) {
  * Discover features based on target scope
  */
 async function discoverFeatures(targetInfo) {
-  const featuresPath = join(process.cwd(), 'src', 'api');
+  const apiPath = join(process.cwd(), 'src', 'api');
 
   try {
-    if (targetInfo.type === 'feature') {
+    if (targetInfo.type === 'feature' || targetInfo.type === 'endpoint') {
       // Validate specific feature exists
-      const featurePath = join(featuresPath, targetInfo.feature);
+      const featurePath = join(apiPath, targetInfo.appname, targetInfo.version, targetInfo.feature);
       await stat(featurePath);
-      return [targetInfo.feature];
+      return [{ appname: targetInfo.appname, version: targetInfo.version, feature: targetInfo.feature }];
     }
 
-    // Discover all features
-    const allFeatures = await readdir(featuresPath);
-    return allFeatures.filter((f) => !f.startsWith('_') && !f.startsWith('.'));
+    // Discover all features (default to flux/v1 for 'all')
+    const fluxPath = join(apiPath, 'flux', 'v1');
+    try {
+      const allFeatures = await readdir(fluxPath);
+      return allFeatures
+        .filter((f) => !f.startsWith('_') && !f.startsWith('.'))
+        .map(feature => ({ appname: 'flux', version: 'v1', feature }));
+    } catch {
+      return [];
+    }
   } catch (error) {
-    if (targetInfo.type === 'feature') {
-      throw new Error(`Feature '${targetInfo.feature}' not found`);
+    if (targetInfo.type === 'feature' || targetInfo.type === 'endpoint') {
+      throw new Error(`Feature '${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}' not found`);
     }
     throw new Error(`Failed to discover features: ${error.message}`);
   }
@@ -151,8 +174,8 @@ async function discoverFeatures(targetInfo) {
 /**
  * Validate single feature compliance using specification and manifests
  */
-async function validateFeatureCompliance(featureName) {
-  const featurePath = join(process.cwd(), 'src', 'api', featureName);
+async function validateFeatureCompliance(appname, version, featureName) {
+  const featurePath = join(process.cwd(), 'src', 'api', appname, version, featureName);
 
   // 1. Load specification
   const specification = await loadSpecification(featurePath, featureName);
@@ -757,7 +780,7 @@ function calculateDeploymentReadiness(manifests, specification) {
     let totalBlockingIssues = 0;
 
     manifests.forEach((manifest) => {
-      const canDeploy = manifest.developer_gate?.can_deploy === true;
+      const canDeploy = manifest.active === true;
       const blockingCount = manifest.blocking_issues?.length || 0;
 
       readiness.endpoint_status[manifest.endpoint] = {
@@ -924,11 +947,13 @@ function calculateOverallCompliance(
 /**
  * Generate compliance report file
  */
-async function generateComplianceReport(featureName, complianceResult) {
+async function generateComplianceReport(appname, version, featureName, complianceResult) {
   const reportPath = join(
     process.cwd(),
     'src',
     'api',
+    appname,
+    version,
     featureName,
     `${featureName}.compliance.json`
   );
@@ -950,6 +975,8 @@ async function generateComplianceReport(featureName, complianceResult) {
     },
 
     detailed_summary: await generateDetailedSummary(
+      appname,
+      version,
       featureName,
       complianceResult
     ),
@@ -1000,8 +1027,8 @@ async function generateComplianceReport(featureName, complianceResult) {
 /**
  * Generate comprehensive detailed summary as single source of truth
  */
-async function generateDetailedSummary(featureName, complianceResult) {
-  const featurePath = join(process.cwd(), 'src', 'api', featureName);
+async function generateDetailedSummary(appname, version, featureName, complianceResult) {
+  const featurePath = join(process.cwd(), 'src', 'api', appname, version, featureName);
   const specification = await loadSpecification(featurePath, featureName);
   const manifests = complianceResult.manifests || [];
 
@@ -1027,11 +1054,11 @@ async function generateDetailedSummary(featureName, complianceResult) {
       contracts: `${manifests.filter((m) => m.contract_compliance?.score).length}/${manifests.length}`,
       logic_files: `${manifests.filter((m) => m.specification_requirements?.business_logic?.function_exports === 'IMPLEMENTED').length}/${manifests.length}`,
       test_files: `${manifests.filter((m) => m.test_coverage?.score).length}/${manifests.length}`,
-      deployment_ready: `${manifests.filter((m) => m.developer_gate?.can_deploy).length}/${manifests.length}`,
+      deployment_ready: `${manifests.filter((m) => m.active).length}/${manifests.length}`,
     },
 
     quick_reference: {
-      all_endpoints_ready: manifests.every((m) => m.developer_gate?.can_deploy),
+      all_endpoints_ready: manifests.every((m) => m.active),
       blocking_issues_total:
         complianceResult.deployment_readiness.blocking_issues_total,
       extra_test_cases: 0, // Will be calculated below
@@ -1054,7 +1081,7 @@ async function generateDetailedSummary(featureName, complianceResult) {
       // Basic Info
       route: manifest.route,
       status: manifest.status,
-      deployment_ready: manifest.developer_gate?.can_deploy
+      deployment_ready: manifest.active
         ? '✅ Ready'
         : '❌ Blocked',
       overall_score: manifest.quick_status?.overall || '0%',
@@ -1133,7 +1160,7 @@ async function generateDetailedSummary(featureName, complianceResult) {
         blocking_issues: manifest.blocking_issues || [],
         warnings: manifest.warnings || [],
         blocking_count: (manifest.blocking_issues || []).length,
-        can_deploy: manifest.developer_gate?.can_deploy || false,
+        can_deploy: manifest.active || false,
       },
 
       // Files Status

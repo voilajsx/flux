@@ -86,16 +86,16 @@ export default async function contract(args) {
     switch (targetInfo.type) {
       case 'file':
         validationResults = [
-          await validateEndpoint(targetInfo.feature, targetInfo.endpoint),
+          await validateEndpoint(targetInfo.appname, targetInfo.version, targetInfo.feature, targetInfo.endpoint),
         ];
         break;
       case 'endpoint':
         validationResults = [
-          await validateEndpoint(targetInfo.feature, targetInfo.endpoint),
+          await validateEndpoint(targetInfo.appname, targetInfo.version, targetInfo.feature, targetInfo.endpoint),
         ];
         break;
       case 'feature':
-        validationResults = await validateFeature(targetInfo.feature);
+        validationResults = await validateFeature(targetInfo.appname, targetInfo.version, targetInfo.feature);
         break;
       case 'all':
       default:
@@ -124,48 +124,78 @@ export default async function contract(args) {
  * @llm-rule AVOID: Complex parsing logic - keep simple and predictable
  * @llm-rule NOTE: Supports feature, endpoint, and file-path targeting
  */
+/**
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
+ */
 function parseTarget(target) {
   if (!target) {
-    return { type: 'all', description: 'all features' };
+    return { type: 'all', description: 'all apps and features' };
   }
 
-  // Handle file targeting (weather/main.contract.ts)
+  const pathParts = target.split('/');
+
+  // Handle file targeting (greeting/v1/hello/main.contract.ts)
   if (target.includes('.') && target.includes('/')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
+    
+    const pathPartParts = pathPart.split('/');
+    if (pathPartParts.length < 3) {
+      throw new Error(`Invalid file path format: ${target}. Expected: {app}/{version}/{feature}/{endpoint}/{file}`);
+    }
+
     const endpoint = filePart.split('.')[0];
-    const feature = pathPart;
 
     return {
       type: 'file',
-      feature,
-      endpoint,
+      appname: pathPartParts[0],
+      version: pathPartParts[1],
+      feature: pathPartParts[2],
+      endpoint: pathPartParts[3] || endpoint,
       fileName: filePart,
       description: `file ${filePart}`,
-      path: `src/api/${feature}/${endpoint}/${filePart}`,
+      path: `src/api/${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint}/${filePart}`,
+      fullPath: `src/api/${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint}`,
     };
   }
 
-  // Handle endpoint targeting (weather/main)
-  if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
-    return {
-      type: 'endpoint',
-      feature,
-      endpoint,
-      description: `endpoint ${feature}/${endpoint}`,
-      path: `src/api/${feature}/${endpoint}`,
-    };
-  }
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
 
-  // Handle feature targeting (weather)
-  return {
-    type: 'feature',
-    feature: target,
-    description: `feature ${target}`,
-    path: `src/api/${target}`,
-  };
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        description: `endpoint ${appname}/${version}/${feature}/${endpoint}`,
+        path: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+        fullPath: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        description: `feature ${appname}/${version}/${feature}`,
+        path: `src/api/${appname}/${version}/${feature}`,
+        fullPath: `src/api/${appname}/${version}/${feature}`,
+      };
+    }
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
 }
 
 /**
@@ -175,7 +205,7 @@ function parseTarget(target) {
  * @llm-rule NOTE: Provides clear error messages for missing targets
  */
 async function validateTargetExists(targetInfo) {
-  const featuresPath = join(process.cwd(), 'src', 'api');
+  const apiPath = join(process.cwd(), 'src', 'api');
 
   try {
     if (targetInfo.type === 'file') {
@@ -183,13 +213,15 @@ async function validateTargetExists(targetInfo) {
       await stat(filePath);
     } else if (targetInfo.type === 'endpoint') {
       const endpointPath = join(
-        featuresPath,
+        apiPath,
+        targetInfo.appname,
+        targetInfo.version,
         targetInfo.feature,
         targetInfo.endpoint
       );
       await stat(endpointPath);
     } else if (targetInfo.type === 'feature') {
-      const featurePath = join(featuresPath, targetInfo.feature);
+      const featurePath = join(apiPath, targetInfo.appname, targetInfo.version, targetInfo.feature);
       await stat(featurePath);
     }
     return true;
@@ -215,7 +247,8 @@ async function validateAllFeatures() {
     for (const feature of features) {
       if (feature.startsWith('_') || feature.startsWith('.')) continue;
 
-      const featureResults = await validateFeature(feature);
+      // TODO: Update for multi-app support
+      const featureResults = await validateFeature('flux', 'v1', feature);
       results.push(...featureResults);
     }
   } catch (error) {
@@ -235,9 +268,9 @@ async function validateAllFeatures() {
  * @llm-rule AVOID: Processing non-endpoint files as endpoints
  * @llm-rule NOTE: Skips requirements.yml and other configuration files
  */
-async function validateFeature(featureName) {
+async function validateFeature(appname, version, featureName) {
   const results = [];
-  const featurePath = join(process.cwd(), 'src', 'api', featureName);
+  const featurePath = join(process.cwd(), 'src', 'api', appname, version, featureName);
 
   try {
     const items = await readdir(featurePath);
@@ -250,7 +283,7 @@ async function validateFeature(featureName) {
       const itemStat = await stat(itemPath);
 
       if (itemStat.isDirectory()) {
-        const endpointResult = await validateEndpoint(featureName, item);
+        const endpointResult = await validateEndpoint(appname, version, featureName, item);
         results.push(endpointResult);
       }
     }
@@ -271,7 +304,7 @@ async function validateFeature(featureName) {
  * @llm-rule AVOID: Skipping validation steps - all are required for reliability
  * @llm-rule NOTE: Validates routes, imports, tests, and VoilaJSX patterns
  */
-async function validateEndpoint(featureName, endpointName) {
+async function validateEndpoint(appname, version, featureName, endpointName) {
   const result = {
     valid: true,
     feature: featureName,
@@ -287,6 +320,8 @@ async function validateEndpoint(featureName, endpointName) {
     process.cwd(),
     'src',
     'api',
+    appname,
+    version,
     featureName,
     endpointName
   );

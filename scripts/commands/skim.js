@@ -15,33 +15,33 @@ import { createLogger } from '../logger.js';
 const log = createLogger('skim');
 
 /**
- * Parse skim arguments with unified file-path syntax
- * @llm-rule WHEN: Processing skim command arguments with file-path support
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports file-path, endpoint, and feature syntax
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
  */
 function parseSkimTarget(args) {
   if (args.length === 0) {
     throw new Error(
-      'Skim requires: file path (hello/main.contract.ts), endpoint (hello/main), OR feature (hello)'
+      'Skim requires: {app}/{version}/{feature}/{endpoint} format (e.g., greeting/v1/hello/main)'
     );
   }
 
   const target = args[0];
+  const pathParts = target.split('/');
 
-  // Handle file-path syntax (hello/main.contract.ts)
+  // Handle file-path syntax (greeting/v1/hello/main.contract.ts)
   if (target.includes('.') && target.includes('/')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
+    
+    const pathPartParts = pathPart.split('/');
+    if (pathPartParts.length < 3) {
+      throw new Error(`Invalid file path format: ${target}. Expected: {app}/{version}/{feature}/{endpoint}/{file}`);
+    }
 
-    // Parse the file part to get endpoint name
-    // main.contract.ts -> main
-    const fileNameParts = filePart.split('.');
-    const endpoint = fileNameParts[0];
-
-    // For simple paths like "weather/main.contract.ts", pathPart is "weather"
-    const feature = pathPart;
+    const endpoint = filePart.split('.')[0];
 
     // Determine type from filename
     let type = 'endpoint'; // default
@@ -50,52 +50,52 @@ function parseSkimTarget(args) {
     } else if (filePart.includes('.logic.')) {
       type = 'logic';
     } else if (filePart.includes('.test.')) {
-      type = 'test'; // ← CHANGED: Now properly handles test files
+      type = 'test';
     }
 
     return {
       type,
-      feature,
-      endpoint,
+      appname: pathPartParts[0],
+      version: pathPartParts[1],
+      feature: pathPartParts[2],
+      endpoint: pathPartParts[3] || endpoint,
       filePath: target,
-      description: `${type} ${feature}/${endpoint} (from ${filePart})`,
+      description: `${type} ${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint} (from ${filePart})`,
     };
   }
 
-  // Handle endpoint syntax (weather/main)
-  if (target.includes('/') && !target.includes('.')) {
-    const [feature, endpoint] = target.split('/');
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
 
-    if (!feature || !endpoint) {
-      throw new Error(
-        'Both feature and endpoint required (e.g., hello/main, auth/login)'
-      );
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        filePath: null,
+        description: `endpoint ${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        endpoint: null,
+        filePath: null,
+        description: `feature ${appname}/${version}/${feature}`,
+      };
     }
-
-    return {
-      type: 'endpoint',
-      feature,
-      endpoint,
-      filePath: null,
-      description: `endpoint ${feature}/${endpoint}`,
-    };
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
   }
-
-  // Handle feature syntax (weather) - NEW
-  if (!target.includes('/') && !target.includes('.')) {
-    return {
-      type: 'feature',
-      feature: target,
-      endpoint: null,
-      filePath: null,
-      description: `feature ${target}`,
-    };
-  }
-
-  // Invalid arguments
-  throw new Error(
-    'Skim requires: file path (hello/main.contract.ts), endpoint (hello/main), OR feature (hello)'
-  );
 }
 
 /**
@@ -127,20 +127,20 @@ export default async function skim(args) {
 
     if (scope.type === 'contract') {
       results.push(
-        ...(await skimContract(scope.feature, scope.endpoint, scope.filePath))
+        ...(await skimContract(scope.appname, scope.version, scope.feature, scope.endpoint, scope.filePath))
       );
     } else if (scope.type === 'logic') {
       results.push(
-        ...(await skimLogic(scope.feature, scope.endpoint, scope.filePath))
+        ...(await skimLogic(scope.appname, scope.version, scope.feature, scope.endpoint, scope.filePath))
       );
     } else if (scope.type === 'test') {
       results.push(
-        ...(await skimTest(scope.feature, scope.endpoint, scope.filePath))
+        ...(await skimTest(scope.appname, scope.version, scope.feature, scope.endpoint, scope.filePath))
       );
     } else if (scope.type === 'endpoint') {
-      results.push(...(await skimEndpoint(scope.feature, scope.endpoint)));
+      results.push(...(await skimEndpoint(scope.appname, scope.version, scope.feature, scope.endpoint)));
     } else if (scope.type === 'feature') {
-      results.push(...(await skimFeature(scope.feature)));
+      results.push(...(await skimFeature(scope.appname, scope.version, scope.feature)));
     }
 
     // Report results with detailed breakdown
@@ -199,12 +199,14 @@ export default async function skim(args) {
  * @llm-rule AVOID: Heavy validation - focus on structure and syntax
  * @llm-rule NOTE: Uses correct syntax for each command type
  */
-async function skimContract(feature, endpoint, filePath) {
+async function skimContract(appname, version, feature, endpoint, filePath) {
   const results = [];
   const contractFile = join(
     process.cwd(),
     'src',
     'api',
+    appname,
+    version,
     feature,
     endpoint,
     `${endpoint}.contract.ts`
@@ -224,17 +226,17 @@ async function skimContract(feature, endpoint, filePath) {
   }
 
   // 1. Schema validation - use specific contract file path for schema command
-  const schemaTarget = filePath || `${feature}/${endpoint}.contract.ts`;
+  const schemaTarget = filePath || `${appname}/${version}/${feature}/${endpoint}.contract.ts`;
   results.push(await runCommand('schema', schemaTarget, 'Schema validation'));
 
   // 2. Types validation - use specific file targeting
-  const typesTarget = filePath || `${feature}/${endpoint}.contract.ts`;
+  const typesTarget = filePath || `${appname}/${version}/${feature}/${endpoint}.contract.ts`;
   results.push(
     await runCommand('types', typesTarget, 'TypeScript compilation')
   );
 
   // 3. Lint validation - use specific file targeting
-  const lintTarget = filePath || `${feature}/${endpoint}.contract.ts`;
+  const lintTarget = filePath || `${appname}/${version}/${feature}/${endpoint}.contract.ts`;
   results.push(await runCommand('lint', lintTarget, 'Code standards'));
 
   return results;
@@ -246,12 +248,14 @@ async function skimContract(feature, endpoint, filePath) {
  * @llm-rule AVOID: Schema validation for logic files - not applicable
  * @llm-rule NOTE: Logic files don't have schema, only types and lint with file-path syntax
  */
-async function skimLogic(feature, endpoint, filePath) {
+async function skimLogic(appname, version, feature, endpoint, filePath) {
   const results = [];
   const logicFile = join(
     process.cwd(),
     'src',
     'api',
+    appname,
+    version,
     feature,
     endpoint,
     `${endpoint}.logic.ts`
@@ -271,7 +275,7 @@ async function skimLogic(feature, endpoint, filePath) {
   }
 
   // Use file path if provided, otherwise construct it
-  const targetPath = filePath || `${feature}/${endpoint}.logic.ts`;
+  const targetPath = filePath || `${appname}/${version}/${feature}/${endpoint}.logic.ts`;
 
   // 1. Types validation - use specific file targeting
   results.push(await runCommand('types', targetPath, 'TypeScript compilation'));
@@ -288,12 +292,14 @@ async function skimLogic(feature, endpoint, filePath) {
  * @llm-rule AVOID: Schema validation for test files - not applicable
  * @llm-rule NOTE: Test files get types, lint, and actual test execution
  */
-async function skimTest(feature, endpoint, filePath) {
+async function skimTest(appname, version, feature, endpoint, filePath) {
   const results = [];
   const testFile = join(
     process.cwd(),
     'src',
     'api',
+    appname,
+    version,
     feature,
     endpoint,
     `${endpoint}.test.ts`
@@ -313,20 +319,20 @@ async function skimTest(feature, endpoint, filePath) {
   }
 
   // Use file path if provided, otherwise construct it
-  const targetPath = filePath || `${feature}/${endpoint}`;
+  const targetPath = filePath || `${appname}/${version}/${feature}/${endpoint}`;
 
   // 1. Types validation - use specific file targeting
   results.push(
     await runCommand(
       'types',
-      `${feature}/${endpoint}.test.ts`,
+      `${appname}/${version}/${feature}/${endpoint}.test.ts`,
       'TypeScript compilation'
     )
   );
 
   // 2. Lint validation - use specific file targeting
   results.push(
-    await runCommand('lint', `${feature}/${endpoint}.test.ts`, 'Code standards')
+    await runCommand('lint', `${appname}/${version}/${feature}/${endpoint}.test.ts`, 'Code standards')
   );
 
   // 3. Test execution - use endpoint targeting
@@ -341,18 +347,20 @@ async function skimTest(feature, endpoint, filePath) {
  * @llm-rule AVOID: Heavy validation - focus on quick feedback
  * @llm-rule NOTE: Validates all endpoints and tests in the feature efficiently
  */
-async function skimFeature(feature) {
+async function skimFeature(appname, version, feature) {
   const results = [];
 
+  const featurePath = `${appname}/${version}/${feature}`;
+
   // Use feature-level commands for efficiency
-  results.push(await runCommand('schema', feature, 'Schema validation'));
+  results.push(await runCommand('schema', featurePath, 'Schema validation'));
 
-  results.push(await runCommand('types', feature, 'TypeScript compilation'));
+  results.push(await runCommand('types', featurePath, 'TypeScript compilation'));
 
-  results.push(await runCommand('lint', feature, 'Code standards'));
+  results.push(await runCommand('lint', featurePath, 'Code standards'));
 
   // ← ADDED: Test validation for entire feature
-  results.push(await runCommand('test', feature, 'Test execution'));
+  results.push(await runCommand('test', featurePath, 'Test execution'));
 
   return results;
 }
@@ -363,19 +371,19 @@ async function skimFeature(feature) {
  * @llm-rule AVOID: Duplicating validation logic - reuse contract and logic functions
  * @llm-rule NOTE: Combines contract, logic, and test validation results
  */
-async function skimEndpoint(feature, endpoint) {
+async function skimEndpoint(appname, version, feature, endpoint) {
   const results = [];
 
   // Validate contract
-  const contractResults = await skimContract(feature, endpoint, null);
+  const contractResults = await skimContract(appname, version, feature, endpoint, null);
   results.push(...contractResults);
 
   // Validate logic
-  const logicResults = await skimLogic(feature, endpoint, null);
+  const logicResults = await skimLogic(appname, version, feature, endpoint, null);
   results.push(...logicResults);
 
   // ← ADDED: Validate tests
-  const testResults = await skimTest(feature, endpoint, null);
+  const testResults = await skimTest(appname, version, feature, endpoint, null);
   results.push(...testResults);
 
   return results;

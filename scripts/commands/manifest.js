@@ -15,6 +15,54 @@ import { createLogger } from '../logger.js';
 const log = createLogger('manifest');
 
 /**
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
+ */
+function parseTarget(target) {
+  if (!target) {
+    return { type: 'all', description: 'all apps and features' };
+  }
+
+  const pathParts = target.split('/');
+
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
+
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        description: `${appname}/${version}/${feature}/${endpoint} endpoint`,
+        path: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+        fullPath: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        description: `${appname}/${version}/${feature} feature`,
+        path: `src/api/${appname}/${version}/${feature}`,
+        fullPath: `src/api/${appname}/${version}/${feature}`,
+      };
+    }
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
+}
+
+/**
  * Contract-focused manifest generation command with universal app support
  * @llm-rule WHEN: Ensuring contracts are properly followed and endpoints meet specification requirements
  * @llm-rule AVOID: Hardcoded validation logic - read from specification.json for flexibility
@@ -23,13 +71,14 @@ const log = createLogger('manifest');
 export default async function manifest(args) {
   const startTime = Date.now();
   const target = args[0];
+  const targetInfo = parseTarget(target);
 
   try {
     log.human(`🔍 FLUX: manifest validation starting...`);
 
     // 1. Load specifications
     log.human('📋 Specification loading...');
-    const specifications = await loadSpecifications(target);
+    const specifications = await loadSpecifications(targetInfo);
 
     if (specifications.length === 0) {
       log.human('❌ Specification loading failed - no specifications found');
@@ -42,7 +91,7 @@ export default async function manifest(args) {
 
     // 2. Validate contracts and analyze implementations
     log.human('📋 Contract validation...');
-    const validationResults = await validateEndpoints(specifications, target);
+    const validationResults = await validateEndpoints(specifications, targetInfo);
 
     log.human(
       `✅ Contract validation passed (${validationResults.length} endpoints)`
@@ -75,37 +124,47 @@ export default async function manifest(args) {
  * @llm-rule AVOID: Hardcoding feature names - discover dynamically from filesystem
  * @llm-rule NOTE: Filters by target scope (all, feature, or endpoint)
  */
-async function loadSpecifications(target) {
+async function loadSpecifications(targetInfo) {
   const specifications = [];
-  const featuresPath = join(process.cwd(), 'src', 'api');
+  const apiPath = join(process.cwd(), 'src', 'api');
 
   try {
-    // Determine features to load
+    // Determine features to load based on multi-app structure
     let featuresToLoad;
-    if (!target) {
-      // Load all features
-      const allFeatures = await readdir(featuresPath);
-      featuresToLoad = allFeatures.filter(
-        (f) => !f.startsWith('_') && !f.startsWith('.')
-      );
+    if (targetInfo.type === 'all') {
+      // TODO: For now, default to flux/v1 for 'all' - multi-app discovery can be added later
+      const fluxPath = join(apiPath, 'flux', 'v1');
+      try {
+        const allFeatures = await readdir(fluxPath);
+        featuresToLoad = allFeatures
+          .filter((f) => !f.startsWith('_') && !f.startsWith('.'))
+          .map(feature => ({ appname: 'flux', version: 'v1', feature }));
+      } catch {
+        featuresToLoad = [];
+      }
     } else {
       // Load specific feature only
-      const featureName = target.split('/')[0];
-      featuresToLoad = [featureName];
+      featuresToLoad = [{ 
+        appname: targetInfo.appname, 
+        version: targetInfo.version, 
+        feature: targetInfo.feature 
+      }];
     }
 
     // Load each feature specification
-    for (const feature of featuresToLoad) {
+    for (const { appname, version, feature } of featuresToLoad) {
       try {
         const specPath = join(
-          featuresPath,
+          apiPath,
+          appname,
+          version,
           feature,
           `${feature}.specification.json`
         );
         const specContent = await readFile(specPath, 'utf-8');
         const spec = JSON.parse(specContent);
 
-        specifications.push({ feature, spec });
+        specifications.push({ appname, version, feature, spec });
       } catch (error) {
         // Skip features without specification files
         continue;
@@ -124,23 +183,28 @@ async function loadSpecifications(target) {
  * @llm-rule AVOID: eval() for parsing - use safe regex extraction patterns
  * @llm-rule NOTE: Uses existing FLUX patterns from contract.js for safe parsing
  */
-async function validateEndpoints(specifications, target) {
+async function validateEndpoints(specifications, targetInfo) {
   const results = [];
 
-  for (const { feature, spec } of specifications) {
+  for (const { appname, version, feature, spec } of specifications) {
     const endpoints = spec.endpoints || {};
 
     for (const [endpointName, endpointSpec] of Object.entries(endpoints)) {
       // Skip if not in target scope
-      if (target && target.includes('/')) {
-        const [targetFeature, targetEndpoint] = target.split('/');
-        if (feature !== targetFeature || endpointName !== targetEndpoint) {
+      if (targetInfo.type === 'endpoint') {
+        if (feature !== targetInfo.feature || endpointName !== targetInfo.endpoint) {
+          continue;
+        }
+      } else if (targetInfo.type === 'feature') {
+        if (feature !== targetInfo.feature) {
           continue;
         }
       }
 
       try {
         const endpointResult = await validateSingleEndpoint(
+          appname,
+          version,
           feature,
           endpointName,
           endpointSpec,
@@ -190,12 +254,16 @@ async function validateEndpoints(specifications, target) {
  * @llm-rule NOTE: Based on contract.js validation patterns but focused on manifest data
  */
 async function validateSingleEndpoint(
+  appname,
+  version,
   feature,
   endpointName,
   endpointSpec,
   fullSpec
 ) {
   const result = {
+    appname,
+    version,
     feature,
     endpoint: endpointName,
     route: endpointSpec.route,
@@ -207,6 +275,8 @@ async function validateSingleEndpoint(
   // 1. Validate contract file
   const contractValidation = await validateContractFile(
     endpointSpec,
+    appname,
+    version,
     feature,
     endpointName,
     fullSpec
@@ -693,7 +763,7 @@ async function generateManifestFiles(validationResults) {
       await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
       generated++;
-      if (manifest.developer_gate.can_deploy) deploymentReady++;
+      if (manifest.active) deploymentReady++;
     } catch (error) {
       console.log(
         `⚠️ Failed to generate manifest for ${result.feature}/${result.endpoint}: ${error.message}`
@@ -763,11 +833,6 @@ function buildManifestObject(result) {
     blocking_issues: result.blocking_issues,
     warnings: result.warnings || [],
 
-    developer_gate: {
-      can_deploy: result.blocking_issues.length === 0,
-      can_merge: result.blocking_issues.length === 0,
-      blocking_count: result.blocking_issues.length,
-    },
 
     quick_status: {
       contract:

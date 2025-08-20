@@ -18,59 +18,80 @@ const execAsync = promisify(exec);
 const log = createLogger('test');
 
 /**
- * Parse target argument with unified file-path syntax support
- * @llm-rule WHEN: Processing command arguments to determine scope
- * @llm-rule AVOID: Complex parsing - keep simple and predictable
- * @llm-rule NOTE: Supports feature, endpoint, and specific file targeting
+ * Parse target path to extract app, version, feature, and endpoint components
+ * @llm-rule WHEN: Processing command arguments to support multi-app architecture
+ * @llm-rule AVOID: Legacy path support - enforce multi-app format only
+ * @llm-rule NOTE: Follows patterns documented in docs/FLUX_COMMANDS.md
  */
 function parseTarget(target) {
   if (!target) {
-    return { type: 'all', description: 'all features' };
+    return { type: 'all', description: 'all apps and features' };
   }
 
-  // Handle specific file targeting (hello/main.test.ts)
+  const pathParts = target.split('/');
+
+  // Handle specific file targeting (greeting/v1/hello/main.test.ts)
   if (target.includes('.') && target.includes('/')) {
     const lastSlash = target.lastIndexOf('/');
     const pathPart = target.slice(0, lastSlash);
     const filePart = target.slice(lastSlash + 1);
+    
+    const pathPartParts = pathPart.split('/');
+    if (pathPartParts.length < 3) {
+      throw new Error(`Invalid file path format: ${target}. Expected: {app}/{version}/{feature}/{endpoint}/{file}`);
+    }
 
     // Parse the file part to get endpoint name
     // main.test.ts -> main
     const fileNameParts = filePart.split('.');
     const endpoint = fileNameParts[0];
 
-    // For simple paths like "weather/main.test.ts", pathPart is "weather"
-    const feature = pathPart;
-
     return {
       type: 'file',
-      feature,
-      endpoint,
+      appname: pathPartParts[0],
+      version: pathPartParts[1],
+      feature: pathPartParts[2],
+      endpoint: pathPartParts[3] || endpoint,
       fileName: filePart,
       description: `specific file ${filePart}`,
       path: target,
+      fullPath: `src/api/${pathPartParts[0]}/${pathPartParts[1]}/${pathPartParts[2]}/${pathPartParts[3] || endpoint}/${filePart}`,
     };
   }
 
-  // Handle endpoint targeting (hello/main)
-  if (target.includes('/')) {
-    const [feature, endpoint] = target.split('/');
-    return {
-      type: 'endpoint',
-      feature,
-      endpoint,
-      description: `${feature}/${endpoint} endpoint`,
-      path: `src/api/${feature}/${endpoint}`,
-    };
-  }
+  if (pathParts.length >= 3) {
+    // Multi-app format: {app}/{version}/{feature}/{endpoint}
+    const appname = pathParts[0];
+    const version = pathParts[1];
+    const feature = pathParts[2];
+    const endpoint = pathParts[3] || null;
 
-  // Handle feature targeting (hello)
-  return {
-    type: 'feature',
-    feature: target,
-    description: `${target} feature`,
-    path: `src/api/${target}`,
-  };
+    if (endpoint) {
+      return {
+        type: 'endpoint',
+        appname,
+        version,
+        feature,
+        endpoint,
+        description: `${appname}/${version}/${feature}/${endpoint} endpoint`,
+        path: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+        fullPath: `src/api/${appname}/${version}/${feature}/${endpoint}`,
+      };
+    } else {
+      return {
+        type: 'feature',
+        appname,
+        version,
+        feature,
+        description: `${appname}/${version}/${feature} feature`,
+        path: `src/api/${appname}/${version}/${feature}`,
+        fullPath: `src/api/${appname}/${version}/${feature}`,
+      };
+    }
+  } else {
+    // Invalid format - require full app/version/feature path
+    throw new Error(`Invalid path format: ${target}. Expected: {app}/{version}/{feature} or {app}/{version}/{feature}/{endpoint}`);
+  }
 }
 
 /**
@@ -87,7 +108,7 @@ export default async function test(args) {
   try {
     // Validate target exists if specified
     if (targetInfo.type !== 'all') {
-      const featuresPath = join(process.cwd(), 'src', 'api');
+      const apiPath = join(process.cwd(), 'src', 'api');
 
       if (targetInfo.type === 'file') {
         // Validate specific file exists
@@ -95,6 +116,8 @@ export default async function test(args) {
           process.cwd(),
           'src',
           'api',
+          targetInfo.appname,
+          targetInfo.version,
           targetInfo.feature,
           targetInfo.endpoint,
           targetInfo.fileName
@@ -103,32 +126,30 @@ export default async function test(args) {
           await stat(filePath);
         } catch (error) {
           log.human(
-            `❌ Test file '${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
+            `❌ Test file '${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}' not found`
           );
           return false;
         }
       } else if (targetInfo.type === 'endpoint') {
         // Validate endpoint exists
-        const featurePath = join(featuresPath, targetInfo.feature);
-        const endpointPath = join(featurePath, targetInfo.endpoint);
+        const endpointPath = join(apiPath, targetInfo.appname, targetInfo.version, targetInfo.feature, targetInfo.endpoint);
 
         try {
-          await stat(featurePath);
           await stat(endpointPath);
         } catch (error) {
           log.human(
-            `❌ Endpoint '${targetInfo.feature}/${targetInfo.endpoint}' not found`
+            `❌ Endpoint '${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}' not found`
           );
           return false;
         }
       } else if (targetInfo.type === 'feature') {
         // Validate feature exists
-        const featurePath = join(featuresPath, targetInfo.feature);
+        const featurePath = join(apiPath, targetInfo.appname, targetInfo.version, targetInfo.feature);
 
         try {
           await stat(featurePath);
         } catch (error) {
-          log.human(`❌ Feature '${targetInfo.feature}' not found`);
+          log.human(`❌ Feature '${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}' not found`);
           return false;
         }
       }
@@ -200,6 +221,8 @@ async function validateTestStructure(targetInfo) {
       // Check endpoint test file
       const testFile = join(
         featuresPath,
+        targetInfo.appname,
+        targetInfo.version,
         targetInfo.feature,
         targetInfo.endpoint,
         `${targetInfo.endpoint}.test.ts`
@@ -211,12 +234,12 @@ async function validateTestStructure(targetInfo) {
         filesFound = 1;
       } catch {
         errors.push(
-          `Test file not found: ${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`
+          `Test file not found: ${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`
         );
       }
     } else if (targetInfo.type === 'feature') {
       // Check all endpoints in feature
-      const featurePath = join(featuresPath, targetInfo.feature);
+      const featurePath = join(featuresPath, targetInfo.appname, targetInfo.version, targetInfo.feature);
       const items = await readdir(featurePath);
 
       for (const item of items) {
@@ -239,7 +262,7 @@ async function validateTestStructure(targetInfo) {
             filesFound++;
           } catch {
             errors.push(
-              `Test file not found: ${targetInfo.feature}/${item}/${item}.test.ts`
+              `Test file not found: ${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${item}/${item}.test.ts`
             );
           }
         }
@@ -315,13 +338,13 @@ async function executeTests(targetInfo) {
 
     if (targetInfo.type === 'file') {
       // Test specific file
-      testCommand += ` src/api/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
+      testCommand += ` src/api/${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.fileName}`;
     } else if (targetInfo.type === 'endpoint') {
       // Test specific endpoint
-      testCommand += ` src/api/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`;
+      testCommand += ` src/api/${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}/${targetInfo.endpoint}/${targetInfo.endpoint}.test.ts`;
     } else if (targetInfo.type === 'feature') {
       // Test specific feature
-      testCommand += ` src/api/${targetInfo.feature}`;
+      testCommand += ` src/api/${targetInfo.appname}/${targetInfo.version}/${targetInfo.feature}`;
     }
     // For 'all', no additional path needed
 
